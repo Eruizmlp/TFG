@@ -1,3 +1,0 @@
-[submodule "libraries/wgpuEngine"]
-	path = libraries/wgpuEngine
-	url = https://github.com/upf-gti/wgpuEngine.git
