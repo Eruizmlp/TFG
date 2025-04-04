@@ -4,6 +4,7 @@
 #include "framework/parsers/parse_gltf.h"
 //#include "framework/parsers/parse_obj.h"
 #include "framework/input.h"
+#include "framework/ui/io.h"
 
 #include "graphics/sample_renderer.h"
 #include "graphics/renderer_storage.h"
@@ -15,9 +16,81 @@
 
 #include "spdlog/spdlog.h"
 
+#include "../graph/graph.h"
+#include "../graph/print_node.h"
+#include "../graph/sequence_node.h"
+#include "../graph/start_node.h"
+#include "../graph/event_node.h"
+#include "../graph/graph_button_2d.h"
+#include <graph/graph_node3D.h>
+#include <graph/rotate_node.h>
+#include "framework/nodes/panel_2d.h"
+#include <backends/imgui_impl_glfw.h>
+#include "framework/utils/ImGuizmo.h"
+
+
 int SampleEngine::initialize(Renderer* renderer, sEngineConfiguration configuration)
 {
 	return Engine::initialize(renderer, configuration);
+}
+
+void SampleEngine::setupGraphUI() {
+    if (!main_scene) {
+        std::cerr << "Cannot create UI - no main scene\n";
+        return;
+    }
+
+    // Create UI panel
+    ui::Panel2D* ui_panel = new ui::Panel2D("GraphPanel", glm::vec2(20, 20), glm::vec2(250, 120), 0u, colors::GRAY);
+    main_scene->add_node(ui_panel);
+
+    // Setup execute button
+    ui::sButtonDescription buttonDesc;
+    buttonDesc.label = "Run Graph";
+    buttonDesc.size = glm::vec2(200, 50);
+    buttonDesc.color = colors::WHITE;
+    buttonDesc.position = glm::vec2(25, 35);
+
+    // Find event graph
+    GraphSystem::Graph* eventGraph = nullptr;
+    for (auto graph : graphManager.getGraphs()) {
+        if (!graph->isTickGraph()) {
+            eventGraph = graph;
+            break;
+        }
+    }
+
+    if (eventGraph) {
+        GraphSystem::GraphButton2D* executeBtn = new GraphSystem::GraphButton2D("ExecuteBtn", buttonDesc, eventGraph);
+        ui_panel->add_child(executeBtn);
+    }
+}
+
+void buildPipeline(GraphSystem::Graph& graph) {
+    // Create and register nodes
+    auto* eventNode = new GraphSystem::EventNode("ButtonEvent");
+    graph.addNode(eventNode);  // Explicitly add to graph first
+
+    auto* sequenceNode = new GraphSystem::SequenceNode("MainSequence", 2);
+    auto* printA = new GraphSystem::PrintNode("DebugPrintA");
+    auto* printB = new GraphSystem::PrintNode("DebugPrintB");
+
+    // Add remaining nodes to graph
+    graph.addNode(sequenceNode);
+    graph.addNode(printA);
+    graph.addNode(printB);
+
+    // Set messages
+    printA->getInput("Message")->setData<std::string>("Hello from Node A");
+    printB->getInput("Message")->setData<std::string>("Hello from Node B");
+
+    // Connect nodes
+    graph.connect(eventNode, "Execution", sequenceNode, "Execute");
+    graph.connect(sequenceNode, "Step1", printA, "Execute");
+    graph.connect(sequenceNode, "Step2", printB, "Execute");
+
+    // Mark as entry point
+    eventNode->setEntryPoint(true);
 }
 
 int SampleEngine::post_initialize()
@@ -65,8 +138,103 @@ int SampleEngine::post_initialize()
         main_scene->add_node(grid);
     }
 
+
+    //Setup Graph UI
+    GraphSystem::Graph* eventGraph = graphManager.createGraph("MainGraph", false);
+    buildPipeline(*eventGraph);
+    setupGraphUI();
+
+    // Create test box
+    MeshInstance3D* testBox = new MeshInstance3D();
+    testBox->set_name("TestBox");
+    testBox->set_position(glm::vec3(0.0f, 1.0f, 0.0f));
+    testBox->scale(glm::vec3(1.0f));
+
+    // Get surface and validate
+    Surface* boxSurface = RendererStorage::get_surface("box");
+    testBox->add_surface(boxSurface);
+
+    // Create material for the box
+    Material* box_mat = new Material();
+    box_mat->set_transparency_type(ALPHA_OPAQUE);
+    box_mat->set_cull_type(CULL_BACK);
+    box_mat->set_type(MATERIAL_PBR);
+    box_mat->set_color(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+
+    // Get shader
+    Shader* boxShader = RendererStorage::get_shader_from_source(
+        shaders::mesh_forward::source,
+        shaders::mesh_forward::path,
+        shaders::mesh_forward::libraries,
+        box_mat
+    );
+    box_mat->set_shader(boxShader);
+    testBox->set_surface_material_override(testBox->get_surface(0), box_mat);
+
+    main_scene->add_node(testBox);
+
+    // Create and setup graph nodes
+    GraphNode3D* boxNode = new GraphNode3D("BoxNode", eventGraph);
+    boxNode->setTransform(testBox->get_transform());
+    eventGraph->addNode(boxNode);
+
+    GraphSystem::RotateNode* rotator = new GraphSystem::RotateNode("BoxRotator", 30.0f, glm::vec3(0, 1, 0));
+    rotator->setTarget(testBox);
+    eventGraph->addNode(rotator);
+
+    // Connect the rotator to the box node
+    if (!eventGraph->connect(rotator, "Transform", boxNode, "Transform")) {
+        std::cerr << "Failed to connect RotateNode to BoxNode\n";
+    }
+
+    // Make sure the rotation is enabled by default
+    rotator->setExecutionPending(true);
+
     return 0u;
 }
+
+void SampleEngine::on_frame() {
+    renderer->process_events();
+
+    if (!renderer->is_initialized()) {
+        if (renderer->initialize()) {
+            renderer->post_initialize();
+            init_imgui(renderer->get_glfw_window());
+            renderer->set_camera_type(configuration.camera_type);
+            post_initialize();
+#ifdef __EMSCRIPTEN__
+            on_engine_initialized();
+#endif
+            renderer->submit_global_command_encoder();
+        }
+        return;
+    }
+
+    // Update timing
+    double last_time = current_time;
+    current_time = glfwGetTime();
+    delta_time = static_cast<float>((current_time - last_time));
+
+    // Update systems
+    Input::update(delta_time);
+    IO::start_frame();
+    update(delta_time);
+    IO::update(delta_time);
+
+    // Render frame
+    ImGui_ImplWGPU_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    ImGuizmo::SetOrthographic(false);
+    ImGuizmo::BeginFrame();
+    render();
+
+    // Cleanup frame
+    Input::set_mouse_wheel(0.0f, 0.0f);
+    Input::set_prev_state();
+    IO::end_frame();
+}
+
 
 void SampleEngine::clean()
 {
