@@ -8,7 +8,7 @@ namespace GraphSystem {
     class EventNode : public GraphNode {
     public:
         explicit EventNode(const std::string& name);
-        virtual ~EventNode() override;  // Declaration
+        virtual ~EventNode() override;  
 
         void execute() override;
         const std::string& getEventName() const { return eventName; }
@@ -18,4 +18,4 @@ namespace GraphSystem {
         Output* execOutput;
     };
 
-} // namespace GraphSystem
+} 

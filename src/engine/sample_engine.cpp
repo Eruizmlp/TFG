@@ -139,10 +139,15 @@ int SampleEngine::post_initialize()
     }
 
 
-    //Setup Graph UI
+    //Setup Graph EventNode and SequenceNode. 
     GraphSystem::Graph* eventGraph = graphManager.createGraph("MainGraph", false);
-    buildPipeline(*eventGraph);
-    setupGraphUI();
+    auto* eventNode = new GraphSystem::EventNode("ButtonEvent");
+    eventGraph->addNode(eventNode);
+    auto* sequenceNode = new GraphSystem::SequenceNode("MainSequence", 1);
+    eventGraph->addNode(sequenceNode);
+
+    // buildPipeline(*eventGraph);
+    
 
     // Create test box
     MeshInstance3D* testBox = new MeshInstance3D();
@@ -187,52 +192,22 @@ int SampleEngine::post_initialize()
         std::cerr << "Failed to connect RotateNode to BoxNode\n";
     }
 
-    // Make sure the rotation is enabled by default
     rotator->setExecutionPending(true);
+ 
+
+    // Connect nodes
+    eventGraph->connect(eventNode, "Execution", sequenceNode, "Execute");
+    eventGraph->connect(sequenceNode, "Step1", rotator);
+    
+    eventNode->setExecutionPending(true);
+
+    setupGraphUI();
 
     return 0u;
 }
 
 void SampleEngine::on_frame() {
-    renderer->process_events();
-
-    if (!renderer->is_initialized()) {
-        if (renderer->initialize()) {
-            renderer->post_initialize();
-            init_imgui(renderer->get_glfw_window());
-            renderer->set_camera_type(configuration.camera_type);
-            post_initialize();
-#ifdef __EMSCRIPTEN__
-            on_engine_initialized();
-#endif
-            renderer->submit_global_command_encoder();
-        }
-        return;
-    }
-
-    // Update timing
-    double last_time = current_time;
-    current_time = glfwGetTime();
-    delta_time = static_cast<float>((current_time - last_time));
-
-    // Update systems
-    Input::update(delta_time);
-    IO::start_frame();
-    update(delta_time);
-    IO::update(delta_time);
-
-    // Render frame
-    ImGui_ImplWGPU_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-    ImGuizmo::SetOrthographic(false);
-    ImGuizmo::BeginFrame();
-    render();
-
-    // Cleanup frame
-    Input::set_mouse_wheel(0.0f, 0.0f);
-    Input::set_prev_state();
-    IO::end_frame();
+    Engine::on_frame();
 }
 
 
