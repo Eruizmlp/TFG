@@ -2,6 +2,7 @@
 
 #include "engine/engine.h"
 #include "graph/graph_manager.h"
+#include "graph/graph_editor.h"
 
 class Node3D;
 
@@ -12,13 +13,14 @@ class SampleEngine : public Engine {
 
 private:
     GraphSystem::GraphManager graphManager;
-
+    
 public:
 
 	int initialize(Renderer* renderer, sEngineConfiguration configuration = {}) override;
     int post_initialize() override;
     void clean() override;
     void setupGraphUI();
+    void setupNodeCreationUI(GraphSystem::GraphEditor* editor);
 
     static SampleEngine* get_sample_instance() { return static_cast<SampleEngine*>(instance); }
 

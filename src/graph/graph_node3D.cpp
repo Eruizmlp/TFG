@@ -71,9 +71,9 @@ void GraphNode3D::execute() {
                 }
             }
             break;
-
+            
         case GraphSystem::IOType::TRANSFORM:
-            // Secondary transform output (uncommon but possible)
+            // Secondary transform output
             try {
                 output->setData<Transform>(currentTransform);
             }

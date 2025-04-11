@@ -16,6 +16,7 @@
 
 #include "spdlog/spdlog.h"
 
+#include "io.h"
 #include "../graph/graph.h"
 #include "../graph/print_node.h"
 #include "../graph/sequence_node.h"
@@ -70,7 +71,7 @@ void buildPipeline(GraphSystem::Graph& graph) {
     // Create and register nodes
     auto* eventNode = new GraphSystem::EventNode("ButtonEvent");
     graph.addNode(eventNode);  // Explicitly add to graph first
-
+        
     auto* sequenceNode = new GraphSystem::SequenceNode("MainSequence", 2);
     auto* printA = new GraphSystem::PrintNode("DebugPrintA");
     auto* printB = new GraphSystem::PrintNode("DebugPrintB");
@@ -92,6 +93,139 @@ void buildPipeline(GraphSystem::Graph& graph) {
     // Mark as entry point
     eventNode->setEntryPoint(true);
 }
+
+
+
+//void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
+//    if (!main_scene || !editor) {
+//        std::cerr << "Cannot create node UI — missing scene or editor\n";
+//        return;
+//    }
+//
+//    // Crear panel flotante
+//    ui::Panel2D* nodePanel = new ui::Panel2D(
+//        "NodeCreationPanel",
+//        glm::vec2(20, 20),          // Tamaño canvas interno
+//        glm::vec2(250, 300),         // Tamaño del panel (aumentado para más botones)
+//        0u,                         // Priority
+//        colors::RED
+//    );
+//
+//    //nodePanel->set_world_position(glm::vec3(0.3f, 1.5f, -1.2f));
+//    nodePanel->set_position(glm::vec3(0.3f, 1.5f, -1.2f));
+//    main_scene->add_node(nodePanel);
+//
+//    // Configuración común para los botones
+//    int yOffset = 20;
+//    auto addCreationButton = [&](const std::string& label, const std::string& nodeType) {
+//        ui::sButtonDescription desc;
+//        desc.label = "Add " + label;
+//        desc.size = glm::vec2(200, 40);
+//        desc.color = colors::WHITE;
+//        desc.position = glm::vec2(25, yOffset);
+//
+//        // Usamos nullptr como graph para que solo cree nodos sin ejecutar
+//        GraphSystem::GraphButton2D* button = new GraphSystem::GraphButton2D(
+//            label + "Btn",
+//            desc,
+//            nullptr,  // No necesita graph aquí
+//            editor,
+//            nodeType
+//        );
+//
+//        nodePanel->add_child(button);
+//        yOffset += 50;
+//        };
+//
+//    // Botones de creación
+//    addCreationButton("PrintNode", "PrintNode");
+//    addCreationButton("RotateNode", "RotateNode");
+//    addCreationButton("SequenceNode", "SequenceNode");
+//    addCreationButton("EventNode", "EventNode");
+//    addCreationButton("GraphNode3D", "GraphNode3D");
+//
+//    // Botón adicional para ejecutar el grafo (opcional)
+//    //if (eventGraph) {
+//    //    ui::sButtonDescription execDesc;
+//    //    execDesc.label = "EXECUTE GRAPH";
+//    //    execDesc.size = glm::vec2(200, 40);
+//    //    execDesc.color = colors::RED;
+//    //    execDesc.position = glm::vec2(25, yOffset);
+//
+//    //    GraphSystem::GraphButton2D* execBtn = new GraphSystem::GraphButton2D(
+//    //        "ExecuteBtn",
+//    //        execDesc,
+//    //        eventGraph,  // Aquí sí pasamos el graph
+//    //        editor      // Editor opcional (no necesario para ejecución)
+//    //    );
+//
+//    //    nodePanel->add_child(execBtn);
+//    //}
+//}
+
+void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
+
+    ui::Panel2D* nodePanel = new ui::Panel2D(
+        "NodeCreationPanel",
+        glm::vec2(20, 20),          // Tamaño canvas interno
+        glm::vec2(250, 300),         // Tamaño del panel (aumentado para más botones)
+        0u,                         // Priority
+        colors::GREEN
+    );
+
+    nodePanel->set_position(glm::vec3(0.0f, 450.0f, 1.0f));
+
+    int yOffset = 20;
+        auto addCreationButton = [&](const std::string& label, const std::string& nodeType) {
+            ui::sButtonDescription desc;
+            desc.label = "Add " + label;
+            desc.size = glm::vec2(200, 40);
+            desc.color = colors::WHITE;
+            desc.position = glm::vec2(25, yOffset);
+    
+            // Usamos nullptr como graph para que solo cree nodos sin ejecutar
+            GraphSystem::GraphButton2D* button = new GraphSystem::GraphButton2D(
+                label + "Btn",
+                desc,
+                nullptr,  // No necesita graph aquí
+                editor,
+                nodeType
+            );
+    
+            nodePanel->add_child(button);
+            yOffset += 50;
+            };
+    
+        // Botones de creación
+        addCreationButton("PrintNode", "PrintNode");
+        addCreationButton("RotateNode", "RotateNode");
+        addCreationButton("SequenceNode", "SequenceNode");
+        addCreationButton("EventNode", "EventNode");
+        addCreationButton("GraphNode3D", "GraphNode3D");
+    
+        // Botón adicional para ejecutar el grafo (opcional)
+        //if (eventGraph) {
+        //    ui::sButtonDescription execDesc;
+        //    execDesc.label = "EXECUTE GRAPH";
+        //    execDesc.size = glm::vec2(200, 40);
+        //    execDesc.color = colors::RED;
+        //    execDesc.position = glm::vec2(25, yOffset);
+    
+        //    GraphSystem::GraphButton2D* execBtn = new GraphSystem::GraphButton2D(
+        //        "ExecuteBtn",
+        //        execDesc,
+        //        eventGraph,  // Aquí sí pasamos el graph
+        //        editor      // Editor opcional (no necesario para ejecución)
+        //    );
+    
+        //    nodePanel->add_child(execBtn);
+        //}
+
+
+    main_scene->add_node(nodePanel);
+
+}
+
 
 int SampleEngine::post_initialize()
 {
@@ -139,8 +273,11 @@ int SampleEngine::post_initialize()
     }
 
 
-    //Setup Graph EventNode and SequenceNode. 
     GraphSystem::Graph* eventGraph = graphManager.createGraph("MainGraph", false);
+
+    auto* editor = new GraphSystem::GraphEditor(eventGraph, main_scene);
+
+
     auto* eventNode = new GraphSystem::EventNode("ButtonEvent");
     eventGraph->addNode(eventNode);
     auto* sequenceNode = new GraphSystem::SequenceNode("MainSequence", 1);
@@ -201,10 +338,15 @@ int SampleEngine::post_initialize()
     
     eventNode->setExecutionPending(true);
 
+
     setupGraphUI();
+    setupNodeCreationUI(editor);
+
 
     return 0u;
 }
+
+
 
 void SampleEngine::on_frame() {
     Engine::on_frame();

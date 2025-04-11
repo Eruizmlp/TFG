@@ -10,7 +10,7 @@ namespace GraphSystem {
 
 class GraphNode3D : public GraphSystem::GraphNode, public Node3D {
 private:
-    GraphSystem::Graph* graph; // Reference to the graph
+    GraphSystem::Graph* graph; 
     GraphSystem::Input* inputTransform;
     GraphSystem::Output* outputTransform; 
     

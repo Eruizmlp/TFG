@@ -29,10 +29,9 @@ namespace GraphSystem {
         // Render all graphs
         void renderGraphs();
 
-        // Destructor to clean up dynamically allocated graphs
         ~GraphManager();
     };
 
-} // namespace GraphSystem
+} 
 
 #endif // GRAPH_MANAGER_H
