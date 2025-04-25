@@ -13,6 +13,8 @@ class SampleEngine : public Engine {
 
 private:
     GraphSystem::GraphManager graphManager;
+    GraphSystem::GraphEditor* editor = nullptr;
+    std::vector<GraphSystem::NodeWidget2D*> nodeWidgets;
     
 public:
 
@@ -21,6 +23,7 @@ public:
     void clean() override;
     void setupGraphUI();
     void setupNodeCreationUI(GraphSystem::GraphEditor* editor);
+    void registerNodeWidget(GraphSystem::NodeWidget2D* w) { nodeWidgets.push_back(w); }
 
     static SampleEngine* get_sample_instance() { return static_cast<SampleEngine*>(instance); }
 

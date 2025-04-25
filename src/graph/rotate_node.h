@@ -5,19 +5,20 @@
 namespace GraphSystem {
     class RotateNode : public GraphNode {
     private:
-        MeshInstance3D* targetMesh;
-        float angle;  // Rotation angle in degrees
+        MeshInstance3D* targetMesh = nullptr;
+        float angle;
         glm::vec3 axis;
-        Output* execOutput;
-        Output* transformOutput;
+        Input* execInput = nullptr;  
+        Output* execOutput = nullptr;
+        Output* transformOutput = nullptr;
 
     public:
         explicit RotateNode(const std::string& name,
-            float angle = 30.0f,  // Default 30 degree rotation
-            glm::vec3 axis = glm::vec3(0, 1, 0));  // Default Y-axis
+            float angle = 30.0f,
+            glm::vec3 axis = glm::vec3(0, 1, 0));
 
         void setTarget(MeshInstance3D* mesh);
-        void setRotationAngle(float angle);  // Renamed from setRotationSpeed
+        void setRotationAngle(float angle);
         void setRotationAxis(const glm::vec3& axis);
         void execute() override;
     };

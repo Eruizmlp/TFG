@@ -5,10 +5,14 @@ namespace GraphSystem {
 
     RotateNode::RotateNode(const std::string& name, float angle, glm::vec3 axis)
         : GraphNode(name),
-        angle(angle),  // Now storing angle instead of speed
-        axis(glm::normalize(axis)),
-        execOutput(addOutput("Exec", GraphSystem::IOType::EXECUTION)),
-        transformOutput(addOutput("Transform", GraphSystem::IOType::TRANSFORM))
+
+        execInput(addInput("Execute", IOType::EXECUTION)),
+
+        execOutput(addOutput("Exec", IOType::EXECUTION)),
+
+        transformOutput(addOutput("Transform", IOType::TRANSFORM)),
+        angle(angle),
+        axis(glm::normalize(axis))
     {
     }
 
@@ -16,34 +20,31 @@ namespace GraphSystem {
         targetMesh = mesh;
     }
 
-    void RotateNode::setRotationAngle(float angle) {  // Renamed from setRotationSpeed
-        this->angle = angle;
+    void RotateNode::setRotationAngle(float a) {
+        angle = a;
     }
 
-    void RotateNode::setRotationAxis(const glm::vec3& axis) {
-        this->axis = glm::normalize(axis);
+    void RotateNode::setRotationAxis(const glm::vec3& a) {
+        axis = glm::normalize(a);
     }
 
     void RotateNode::execute() {
-        if (!targetMesh) return;
 
-        // Apply single rotation
-        glm::quat currentRotation = targetMesh->get_rotation();
-        glm::quat deltaRotation = glm::angleAxis(glm::radians(angle), axis);
-        targetMesh->set_rotation(glm::normalize(deltaRotation * currentRotation));
+        if (!isExecutionPending() || !targetMesh) return;
 
-        // Output the new transform
-        if (transformOutput) {
-            transformOutput->setData(targetMesh->get_transform());
-        }
+        glm::quat current = targetMesh->get_rotation();
+        glm::quat delta = glm::angleAxis(glm::radians(angle), axis);
+        targetMesh->set_rotation(glm::normalize(delta * current));
 
-        // Propagate execution
-        if (execOutput) {
-            for (auto& link : execOutput->getLinks()) {
-                if (auto target = link->getTargetNode()) {
-                    target->setExecutionPending(true);
-                }
+        transformOutput->setData(targetMesh->get_transform());
+
+        for (auto& link : execOutput->getLinks()) {
+            if (auto next = link->getTargetNode()) {
+                next->setExecutionPending(true);
             }
         }
+
+        setExecutionPending(false);
     }
+
 }

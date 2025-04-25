@@ -4,6 +4,7 @@
 #include "framework/parsers/parse_gltf.h"
 //#include "framework/parsers/parse_obj.h"
 #include "framework/input.h"
+#include "framework/math/intersections.h"
 #include "framework/ui/io.h"
 
 #include "graphics/sample_renderer.h"
@@ -23,6 +24,7 @@
 #include "../graph/start_node.h"
 #include "../graph/event_node.h"
 #include "../graph/graph_button_2d.h"
+#include "graph/node_widget_2d.h" 
 #include <graph/graph_node3D.h>
 #include <graph/rotate_node.h>
 #include "framework/nodes/panel_2d.h"
@@ -96,80 +98,13 @@ void buildPipeline(GraphSystem::Graph& graph) {
 
 
 
-//void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
-//    if (!main_scene || !editor) {
-//        std::cerr << "Cannot create node UI — missing scene or editor\n";
-//        return;
-//    }
-//
-//    // Crear panel flotante
-//    ui::Panel2D* nodePanel = new ui::Panel2D(
-//        "NodeCreationPanel",
-//        glm::vec2(20, 20),          // Tamaño canvas interno
-//        glm::vec2(250, 300),         // Tamaño del panel (aumentado para más botones)
-//        0u,                         // Priority
-//        colors::RED
-//    );
-//
-//    //nodePanel->set_world_position(glm::vec3(0.3f, 1.5f, -1.2f));
-//    nodePanel->set_position(glm::vec3(0.3f, 1.5f, -1.2f));
-//    main_scene->add_node(nodePanel);
-//
-//    // Configuración común para los botones
-//    int yOffset = 20;
-//    auto addCreationButton = [&](const std::string& label, const std::string& nodeType) {
-//        ui::sButtonDescription desc;
-//        desc.label = "Add " + label;
-//        desc.size = glm::vec2(200, 40);
-//        desc.color = colors::WHITE;
-//        desc.position = glm::vec2(25, yOffset);
-//
-//        // Usamos nullptr como graph para que solo cree nodos sin ejecutar
-//        GraphSystem::GraphButton2D* button = new GraphSystem::GraphButton2D(
-//            label + "Btn",
-//            desc,
-//            nullptr,  // No necesita graph aquí
-//            editor,
-//            nodeType
-//        );
-//
-//        nodePanel->add_child(button);
-//        yOffset += 50;
-//        };
-//
-//    // Botones de creación
-//    addCreationButton("PrintNode", "PrintNode");
-//    addCreationButton("RotateNode", "RotateNode");
-//    addCreationButton("SequenceNode", "SequenceNode");
-//    addCreationButton("EventNode", "EventNode");
-//    addCreationButton("GraphNode3D", "GraphNode3D");
-//
-//    // Botón adicional para ejecutar el grafo (opcional)
-//    //if (eventGraph) {
-//    //    ui::sButtonDescription execDesc;
-//    //    execDesc.label = "EXECUTE GRAPH";
-//    //    execDesc.size = glm::vec2(200, 40);
-//    //    execDesc.color = colors::RED;
-//    //    execDesc.position = glm::vec2(25, yOffset);
-//
-//    //    GraphSystem::GraphButton2D* execBtn = new GraphSystem::GraphButton2D(
-//    //        "ExecuteBtn",
-//    //        execDesc,
-//    //        eventGraph,  // Aquí sí pasamos el graph
-//    //        editor      // Editor opcional (no necesario para ejecución)
-//    //    );
-//
-//    //    nodePanel->add_child(execBtn);
-//    //}
-//}
-
 void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
 
     ui::Panel2D* nodePanel = new ui::Panel2D(
         "NodeCreationPanel",
-        glm::vec2(20, 20),          // Tamaño canvas interno
-        glm::vec2(250, 300),         // Tamaño del panel (aumentado para más botones)
-        0u,                         // Priority
+        glm::vec2(20, 20),          
+        glm::vec2(250, 300),         
+        0u,                         
         colors::GREEN
     );
 
@@ -183,11 +118,11 @@ void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
             desc.color = colors::WHITE;
             desc.position = glm::vec2(25, yOffset);
     
-            // Usamos nullptr como graph para que solo cree nodos sin ejecutar
+            
             GraphSystem::GraphButton2D* button = new GraphSystem::GraphButton2D(
                 label + "Btn",
                 desc,
-                nullptr,  // No necesita graph aquí
+                nullptr, 
                 editor,
                 nodeType
             );
@@ -195,37 +130,17 @@ void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
             nodePanel->add_child(button);
             yOffset += 50;
             };
-    
-        // Botones de creación
+
+        //Create visual Nodes
         addCreationButton("PrintNode", "PrintNode");
         addCreationButton("RotateNode", "RotateNode");
         addCreationButton("SequenceNode", "SequenceNode");
         addCreationButton("EventNode", "EventNode");
         addCreationButton("GraphNode3D", "GraphNode3D");
-    
-        // Botón adicional para ejecutar el grafo (opcional)
-        //if (eventGraph) {
-        //    ui::sButtonDescription execDesc;
-        //    execDesc.label = "EXECUTE GRAPH";
-        //    execDesc.size = glm::vec2(200, 40);
-        //    execDesc.color = colors::RED;
-        //    execDesc.position = glm::vec2(25, yOffset);
-    
-        //    GraphSystem::GraphButton2D* execBtn = new GraphSystem::GraphButton2D(
-        //        "ExecuteBtn",
-        //        execDesc,
-        //        eventGraph,  // Aquí sí pasamos el graph
-        //        editor      // Editor opcional (no necesario para ejecución)
-        //    );
-    
-        //    nodePanel->add_child(execBtn);
-        //}
-
 
     main_scene->add_node(nodePanel);
 
 }
-
 
 int SampleEngine::post_initialize()
 {
@@ -233,118 +148,110 @@ int SampleEngine::post_initialize()
 
     main_scene = new Scene("main_scene");
 
-    // Create skybox
+    // skybox
     {
         MeshInstance3D* skybox = new Environment3D();
         main_scene->add_node(skybox);
     }
 
-    // Load Meta Quest Controllers and Controller pointer
+    // load controllers if VR
     if (renderer->get_xr_available())
     {
-        std::vector<Node*> entities_left;
-        std::vector<Node*> entities_right;
+        std::vector<Node*> left, right;
         GltfParser parser;
-        parser.parse("data/meshes/controllers/left_controller.glb", entities_left);
-        parser.parse("data/meshes/controllers/right_controller.glb", entities_right);
-        controller_mesh_left = static_cast<Node3D*>(entities_left[0]);
-        controller_mesh_right = static_cast<Node3D*>(entities_right[0]);
+        parser.parse("data/meshes/controllers/left_controller.glb", left);
+        parser.parse("data/meshes/controllers/right_controller.glb", right);
+        controller_mesh_left = static_cast<Node3D*>(left[0]);
+        controller_mesh_right = static_cast<Node3D*>(right[0]);
     }
 
-    // Create grid
+    // grid
     {
         MeshInstance3D* grid = new MeshInstance3D();
         grid->set_name("Grid");
         grid->add_surface(RendererStorage::get_surface("quad"));
-        grid->set_position(glm::vec3(0.0f));
-        grid->rotate(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        grid->scale(glm::vec3(10.f));
+        grid->set_position({ 0,0,0 });
+        grid->rotate(glm::radians(90.0f), { 1,0,0 });
+        grid->scale({ 10,10,10 });
         grid->set_frustum_culling_enabled(false);
 
-        // NOTE: first set the transparency and all types BEFORE loading the shader
-        Material* grid_material = new Material();
-        grid_material->set_transparency_type(ALPHA_BLEND);
-        grid_material->set_cull_type(CULL_NONE);
-        grid_material->set_type(MATERIAL_UNLIT);
-        grid_material->set_shader(RendererStorage::get_shader_from_source(shaders::mesh_grid::source, shaders::mesh_grid::path, shaders::mesh_grid::libraries, grid_material));
-        grid->set_surface_material_override(grid->get_surface(0), grid_material);
-
+        Material* mat = new Material();
+        mat->set_transparency_type(ALPHA_BLEND);
+        mat->set_cull_type(CULL_NONE);
+        mat->set_type(MATERIAL_UNLIT);
+        mat->set_shader(RendererStorage::get_shader_from_source(
+            shaders::mesh_grid::source,
+            shaders::mesh_grid::path,
+            shaders::mesh_grid::libraries,
+            mat
+        ));
+        grid->set_surface_material_override(grid->get_surface(0), mat);
         main_scene->add_node(grid);
     }
 
-
+    // create graph & editor
     GraphSystem::Graph* eventGraph = graphManager.createGraph("MainGraph", false);
+    editor = new GraphSystem::GraphEditor(eventGraph);
 
-    auto* editor = new GraphSystem::GraphEditor(eventGraph, main_scene);
 
+    // instantiate logical nodes
+    auto* eventNode = static_cast<GraphSystem::EventNode*>(
+        editor->createNode("EventNode", "ButtonEvent", { -550.0f, 550, 0.0f })
+        );
+    eventNode->setEntryPoint(true);
 
-    auto* eventNode = new GraphSystem::EventNode("ButtonEvent");
-    eventGraph->addNode(eventNode);
-    auto* sequenceNode = new GraphSystem::SequenceNode("MainSequence", 1);
-    eventGraph->addNode(sequenceNode);
+    auto* sequenceNode = static_cast<GraphSystem::SequenceNode*>(
+        editor->createNode("SequenceNode", "MainSequence", { 600.0f, 600.0f, 0.0f })
+        );
 
-    // buildPipeline(*eventGraph);
-    
-
-    // Create test box
+    // red test-box in world
     MeshInstance3D* testBox = new MeshInstance3D();
     testBox->set_name("TestBox");
-    testBox->set_position(glm::vec3(0.0f, 1.0f, 0.0f));
-    testBox->scale(glm::vec3(1.0f));
-
-    // Get surface and validate
-    Surface* boxSurface = RendererStorage::get_surface("box");
-    testBox->add_surface(boxSurface);
-
-    // Create material for the box
-    Material* box_mat = new Material();
-    box_mat->set_transparency_type(ALPHA_OPAQUE);
-    box_mat->set_cull_type(CULL_BACK);
-    box_mat->set_type(MATERIAL_PBR);
-    box_mat->set_color(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-
-    // Get shader
-    Shader* boxShader = RendererStorage::get_shader_from_source(
-        shaders::mesh_forward::source,
-        shaders::mesh_forward::path,
-        shaders::mesh_forward::libraries,
-        box_mat
-    );
-    box_mat->set_shader(boxShader);
-    testBox->set_surface_material_override(testBox->get_surface(0), box_mat);
-
+    testBox->set_position({ 0,1,0 });
+    testBox->scale({ 1,1,1 });
+    testBox->add_surface(RendererStorage::get_surface("box"));
+    {
+        Material* boxMat = new Material();
+        boxMat->set_transparency_type(ALPHA_OPAQUE);
+        boxMat->set_cull_type(CULL_BACK);
+        boxMat->set_type(MATERIAL_PBR);
+        boxMat->set_color({ 1,0,0,1 });
+        boxMat->set_shader(RendererStorage::get_shader_from_source(
+            shaders::mesh_forward::source,
+            shaders::mesh_forward::path,
+            shaders::mesh_forward::libraries,
+            boxMat
+        ));
+        testBox->set_surface_material_override(testBox->get_surface(0), boxMat);
+    }
     main_scene->add_node(testBox);
 
-    // Create and setup graph nodes
-    GraphNode3D* boxNode = new GraphNode3D("BoxNode", eventGraph);
+    // graph nodes at fixed height
+    auto* boxNode = static_cast<GraphSystem::GraphNode3D*>(
+        editor->createNode("GraphNode3D", "BoxNode", { 300.0f, 300.0f, 0.0f })
+        );
     boxNode->setTransform(testBox->get_transform());
-    eventGraph->addNode(boxNode);
 
-    GraphSystem::RotateNode* rotator = new GraphSystem::RotateNode("BoxRotator", 30.0f, glm::vec3(0, 1, 0));
+    auto* rotator = static_cast<GraphSystem::RotateNode*>(
+        editor->createNode("RotateNode", "BoxRotator", { 1.0f, 150.0f, 0.0f })
+        );
     rotator->setTarget(testBox);
-    eventGraph->addNode(rotator);
+    rotator->setRotationAngle(30.0f);
+    rotator->setRotationAxis({ 0,1,0 });
 
-    // Connect the rotator to the box node
-    if (!eventGraph->connect(rotator, "Transform", boxNode, "Transform")) {
-        std::cerr << "Failed to connect RotateNode to BoxNode\n";
-    }
-
-    rotator->setExecutionPending(true);
- 
-
-    // Connect nodes
+    // connect and trigger
     eventGraph->connect(eventNode, "Execution", sequenceNode, "Execute");
-    eventGraph->connect(sequenceNode, "Step1", rotator);
-    
+    eventGraph->connect(sequenceNode, "Step1", rotator, "Execute");
+    eventGraph->connect(rotator, "Transform", boxNode, "Transform");
     eventNode->setExecutionPending(true);
-
 
     setupGraphUI();
     setupNodeCreationUI(editor);
 
-
     return 0u;
 }
+
+
 
 
 
@@ -361,14 +268,9 @@ void SampleEngine::clean()
 void SampleEngine::update(float delta_time)
 {
     Engine::update(delta_time);
-
     main_scene->update(delta_time);
-
-    if (renderer->get_xr_available()) {
-        controller_mesh_left->set_transform(Transform::mat4_to_transform(Input::get_controller_pose(HAND_LEFT)));
-        controller_mesh_right->set_transform(Transform::mat4_to_transform(Input::get_controller_pose(HAND_RIGHT)));
-    }
 }
+
 
 void SampleEngine::render()
 {
