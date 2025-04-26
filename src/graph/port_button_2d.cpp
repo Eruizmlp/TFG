@@ -1,4 +1,3 @@
-// graph_port_button_2d.cpp
 #include "port_button_2d.h"
 #include <iostream>
 

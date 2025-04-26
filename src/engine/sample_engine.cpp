@@ -92,50 +92,82 @@ void buildPipeline(GraphSystem::Graph& graph) {
 }
 
 
-
 void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
+    using namespace ui;
 
-    ui::Panel2D* nodePanel = new ui::Panel2D(
+    constexpr float X = 20.0f;
+    constexpr float Y = 400.0f;
+    constexpr float PANEL_W = 260.0f;
+
+    // Creamos un VContainer2D **verde**
+    VContainer2D* panel = new VContainer2D(
         "NodeCreationPanel",
-        glm::vec2(20, 20),          
-        glm::vec2(250, 300),         
-        0u,                         
+        { X, Y },
+        0u,
         colors::GREEN
     );
 
-    nodePanel->set_position(glm::vec3(0.0f, 450.0f, 1.0f));
+    // Padding interior y separación entre filas
+    panel->padding = { 12.0f, 12.0f };
+    panel->item_margin = { 8.0f, 8.0f };
 
-    int yOffset = 20;
-        auto addCreationButton = [&](const std::string& label, const std::string& nodeType) {
-            ui::sButtonDescription desc;
-            desc.label = "Add " + label;
-            desc.size = glm::vec2(200, 40);
-            desc.color = colors::WHITE;
-            desc.position = glm::vec2(25, yOffset);
-    
-            
-            GraphSystem::GraphButton2D* button = new GraphSystem::GraphButton2D(
-                label + "Btn",
-                desc,
-                nullptr, 
-                editor,
-                nodeType
-            );
-    
-            nodePanel->add_child(button);
-            yOffset += 50;
-            };
+    // Fijamos sólo el ancho;
+    panel->set_fixed_size({ PANEL_W, 0.0f });
+    panel->use_fixed_size = true;
 
-        //Create visual Nodes
-        addCreationButton("PrintNode", "PrintNode");
-        addCreationButton("RotateNode", "RotateNode");
-        addCreationButton("SequenceNode", "SequenceNode");
-        addCreationButton("EventNode", "EventNode");
-        addCreationButton("GraphNode3D", "GraphNode3D");
+    // Añadimos el título
+    {
+        Text2D* title = new Text2D("Create Node", { 0, 0 }, 20.0f, TEXT_CENTERED);
+        title->set_color(colors::BLACK);
+        panel->add_child(title);
+    }
 
-    main_scene->add_node(nodePanel);
+    // Fila (label + botón)
+    auto addRow = [&](const std::string& name, const std::string& type) {
+        HContainer2D* row = new HContainer2D(
+            "Row_" + name,
+            { 0, 0 },
+            0u,
+            colors::GREEN
+        );
+        row->padding = { 4.0f, 2.0f };
+        row->item_margin = { 8.0f, 0.0f };
+        panel->add_child(row);
 
+        // etiqueta
+        Text2D* lbl = new Text2D(name, { 0, 0 }, 16.0f, TEXT_CENTERED);
+        lbl->set_color(colors::WHITE);
+        row->add_child(lbl);
+
+        // botón
+        sButtonDescription desc;
+        desc.label = "";      
+        desc.size = { 24.0f, 24.0f };
+        desc.color = colors::WHITE;
+        auto* btn = new GraphSystem::GraphButton2D(
+            name + "Btn",
+            desc,
+             nullptr,
+             editor,
+             type
+        );
+        row->add_child(btn);
+        };
+
+    // Creamos las filas
+    addRow("PrintNode", "PrintNode");
+    addRow("RotateNode", "RotateNode");
+    addRow("SequenceNode", "SequenceNode");
+    addRow("EventNode", "EventNode");
+    addRow("GraphNode3D", "GraphNode3D");
+
+    // Forzamos el layout y que el contenedor mida su altura real
+    panel->use_fixed_size = false;
+    panel->on_children_changed();
+
+    main_scene->add_node(panel);
 }
+
 
 int SampleEngine::post_initialize()
 {
@@ -262,11 +294,15 @@ void SampleEngine::clean()
 
 void SampleEngine::update(float delta_time)
 {
+    
     Engine::update(delta_time);
     main_scene->update(delta_time);
+
+    if (IO::get_want_capture_input()) {
+        return;
+    }
+
 }
-
-
 void SampleEngine::render()
 {
     if (show_imgui) {

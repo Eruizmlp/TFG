@@ -1,4 +1,3 @@
-// graph_port_button_2d.h
 #pragma once
 
 #include "framework/nodes/button_2d.h"
@@ -8,8 +7,6 @@
 
 namespace GraphSystem {
 
-    /// Un botón 2D que representa un puerto de un GraphNode y dispara
-    /// beginConnection/completeConnection en el GraphEditor al pulsarlo.
     
     class PortButton2D : public ui::Button2D {
     private:

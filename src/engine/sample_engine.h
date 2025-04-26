@@ -15,7 +15,7 @@ private:
     GraphSystem::GraphManager graphManager;
     GraphSystem::GraphEditor* editor = nullptr;
     std::vector<GraphSystem::NodeWidget2D*> nodeWidgets;
-    
+
 public:
 
 	int initialize(Renderer* renderer, sEngineConfiguration configuration = {}) override;

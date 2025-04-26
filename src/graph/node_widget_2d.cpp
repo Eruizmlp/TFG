@@ -104,25 +104,26 @@ NodeWidget2D::NodeWidget2D(GraphNode* node,
 
 //TODO Drag de los nodos
 bool NodeWidget2D::on_input(sInputData data) {
+    // Al presionar, capturo ratón y empiezo drag
     if (data.is_pressed && !dragging) {
         ::IO::set_focus(this);
+        ::IO::set_want_capture_input(true);
         dragging = true;
         dragOffset = get_local_translation() - data.local_position;
         return true;
     }
-
     // Mientras mantengo pulsado, muevo el nodo
     if (dragging && data.is_pressed) {
         set_position(data.local_position + dragOffset);
         return true;
     }
-
+    // Al soltar, termino drag y devuelvo el ratón
     if (dragging && data.was_released) {
         dragging = false;
         ::IO::blur();
+        ::IO::set_want_capture_input(false);
         return true;
     }
-
-    // Si no estoy en drag, dejo que Panel2D y los botones hijos manejen el evento
+    // Si no estoy en drag, delego al Panel2D y a los botones hijos
     return Panel2D::on_input(data);
 }
