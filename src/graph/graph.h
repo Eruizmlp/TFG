@@ -17,11 +17,11 @@ namespace GraphSystem {
         std::string m_name;
 
     public:
-        explicit Graph(const std::string& name, bool isTickGraph = false);
+        explicit Graph(const std::string& name);
         ~Graph();
 
         const std::string& getName() const { return m_name; }
-        bool isTickGraph() const { return m_isTickGraph; }
+        
 
         void addNode(GraphNode* node);
         void removeNode(GraphNode* node);

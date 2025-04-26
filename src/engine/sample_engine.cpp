@@ -56,12 +56,7 @@ void SampleEngine::setupGraphUI() {
 
     // Find event graph
     GraphSystem::Graph* eventGraph = nullptr;
-    for (auto graph : graphManager.getGraphs()) {
-        if (!graph->isTickGraph()) {
-            eventGraph = graph;
-            break;
-        }
-    }
+    eventGraph = graphManager.getGraphs()[0];
 
     if (eventGraph) {
         GraphSystem::GraphButton2D* executeBtn = new GraphSystem::GraphButton2D("ExecuteBtn", buttonDesc, eventGraph);
@@ -196,7 +191,7 @@ int SampleEngine::post_initialize()
 
     // instantiate logical nodes
     auto* eventNode = static_cast<GraphSystem::EventNode*>(
-        editor->createNode("EventNode", "ButtonEvent", { -550.0f, 550, 0.0f })
+        editor->createNode("EventNode", "ButtonEvent", { 550.0f, 550, 0.0f })
         );
     eventNode->setEntryPoint(true);
 
@@ -233,17 +228,17 @@ int SampleEngine::post_initialize()
     boxNode->setTransform(testBox->get_transform());
 
     auto* rotator = static_cast<GraphSystem::RotateNode*>(
-        editor->createNode("RotateNode", "BoxRotator", { 1.0f, 150.0f, 0.0f })
+        editor->createNode("RotateNode", "BoxRotator", { 150.0f, 150.0f, 0.0f })
         );
     rotator->setTarget(testBox);
     rotator->setRotationAngle(30.0f);
     rotator->setRotationAxis({ 0,1,0 });
 
-    // connect and trigger
-    eventGraph->connect(eventNode, "Execution", sequenceNode, "Execute");
-    eventGraph->connect(sequenceNode, "Step1", rotator, "Execute");
-    eventGraph->connect(rotator, "Transform", boxNode, "Transform");
-    eventNode->setExecutionPending(true);
+    //// connect and trigger
+    //eventGraph->connect(eventNode, "Execution", sequenceNode, "Execute");
+    //eventGraph->connect(sequenceNode, "Step1", rotator, "Execute");
+    //eventGraph->connect(rotator, "Transform", boxNode, "Transform");
+    //eventNode->setExecutionPending(true);
 
     setupGraphUI();
     setupNodeCreationUI(editor);

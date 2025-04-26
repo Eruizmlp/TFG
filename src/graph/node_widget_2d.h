@@ -1,29 +1,37 @@
 #pragma once
-#include "framework/nodes/panel_2d.h"
-#include "../graph/graph_node.h"
-#include "../graph/graph_editor.h"
 
+#include "framework/nodes/panel_2d.h"
+#include "framework/nodes/node_2d.h"
+#include "framework/nodes/container_2d.h"
+#include "framework/nodes/text.h"
+#include "framework/nodes/button_2d.h"
+#include "framework/colors.h"
+
+#include "graph_node.h"
+#include "graph_editor.h"
+#include "port_button_2d.h"
 
 namespace GraphSystem {
 
-    class PortButton2D; // ya descrito antes
 
-    /// Un panel 2D que vive en la escena 3D y muestra el nodo + sus puertos
     class NodeWidget2D : public ui::Panel2D {
     private:
         GraphNode* logic_node;
         GraphEditor* graphEditor;
-        std::vector<PortButton2D*> portButtons;
+        ui::VContainer2D* rootContainer;
+
+        bool        dragging = false;
+        glm::vec2   dragOffset;
+
+        static glm::vec2 computeSize(GraphNode* node);
 
     public:
-        /// worldPos: posición en el espacio donde se colocará el panel 2D
         NodeWidget2D(GraphNode* node,
             GraphEditor* editor,
             const glm::vec3& worldPos);
 
-        GraphNode* getLogicNode() const { return logic_node; }
-    private:
-        static glm::vec2 computeSize(GraphNode* node);
+       
+        bool on_input(sInputData data) override;
     };
 
 }

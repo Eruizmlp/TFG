@@ -4,8 +4,8 @@
 
 namespace GraphSystem {
 
-    Graph::Graph(const std::string& name, bool isTickGraph)
-        : m_name(name), m_isTickGraph(isTickGraph) {}
+    Graph::Graph(const std::string& name)
+        : m_name(name){}
 
     Graph::~Graph() {
         clear();

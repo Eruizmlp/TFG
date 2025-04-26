@@ -3,7 +3,7 @@
 namespace GraphSystem {
 
     Graph* GraphManager::createGraph(const std::string& name, bool isTickGraph) {
-        Graph* graph = new Graph(name, isTickGraph);
+        Graph* graph = new Graph(name);
         graphs.push_back(graph);
         return graph;
     }
@@ -17,14 +17,7 @@ namespace GraphSystem {
         delete graph;  // Clean up the graph object
     }
 
-    void GraphManager::executeTickGraphs() {
-        for (const auto& graph : graphs) {
-            if (graph->isTickGraph()) {
-                graph->execute();
-            }
-        }
-    }
-
+    
     void GraphManager::executeGraph(Graph* graph) {
         if (graph) {
             graph->execute();

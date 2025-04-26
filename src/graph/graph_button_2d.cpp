@@ -14,7 +14,6 @@ namespace GraphSystem {
     bool GraphButton2D::on_pressed() {
         std::cout << "[GraphButton2D] Button Pressed!\n";
 
-        // 1. Crear nodo si está configurado para eso
         if (editor && !node_to_create.empty()) {
             static int counter = 0;
             std::string nodeName = node_to_create + "_" + std::to_string(counter++);
@@ -24,9 +23,8 @@ namespace GraphSystem {
             }
         }
 
-        // 2. Ejecutar el grafo si está presente
         if (!graph) {
-            std::cerr << "[Error] Graph is null! Execution aborted.\n";
+            std::cerr << "[Error] Graph is null!\n";
             return false;
         }
 
@@ -41,7 +39,7 @@ namespace GraphSystem {
         }
 
         if (!eventTriggered) {
-            std::cerr << "[Error] No Event Nodes Found! Execution aborted.\n";
+            std::cerr << "[Error] No Event Nodes Found!\n";
             return false;
         }
 
