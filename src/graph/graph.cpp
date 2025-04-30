@@ -136,7 +136,6 @@ namespace GraphSystem {
         for (auto link : links) link->render();
     }
 
-    // graph.cpp
     void Graph::execute() {
         std::cout << "[Graph] Starting execution\n";
         std::queue<GraphNode*> executionQueue;

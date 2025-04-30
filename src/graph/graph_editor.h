@@ -16,7 +16,7 @@ namespace GraphSystem {
         // Creates a logical node + its 2D widget in the main scene
         GraphNode* createNode(const std::string& type,
             const std::string& name,
-            const glm::vec3& worldPosition = glm::vec3(0));
+            const glm::vec3& worldPosition = glm::vec3(800));
 
         // Connection workflow
         void beginConnection(GraphNode* sourceNode, const std::string& outputPort);

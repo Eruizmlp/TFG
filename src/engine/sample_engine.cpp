@@ -160,6 +160,9 @@ void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
     addRow("SequenceNode", "SequenceNode");
     addRow("EventNode", "EventNode");
     addRow("GraphNode3D", "GraphNode3D");
+    addRow("MathNode", "MathNode");
+    addRow("VariableNode", "VariableNode");
+    addRow("BranchNode", "BranchNode");
 
     // Forzamos el layout y que el contenedor mida su altura real
     panel->use_fixed_size = false;
@@ -297,10 +300,8 @@ void SampleEngine::update(float delta_time)
     
     Engine::update(delta_time);
     main_scene->update(delta_time);
+    
 
-    if (IO::get_want_capture_input()) {
-        return;
-    }
 
 }
 void SampleEngine::render()

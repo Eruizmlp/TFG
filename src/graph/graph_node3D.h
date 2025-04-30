@@ -10,8 +10,8 @@ namespace GraphSystem {
     class GraphNode3D : public GraphSystem::GraphNode, public Node3D {
     private:
         GraphSystem::Graph* graph; 
-        GraphSystem::Input* inputTransform;
-        GraphSystem::Output* outputTransform; 
+        GraphSystem::Input* inputTransform = nullptr;
+        GraphSystem::Output* outputTransform = nullptr;
     
 
 

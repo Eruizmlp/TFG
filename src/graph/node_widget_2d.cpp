@@ -1,19 +1,23 @@
 #include "node_widget_2d.h"
 #include "port_button_2d.h"
-#include "framework/ui/io.h"  
-
+#include "framework/ui/io.h"
+#include "framework/input.h"
 
 using namespace GraphSystem;
 using namespace ui;
+
+
+sInputData NodeWidget2D::get_input_data(bool ignore_focus) {
+    return Panel2D::get_input_data(ignore_focus);
+}
 
 glm::vec2 NodeWidget2D::computeSize(GraphNode* node) {
     constexpr float WIDTH = 200.0f;
     constexpr float ROW_H = 20.0f;
     constexpr float MARGIN = 4.0f;
 
-    size_t numPorts = node->getOutputs().size()
-        + node->getInputs().size();
-    size_t rows = 2 + numPorts;  
+    size_t numPorts = node->getOutputs().size() + node->getInputs().size();
+    size_t rows = 2 + numPorts;
 
     float height = MARGIN + rows * (ROW_H + MARGIN);
     return { WIDTH, height };
@@ -30,29 +34,35 @@ NodeWidget2D::NodeWidget2D(GraphNode* node,
     logic_node(node),
     graphEditor(editor)
 {
-    // Posicionar el panel
+    // Grab input before children
+    set_priority(Node2DClassType::DRAGGABLE);
+
+    // Initial placement in screen-space
     set_position({ worldPos.x, worldPos.y });
 
-    // Crear container
+    // Root container
     rootContainer = new VContainer2D(
         "NodeRoot_" + node->getName(),
-        { 0,0 }, 0u, colors::GRAY
+        { 0,0 }, 0u,
+        colors::GRAY
     );
     rootContainer->padding = { 8,8 };
     rootContainer->item_margin = { 4,4 };
     rootContainer->set_fixed_size(get_size());
     add_child(rootContainer);
 
-    // Título
-    {
-        auto* title = new Text2D(node->getName(), { 0,0 });
-        title->set_color(colors::WHITE);
-        rootContainer->add_child(title);
-    }
+    // Title
+    auto* title = new Text2D(node->getName(), { 0,0 });
+    title->set_color(colors::WHITE);
+    rootContainer->add_child(title);
 
-    // Puertos OUTPUT
+    // OUTPUT ports
     for (auto* outPort : logic_node->getOutputs()) {
-        auto* row = new HContainer2D("RowOut_" + outPort->getName(), { 0,0 }, 0u, colors::GRAY);
+        auto* row = new HContainer2D(
+            "RowOut_" + outPort->getName(),
+            { 0,0 }, 0u,
+            colors::GRAY
+        );
         row->padding = { 4,2 };
         row->item_margin = { 8,0 };
         rootContainer->add_child(row);
@@ -75,9 +85,13 @@ NodeWidget2D::NodeWidget2D(GraphNode* node,
         row->add_child(btn);
     }
 
-    // Puertos INPUT
+    // INPUT ports
     for (auto* inPort : logic_node->getInputs()) {
-        auto* row = new HContainer2D("RowIn_" + inPort->getName(), { 0,0 }, 0u, colors::GRAY);
+        auto* row = new HContainer2D(
+            "RowIn_" + inPort->getName(),
+            { 0,0 }, 0u,
+            colors::GRAY
+        );
         row->padding = { 4,2 };
         row->item_margin = { 8,0 };
         rootContainer->add_child(row);
@@ -99,31 +113,25 @@ NodeWidget2D::NodeWidget2D(GraphNode* node,
         lbl->set_color(colors::RED);
         row->add_child(lbl);
     }
-
 }
 
-//TODO Drag de los nodos
-bool NodeWidget2D::on_input(sInputData data) {
-    // Al presionar, capturo ratón y empiezo drag
-    if (data.is_pressed && !dragging) {
-        ::IO::set_focus(this);
-        ::IO::set_want_capture_input(true);
+void NodeWidget2D::update(float delta_time) {
+
+    sInputData data = get_input_data(false);
+    if (data.was_pressed) {
         dragging = true;
-        dragOffset = get_local_translation() - data.local_position;
-        return true;
+        dragOffset = ::Input::get_mouse_position() - get_translation();
     }
-    // Mientras mantengo pulsado, muevo el nodo
     if (dragging && data.is_pressed) {
-        set_position(data.local_position + dragOffset);
-        return true;
+        set_position(::Input::get_mouse_position() - dragOffset);
     }
-    // Al soltar, termino drag y devuelvo el ratón
-    if (dragging && data.was_released) {
+    if (data.was_released) {
         dragging = false;
-        ::IO::blur();
-        ::IO::set_want_capture_input(false);
-        return true;
     }
-    // Si no estoy en drag, delego al Panel2D y a los botones hijos
+
+    Node2D::update(delta_time);
+}
+
+bool NodeWidget2D::on_input(sInputData data) {
     return Panel2D::on_input(data);
 }

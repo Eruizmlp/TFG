@@ -7,8 +7,8 @@ namespace GraphSystem{
         : GraphSystem::GraphNode(name),  
         Node3D(),                     
         graph(graph),
-        inputTransform(addInput("Transform", GraphSystem::IOType::TRANSFORM)),
-        outputTransform(addOutput("Transform", GraphSystem::IOType::TRANSFORM))
+        inputTransform(addInput("TransformIn", GraphSystem::IOType::TRANSFORM)),
+        outputTransform(addOutput("TransformOut", GraphSystem::IOType::TRANSFORM))
     {
   
     }

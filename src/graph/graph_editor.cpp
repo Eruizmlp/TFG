@@ -6,6 +6,9 @@
 #include "sequence_node.h"
 #include "event_node.h"
 #include "rotate_node.h"
+#include "math_node.h"
+#include "branch_node.h"
+#include "variable_node.h"
 #include "graph_node3D.h"  
 #include <iostream>
 
@@ -30,6 +33,10 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     else if (type == "GraphNode3D")  node = new GraphNode3D(nodeName, graph);
     else if (type == "SequenceNode") node = new SequenceNode(nodeName, 2);
     else if (type == "EventNode")    node = new EventNode(nodeName);
+    else if (type == "MathNode")    node = new MathNode(nodeName);
+    else if (type == "BranchNode")    node = new BranchNode(nodeName);
+    else if (type == "VariableNode")    node = new VariableNode(nodeName);
+
 
     if (!node) {
         std::cerr << "[GraphEditor] Unknown node type: " << type << "\n";
