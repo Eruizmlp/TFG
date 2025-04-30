@@ -117,6 +117,7 @@ NodeWidget2D::NodeWidget2D(GraphNode* node,
 
 void NodeWidget2D::update(float delta_time) {
 
+
     sInputData data = get_input_data(false);
     if (data.was_pressed) {
         dragging = true;

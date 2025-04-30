@@ -300,8 +300,6 @@ void SampleEngine::update(float delta_time)
     
     Engine::update(delta_time);
     main_scene->update(delta_time);
-    
-
 
 }
 void SampleEngine::render()
