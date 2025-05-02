@@ -50,7 +50,17 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     
     auto* eng = Engine::get_instance();
     if (eng && eng->get_main_scene()) {
-        auto* widget = new NodeWidget2D(node, this, worldPosition);
+        auto* widget = [&]() -> NodeWidget2D* {
+            if (auto* rn = dynamic_cast<RotateNode*>(node)) {
+                // use the specialized rotate‐node widget
+                return new RotateNodeWidget2D(rn, this, worldPosition);
+            }
+            else {
+                // fallback for everything else
+                return new NodeWidget2D(node, this, worldPosition);
+            }
+            }();
+
         eng->get_main_scene()->add_node(widget);
         widgets.push_back(widget);
     }

@@ -2,48 +2,38 @@
 #include "port_button_2d.h"
 #include "framework/ui/io.h"
 #include "framework/input.h"
+#include "framework/colors.h"
+#include <GLFW/glfw3.h>
 
 using namespace GraphSystem;
 using namespace ui;
 
 
-sInputData NodeWidget2D::get_input_data(bool ignore_focus) {
-    return Panel2D::get_input_data(ignore_focus);
-}
-
 glm::vec2 NodeWidget2D::computeSize(GraphNode* node) {
-    constexpr float WIDTH = 200.0f;
-    constexpr float ROW_H = 20.0f;
-    constexpr float MARGIN = 4.0f;
-
-    size_t numPorts = node->getOutputs().size() + node->getInputs().size();
-    size_t rows = 2 + numPorts;
-
-    float height = MARGIN + rows * (ROW_H + MARGIN);
-    return { WIDTH, height };
+    constexpr float W = 200.0f, HROW = 20.0f, M = 4.0f;
+    size_t n = node->getOutputs().size() + node->getInputs().size();
+    float h = M + (2 + float(n)) * (HROW + M);
+    return { W, h };
 }
 
 NodeWidget2D::NodeWidget2D(GraphNode* node,
     GraphEditor* editor,
     const glm::vec3& worldPos)
     : Panel2D("Widget2D_" + node->getName(),
-        { 0,0 },
+        { worldPos.x, worldPos.y },
         computeSize(node),
         1u,
         colors::GRAY),
     logic_node(node),
     graphEditor(editor)
 {
-    // Grab input before children
     set_priority(Node2DClassType::DRAGGABLE);
-
-    // Initial placement in screen-space
-    set_position({ worldPos.x, worldPos.y });
 
     // Root container
     rootContainer = new VContainer2D(
         "NodeRoot_" + node->getName(),
-        { 0,0 }, 0u,
+        { 0,0 },
+        0u,
         colors::GRAY
     );
     rootContainer->padding = { 8,8 };
@@ -57,17 +47,18 @@ NodeWidget2D::NodeWidget2D(GraphNode* node,
     rootContainer->add_child(title);
 
     // OUTPUT ports
-    for (auto* outPort : logic_node->getOutputs()) {
+    for (auto* outP : logic_node->getOutputs()) {
         auto* row = new HContainer2D(
-            "RowOut_" + outPort->getName(),
-            { 0,0 }, 0u,
+            "RowOut_" + outP->getName(),
+            { 0,0 },
+            0u,
             colors::GRAY
         );
         row->padding = { 4,2 };
         row->item_margin = { 8,0 };
         rootContainer->add_child(row);
 
-        auto* lbl = new Text2D(outPort->getName(), { 0,0 });
+        auto* lbl = new Text2D(outP->getName(), { 0,0 });
         lbl->set_color(colors::GREEN);
         row->add_child(lbl);
 
@@ -75,21 +66,22 @@ NodeWidget2D::NodeWidget2D(GraphNode* node,
         desc.size = { 16,16 };
         desc.color = colors::GREEN;
         auto* btn = new PortButton2D(
-            "outBtn_" + node->getName() + "_" + outPort->getName(),
+            "outBtn_" + node->getName() + "_" + outP->getName(),
             desc,
             logic_node,
             graphEditor,
-            outPort->getName(),
+            outP->getName(),
             true
         );
         row->add_child(btn);
     }
 
     // INPUT ports
-    for (auto* inPort : logic_node->getInputs()) {
+    for (auto* inP : logic_node->getInputs()) {
         auto* row = new HContainer2D(
-            "RowIn_" + inPort->getName(),
-            { 0,0 }, 0u,
+            "RowIn_" + inP->getName(),
+            { 0,0 },
+            0u,
             colors::GRAY
         );
         row->padding = { 4,2 };
@@ -100,39 +92,157 @@ NodeWidget2D::NodeWidget2D(GraphNode* node,
         desc.size = { 16,16 };
         desc.color = colors::RED;
         auto* btn = new PortButton2D(
-            "inBtn_" + node->getName() + "_" + inPort->getName(),
+            "inBtn_" + node->getName() + "_" + inP->getName(),
             desc,
             logic_node,
             graphEditor,
-            inPort->getName(),
+            inP->getName(),
             false
         );
         row->add_child(btn);
 
-        auto* lbl = new Text2D(inPort->getName(), { 0,0 });
+        auto* lbl = new Text2D(inP->getName(), { 0,0 });
         lbl->set_color(colors::RED);
         row->add_child(lbl);
     }
 }
 
-void NodeWidget2D::update(float delta_time) {
-
-
-    sInputData data = get_input_data(false);
-    if (data.was_pressed) {
-        dragging = true;
-        dragOffset = ::Input::get_mouse_position() - get_translation();
-    }
-    if (dragging && data.is_pressed) {
-        set_position(::Input::get_mouse_position() - dragOffset);
-    }
-    if (data.was_released) {
-        dragging = false;
-    }
-
-    Node2D::update(delta_time);
+sInputData NodeWidget2D::get_input_data(bool ignore_focus) {
+    return Panel2D::get_input_data(ignore_focus);
 }
 
 bool NodeWidget2D::on_input(sInputData data) {
+    if (data.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+        toggleInspector(data);
+        return true;
+    }
     return Panel2D::on_input(data);
 }
+
+
+void NodeWidget2D::update(float delta_time) {
+    // Drag handling
+    sInputData d = get_input_data(false);
+    if (d.was_pressed) {
+        dragging = true;
+        dragOffset = ::Input::get_mouse_position() - get_translation();
+    }
+    if (dragging && d.is_pressed) {
+        set_position(::Input::get_mouse_position() - dragOffset);
+    }
+    if (d.was_released) {
+        dragging = false;
+    }
+
+    // subclass inspector update
+    updateInspector();
+
+    Panel2D::update(delta_time);
+}
+
+// ————— RotateNodeWidget2D —————
+
+RotateNodeWidget2D::RotateNodeWidget2D(RotateNode* node,
+    GraphEditor* editor,
+    const glm::vec3& worldPos)
+    : NodeWidget2D(node, editor, worldPos)
+{
+   
+}
+
+void RotateNodeWidget2D::toggleInspector(sInputData data) {
+    if (data.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+        if (!inspectPanel) initInspector();
+        inspectorVisible = !inspectorVisible;
+        inspectPanel->set_visibility(inspectorVisible, true);
+    }
+}
+
+
+void RotateNodeWidget2D::initInspector() {
+
+    glm::vec2 pos = get_translation() + glm::vec2(get_size().x + 10.0f, 0.0f);
+    glm::vec2 sz = { 180.0f, 100.0f };
+    inspectPanel = new Panel2D(
+        "RotateInspect_" + logic_node->getName(),
+        pos,
+        sz,
+        0u,
+        colors::GRAY
+    );
+    inspectPanel->set_priority(Node2DClassType::PANEL);
+
+    // Axis buttons
+    auto* axisRow = new HContainer2D("AxisRow", { 8, sz.y - 30 }, 0u, colors::GRAY);
+    axisRow->item_margin = { 4,0 };
+    inspectPanel->add_child(axisRow);
+
+    sButtonDescription bdesc;
+    bdesc.size = { 24,24 };
+    bdesc.color = colors::WHITE;
+
+    axisXBtn = new Button2D("RotateAxisX_" + logic_node->getName(), bdesc);
+    axisXBtn->add_child(new Text2D("X", { 0,0 }));
+    axisYBtn = new Button2D("RotateAxisY_" + logic_node->getName(), bdesc);
+    axisYBtn->add_child(new Text2D("Y", { 0,0 }));
+    axisZBtn = new Button2D("RotateAxisZ_" + logic_node->getName(), bdesc);
+    axisZBtn->add_child(new Text2D("Z", { 0,0 }));
+
+    axisRow->add_child(axisXBtn);
+    axisRow->add_child(axisYBtn);
+    axisRow->add_child(axisZBtn);
+
+    Node::bind(axisXBtn->get_name(), FuncVoid([this](const std::string&, void*) {
+        static_cast<RotateNode*>(logic_node)->setRotationAxis({ 1,0,0 });
+        }));
+    Node::bind(axisYBtn->get_name(), FuncVoid([this](const std::string&, void*) {
+        static_cast<RotateNode*>(logic_node)->setRotationAxis({ 0,1,0 });
+        }));
+    Node::bind(axisZBtn->get_name(), FuncVoid([this](const std::string&, void*) {
+        static_cast<RotateNode*>(logic_node)->setRotationAxis({ 0,0,1 });
+        }));
+
+    // Angle slider
+    sSliderDescription sd;
+    sd.mode = HORIZONTAL;
+    sd.position = { 8, sz.y - 60 };
+    sd.size = { 80, 20 };
+    sd.fvalue = static_cast<RotateNode*>(logic_node)->getRotationAngle();
+    sd.fvalue_min = 0.0f;
+    sd.fvalue_max = 360.0f;
+    sd.precision = 1;
+    
+    angleSlider = new FloatSlider2D("AngleSlider_" + logic_node->getName(), sd);
+   
+    inspectPanel->add_child(angleSlider);
+
+    Node::bind(angleSlider->get_name(), FuncFloat([this](const std::string&, float v) {
+        static_cast<RotateNode*>(logic_node)->setRotationAngle(v);
+        }));
+
+    add_child(inspectPanel);
+    inspectPanel->set_visibility(false, true);
+
+}
+
+void RotateNodeWidget2D::updateInspector() {
+    if (!inspectPanel || !inspectorVisible) return;
+
+    inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
+    angleSlider->set_value(static_cast<RotateNode*>(logic_node)->getRotationAngle());
+}
+
+
+void RotateNodeWidget2D::update(float delta_time) {
+
+    sInputData d = get_input_data(false);
+    if (d.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+        if (!inspectPanel) initInspector();
+        inspectorVisible = !inspectorVisible;
+        inspectPanel->set_visibility(inspectorVisible, true);
+    }
+
+    NodeWidget2D::update(delta_time);
+}
+
+

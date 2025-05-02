@@ -1,5 +1,4 @@
 #include "rotate_node.h"
-#include <glm/gtc/matrix_transform.hpp>
 
 namespace GraphSystem {
 
@@ -7,9 +6,9 @@ namespace GraphSystem {
         : GraphNode(name),
 
         execInput(addInput("Execute", IOType::EXECUTION)),
-
         execOutput(addOutput("Exec", IOType::EXECUTION)),
 
+        angleInput(addInput("Angle", IOType::FLOAT)),
         transformOutput(addOutput("Transform", IOType::TRANSFORM)),
         angle(angle),
         axis(glm::normalize(axis))
@@ -28,9 +27,16 @@ namespace GraphSystem {
         axis = glm::normalize(a);
     }
 
+    float RotateNode::getRotationAngle() {
+        return angle;
+    }
+
     void RotateNode::execute() {
 
         if (!isExecutionPending() || !targetMesh) return;
+
+        if (angleInput->hasData())
+            angle = angleInput->getFloat();
 
         glm::quat current = targetMesh->get_rotation();
         glm::quat delta = glm::angleAxis(glm::radians(angle), axis);

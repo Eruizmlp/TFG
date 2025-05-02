@@ -3,7 +3,7 @@
 namespace GraphSystem {
 
     MathNode::MathNode(const std::string& name, char op)
-        : GraphNode(name), operation(op)
+        : GraphNode(name), operation(op), aValue(0.0f), bValue(0.0f)
     {
         execInput = addInput("Execute", IOType::EXECUTION);
         aInput = addInput("A", IOType::FLOAT);
@@ -20,8 +20,8 @@ namespace GraphSystem {
         if (!isExecutionPending()) return;
         setExecutionPending(false);
 
-        float a = aInput->hasData() ? aInput->getFloat() : 0.0f;
-        float b = bInput->hasData() ? bInput->getFloat() : 0.0f;
+        float a = aInput->hasData() ? aInput->getFloat() : aValue;
+        float b = bInput->hasData() ? bInput->getFloat() : bValue;
         float res = 0.0f;
 
         switch (operation) {
@@ -29,16 +29,12 @@ namespace GraphSystem {
         case '-': res = a - b; break;
         case '*': res = a * b; break;
         case '/': res = (b != 0.0f ? a / b : 0.0f); break;
-        default:  res = 0.0f; break;
         }
-
-
         resultOutput->setData(res);
 
-        for (auto& link : execOutput->getLinks()) {
+        for (auto& link : execOutput->getLinks())
             if (auto next = link->getTargetNode())
                 next->setExecutionPending(true);
-        }
     }
 
-} // namespace GraphSystem
+}

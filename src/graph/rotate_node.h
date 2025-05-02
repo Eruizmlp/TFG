@@ -8,8 +8,9 @@ namespace GraphSystem {
         MeshInstance3D* targetMesh = nullptr;
         float angle;
         glm::vec3 axis;
-        Input* execInput = nullptr;  
+        Input* execInput = nullptr;
         Output* execOutput = nullptr;
+        Input* angleInput = nullptr;
         Output* transformOutput = nullptr;
 
     public:
@@ -20,6 +21,7 @@ namespace GraphSystem {
         void setTarget(MeshInstance3D* mesh);
         void setRotationAngle(float angle);
         void setRotationAxis(const glm::vec3& axis);
+        float getRotationAngle();
         void execute() override;
     };
 }
