@@ -6,7 +6,7 @@ namespace GraphSystem {
     class RotateNode : public GraphNode {
     private:
         MeshInstance3D* targetMesh = nullptr;
-        float angle;
+        float angle = 30.0f;
         glm::vec3 axis;
         Input* execInput = nullptr;
         Output* execOutput = nullptr;

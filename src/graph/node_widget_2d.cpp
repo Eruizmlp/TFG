@@ -217,7 +217,9 @@ void RotateNodeWidget2D::initInspector() {
     inspectPanel->add_child(angleSlider);
 
     Node::bind(angleSlider->get_name(), FuncFloat([this](const std::string&, float v) {
-        static_cast<RotateNode*>(logic_node)->setRotationAngle(v);
+        auto* rn = static_cast<RotateNode*>(logic_node);
+        rn->setRotationAngle(v);
+        rn->getInput("Angle")->setData<float>(v);
         }));
 
     add_child(inspectPanel);
