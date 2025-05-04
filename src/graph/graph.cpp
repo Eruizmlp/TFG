@@ -1,11 +1,13 @@
 #include "graph.h"
-#include "event_node.h"
+#include "run_node.h"
 #include <iostream>
 
 namespace GraphSystem {
 
     Graph::Graph(const std::string& name)
-        : m_name(name){}
+        : m_name(name)
+    {
+    }
 
     Graph::~Graph() {
         clear();
@@ -13,37 +15,21 @@ namespace GraphSystem {
 
     void Graph::addNode(GraphNode* node) {
         if (!node) return;
-
-        bool exists = false;
-        for (auto n : nodes) {
-            if (n == node) {
-                exists = true;
-                break;
-            }
-        }
-
-        if (!exists) {
-            nodes.push_back(node);
-            std::cout << "[Graph] Added node: " << node->getName() << "\n";
-        }
+        for (auto* n : nodes) if (n == node) return;
+        nodes.push_back(node);
+        std::cout << "[Graph] Added node: " << node->getName() << "\n";
     }
 
     void Graph::removeNode(GraphNode* node) {
         if (!node) return;
-
-        // Remove links manually
-        auto it = links.begin();
-        while (it != links.end()) {
-            if ((*it)->getSourceNode() == node || (*it)->getTargetNode() == node) {
+        for (auto it = links.begin(); it != links.end();) {
+            if ((*it)->getSourceNode() == node ||
+                (*it)->getTargetNode() == node) {
                 delete* it;
                 it = links.erase(it);
             }
-            else {
-                ++it;
-            }
+            else ++it;
         }
-
-        // Remove node manually
         for (auto it = nodes.begin(); it != nodes.end(); ++it) {
             if (*it == node) {
                 delete* it;
@@ -53,47 +39,46 @@ namespace GraphSystem {
         }
     }
 
-    bool Graph::connect(GraphNode* source, const std::string& outputName,
-        GraphNode* target, const std::string& inputName) {
+    bool Graph::connect(GraphNode* source,
+        const std::string& outputName,
+        GraphNode* target,
+        const std::string& inputName)
+    {
         if (!source || !target) {
             std::cerr << "[Error] Cannot connect - null nodes\n";
             return false;
         }
-
         if (source == target) {
             std::cerr << "[Error] Cannot connect node to itself\n";
             return false;
         }
 
-        // Find source output manually
+        // find source output
         Output* output = nullptr;
-        for (auto out : source->getOutputs()) {
+        for (auto* out : source->getOutputs()) {
             if (out && out->getName() == outputName) {
                 output = out;
                 break;
             }
         }
-
         if (!output) {
             std::cerr << "[Error] Output '" << outputName << "' not found\n";
             return false;
         }
 
-        // Find target input manually if specified
+        // find target input (if given)
         Input* input = nullptr;
         if (!inputName.empty()) {
-            for (auto in : target->getInputs()) {
+            for (auto* in : target->getInputs()) {
                 if (in && in->getName() == inputName) {
                     input = in;
                     break;
                 }
             }
-
             if (!input) {
                 std::cerr << "[Error] Input '" << inputName << "' not found\n";
                 return false;
             }
-
             if (output->getType() != input->getType()) {
                 std::cerr << "[Error] Type mismatch between "
                     << outputName << " and " << inputName << "\n";
@@ -101,27 +86,22 @@ namespace GraphSystem {
             }
         }
 
-        // Check for duplicates manually
-        bool duplicate = false;
-        for (auto link : links) {
+        // check duplicates
+        for (auto* link : links) {
             if (link->getOutput() == output &&
                 link->getTargetNode() == target &&
                 link->getTargetInput() == input) {
-                duplicate = true;
-                break;
+                std::cerr << "[Warning] Duplicate connection\n";
+                return false;
             }
         }
 
-        if (duplicate) {
-            std::cerr << "[Warning] Duplicate connection\n";
-            return false;
-        }
-
-        // Create link
+        // create it
         try {
             Link* link = new Link(output, target, input);
             links.push_back(link);
-            std::cout << "[Graph] Connected " << source->getName() << ":" << outputName
+            std::cout << "[Graph] Connected "
+                << source->getName() << ":" << outputName
                 << " to " << target->getName() << "\n";
             return true;
         }
@@ -132,16 +112,17 @@ namespace GraphSystem {
     }
 
     void Graph::render() {
-        for (auto node : nodes) node->render();
-        for (auto link : links) link->render();
+        for (auto* node : nodes) node->render();
+        for (auto* link : links) link->render();
     }
 
+    // one-shot execution (unchanged)
     void Graph::execute() {
         std::cout << "[Graph] Starting execution\n";
         std::queue<GraphNode*> executionQueue;
 
-        // Find entry points
-        for (auto node : nodes) {
+        // enqueue entry-points
+        for (auto* node : nodes) {
             if (node && node->isEntryPoint()) {
                 std::cout << "[Graph] Found entry point: " << node->getName() << "\n";
                 node->setExecutionPending(true);
@@ -149,28 +130,25 @@ namespace GraphSystem {
             }
         }
 
-        // Execute graph
+        // drain
         while (!executionQueue.empty()) {
-            auto current = executionQueue.front();
+            auto* current = executionQueue.front();
             executionQueue.pop();
-
             if (!current || !current->isExecutionPending()) {
-                std::cout << "[Graph] Skipping node (null or not pending)\n";
+                std::cout << "[Graph] Skipping node (not pending)\n";
                 continue;
             }
-
             std::cout << "[Graph] Executing: " << current->getName() << "\n";
             try {
                 current->execute();
-
-                // After execution, collect newly triggered nodes
-                for (auto* output : current->getOutputs()) {
-                    if (output->getType() == IOType::EXECUTION) {
-                        for (auto* link : output->getLinks()) {
-                            if (auto target = link->getTargetNode()) {
-                                std::cout << "[Graph] Adding to queue: " << target->getName() << "\n";
-                                target->setExecutionPending(true);
-                                executionQueue.push(target);
+                // enqueue downstream Exec ports
+                for (auto* out : current->getOutputs()) {
+                    if (out->getType() == IOType::EXECUTION) {
+                        for (auto* link : out->getLinks()) {
+                            if (auto* tgt = link->getTargetNode()) {
+                                std::cout << "[Graph] Adding to queue: " << tgt->getName() << "\n";
+                                tgt->setExecutionPending(true);
+                                executionQueue.push(tgt);
                             }
                         }
                     }
@@ -179,16 +157,66 @@ namespace GraphSystem {
             catch (...) {
                 std::cerr << "[Error] Node execution failed: " << current->getName() << "\n";
             }
-
             current->setExecutionPending(false);
         }
         std::cout << "[Graph] Execution complete\n";
     }
 
+    // Trigger entry-points without executing 
+    void Graph::triggerEntryPoints() {
+        for (auto* node : nodes) {
+            if (node->isEntryPoint()) {
+                std::cout << "[Graph] Triggering entry point: " << node->getName() << "\n";
+                node->setExecutionPending(true);
+            }
+        }
+    }
+
+
+
+    void Graph::update(float dt) {
+        
+        for (auto* node : nodes) {
+            node->update(dt);
+        }
+
+        // 2) Drain the execution queue properly:
+        //    - Execute each pending node exactly once
+        //    - Propagate its EXECUTION outputs to mark targets pending
+        //    - Clear its pending flag so it doesn’t run again until re-scheduled
+
+        bool didRun;
+        do {
+            didRun = false;
+            for (auto* node : nodes) {
+                if (!node->isExecutionPending())
+                    continue;
+
+                node->execute();
+
+                for (auto* out : node->getOutputs()) {
+                    if (out->getType() != IOType::EXECUTION)
+                        continue;
+                    for (auto* link : out->getLinks()) {
+                        if (auto* tgt = link->getTargetNode()) {
+                            tgt->setExecutionPending(true);
+                        }
+                    }
+                }
+  
+                node->setExecutionPending(false);
+
+                didRun = true;
+            }
+        } while (didRun);
+    }
+
+
     void Graph::clear() {
-        for (auto link : links) delete link;
-        for (auto node : nodes) delete node;
+        for (auto* link : links) delete link;
+        for (auto* node : nodes) delete node;
         links.clear();
         nodes.clear();
     }
-}
+
+} 

@@ -1,5 +1,5 @@
 #include "graph_button_2d.h"
-#include "event_node.h"
+#include "run_node.h"
 
 namespace GraphSystem {
 
@@ -24,26 +24,11 @@ namespace GraphSystem {
         }
 
         if (!graph) {
-            std::cerr << "[Error] Graph is null!\n";
+            std::cerr << "[GraphButton2D] Error: Graph is null!\n";
             return false;
         }
+        graph->triggerEntryPoints();
 
-        bool eventTriggered = false;
-        for (const auto& node : graph->getNodes()) {
-            auto eventNode = dynamic_cast<EventNode*>(node);
-            if (eventNode) {
-                std::cout << "[GraphButton2D] Triggering Event Node: " << eventNode->getEventName() << "\n";
-                eventNode->setExecutionPending(true);
-                eventTriggered = true;
-            }
-        }
-
-        if (!eventTriggered) {
-            std::cerr << "[Error] No Event Nodes Found!\n";
-            return false;
-        }
-
-        graph->execute();
         return true;
     }
 

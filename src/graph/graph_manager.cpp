@@ -20,7 +20,7 @@ namespace GraphSystem {
     
     void GraphManager::executeGraph(Graph* graph) {
         if (graph) {
-            graph->execute();
+            graph->triggerEntryPoints();
         }
     }
 

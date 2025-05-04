@@ -5,10 +5,10 @@
 
 namespace GraphSystem {
 
-    class EventNode : public GraphNode {
+    class RunNode : public GraphNode {
     public:
-        explicit EventNode(const std::string& name);
-        virtual ~EventNode() override;  
+        explicit RunNode(const std::string& name);
+        virtual ~RunNode() override;  
 
         void execute() override;
         const std::string& getEventName() const { return eventName; }

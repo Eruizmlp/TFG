@@ -12,24 +12,28 @@ namespace GraphSystem {
     class Graph {
     private:
         std::list<GraphNode*> nodes;
-        std::list<Link*> links;
-        bool m_isTickGraph;
-        std::string m_name;
+        std::list<Link*>      links;
+        bool                  m_isTickGraph;
+        std::string           m_name;
 
     public:
         explicit Graph(const std::string& name);
         ~Graph();
 
         const std::string& getName() const { return m_name; }
-        
 
         void addNode(GraphNode* node);
         void removeNode(GraphNode* node);
-        bool connect(GraphNode* source, const std::string& outputName,
-            GraphNode* target, const std::string& inputName = "");
+        bool connect(GraphNode* source,
+            const std::string& outputName,
+            GraphNode* target,
+            const std::string& inputName = "");
 
         void render();
         void execute();
+        void update(float dt);
+
+        void triggerEntryPoints();
 
         const std::list<GraphNode*>& getNodes() const { return nodes; }
         const std::list<Link*>& getLinks() const { return links; }
@@ -37,6 +41,6 @@ namespace GraphSystem {
         void clear();
     };
 
-} // namespace GraphSystem
+} 
 
-#endif // GRAPH_H
+#endif 

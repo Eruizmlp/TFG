@@ -20,9 +20,6 @@ namespace GraphSystem {
         // Remove a graph from the manager
         void removeGraph(Graph* graph);
 
-        // Execute all tick graphs
-        void executeTickGraphs();
-
         // Execute a specific graph
         void executeGraph(Graph* graph);
 

@@ -1,23 +1,22 @@
-// event_node.cpp
-#include "event_node.h"
+#include "run_node.h"
 #include <iostream>
 
 namespace GraphSystem {
 
-    EventNode::EventNode(const std::string& name)
+    RunNode::RunNode(const std::string& name)
         : GraphNode(name),
         eventName("DefaultEvent"),
-        execOutput(addOutput("Execution", IOType::EXECUTION))  // Changed to "Execution"
+        execOutput(addOutput("Execution", IOType::EXECUTION))  
     {
         setEntryPoint(true);
-        setExecutionPending(false);  // Initialize execution state
+        setExecutionPending(false);  
     }
 
-    EventNode::~EventNode() {
+    RunNode::~RunNode() {
         std::cout << "[EventNode] Destroying event: " << eventName << "\n";
     }
 
-    void EventNode::execute() {
+    void RunNode::execute() {
         if (!isExecutionPending()) return;
         setExecutionPending(false);  // Reset execution flag
 

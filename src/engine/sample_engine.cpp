@@ -22,7 +22,7 @@
 #include "../graph/print_node.h"
 #include "../graph/sequence_node.h"
 #include "../graph/start_node.h"
-#include "../graph/event_node.h"
+#include "../graph/run_node.h"
 #include "../graph/graph_button_2d.h"
 #include "graph/node_widget_2d.h" 
 #include <graph/graph_node3D.h>
@@ -66,7 +66,7 @@ void SampleEngine::setupGraphUI() {
 
 void buildPipeline(GraphSystem::Graph& graph) {
     // Create and register nodes
-    auto* eventNode = new GraphSystem::EventNode("ButtonEvent");
+    auto* eventNode = new GraphSystem::RunNode("Begin Play");
     graph.addNode(eventNode);  // Explicitly add to graph first
         
     auto* sequenceNode = new GraphSystem::SequenceNode("MainSequence", 2);
@@ -158,11 +158,12 @@ void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
     addRow("PrintNode", "PrintNode");
     addRow("RotateNode", "RotateNode");
     addRow("SequenceNode", "SequenceNode");
-    addRow("EventNode", "EventNode");
+    addRow("RunNode", "RunNode");
     addRow("GraphNode3D", "GraphNode3D");
     addRow("MathNode", "MathNode");
     addRow("VariableNode", "VariableNode");
     addRow("BranchNode", "BranchNode");
+    addRow("TickNode", "TickNode");
 
     // Forzamos el layout y que el contenedor mida su altura real
     panel->use_fixed_size = false;
@@ -225,10 +226,10 @@ int SampleEngine::post_initialize()
 
 
     // instantiate logical nodes
-    auto* eventNode = static_cast<GraphSystem::EventNode*>(
-        editor->createNode("EventNode", "ButtonEvent", { 550.0f, 550, 0.0f })
+    auto* runNode = static_cast<GraphSystem::RunNode*>(
+        editor->createNode("RunNode", "Begin Play", { 550.0f, 550, 0.0f })
         );
-    eventNode->setEntryPoint(true);
+    runNode->setEntryPoint(true);
 
     auto* sequenceNode = static_cast<GraphSystem::SequenceNode*>(
         editor->createNode("SequenceNode", "MainSequence", { 600.0f, 600.0f, 0.0f })
@@ -297,11 +298,16 @@ void SampleEngine::clean()
 
 void SampleEngine::update(float delta_time)
 {
-    
     Engine::update(delta_time);
-    main_scene->update(delta_time);
 
+    
+    for (auto* graph : graphManager.getGraphs()) {
+        graph->update(delta_time);
+    }
+
+    main_scene->update(delta_time);
 }
+
 void SampleEngine::render()
 {
     if (show_imgui) {

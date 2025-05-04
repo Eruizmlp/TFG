@@ -4,12 +4,13 @@
 #include "engine/scene.h"
 #include "print_node.h"
 #include "sequence_node.h"
-#include "event_node.h"
+#include "run_node.h"
 #include "rotate_node.h"
 #include "math_node.h"
 #include "branch_node.h"
 #include "variable_node.h"
-#include "graph_node3D.h"  
+#include "graph_node3D.h"
+#include "tick_node.h"
 #include <iostream>
 
 using namespace GraphSystem;
@@ -32,11 +33,11 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     else if (type == "RotateNode")   node = new RotateNode(nodeName);
     else if (type == "GraphNode3D")  node = new GraphNode3D(nodeName, graph);
     else if (type == "SequenceNode") node = new SequenceNode(nodeName, 2);
-    else if (type == "EventNode")    node = new EventNode(nodeName);
+    else if (type == "RunNode")    node = new RunNode(nodeName);
     else if (type == "MathNode")    node = new MathNode(nodeName);
     else if (type == "BranchNode")    node = new BranchNode(nodeName);
     else if (type == "VariableNode")    node = new VariableNode(nodeName);
-
+    else if (type == "TickNode")    node = new TickNode(nodeName);
 
     if (!node) {
         std::cerr << "[GraphEditor] Unknown node type: " << type << "\n";
@@ -52,11 +53,11 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     if (eng && eng->get_main_scene()) {
         auto* widget = [&]() -> NodeWidget2D* {
             if (auto* rn = dynamic_cast<RotateNode*>(node)) {
-                // use the specialized rotate‐node widget
+              
                 return new RotateNodeWidget2D(rn, this, worldPosition);
             }
             else {
-                // fallback for everything else
+            
                 return new NodeWidget2D(node, this, worldPosition);
             }
             }();

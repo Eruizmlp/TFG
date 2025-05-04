@@ -38,6 +38,7 @@ namespace GraphSystem {
         // Node operations
         virtual void execute();
         virtual void render();
+        virtual void update(float ) {}
 
         // Getters
         Input* getInput(const std::string& name);
