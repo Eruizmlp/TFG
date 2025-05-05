@@ -67,7 +67,7 @@ void SampleEngine::setupGraphUI() {
 void buildPipeline(GraphSystem::Graph& graph) {
     // Create and register nodes
     auto* eventNode = new GraphSystem::RunNode("Begin Play");
-    graph.addNode(eventNode);  // Explicitly add to graph first
+    graph.addNode(eventNode);  
         
     auto* sequenceNode = new GraphSystem::SequenceNode("MainSequence", 2);
     auto* printA = new GraphSystem::PrintNode("DebugPrintA");
@@ -99,7 +99,7 @@ void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
     constexpr float Y = 400.0f;
     constexpr float PANEL_W = 260.0f;
 
-    // Creamos un VContainer2D **verde**
+   
     VContainer2D* panel = new VContainer2D(
         "NodeCreationPanel",
         { X, Y },
@@ -165,7 +165,6 @@ void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
     addRow("BranchNode", "BranchNode");
     addRow("TickNode", "TickNode");
 
-    // Forzamos el layout y que el contenedor mida su altura real
     panel->use_fixed_size = false;
     panel->on_children_changed();
 
@@ -185,7 +184,7 @@ int SampleEngine::post_initialize()
         main_scene->add_node(skybox);
     }
 
-    // load controllers if VR
+ 
     if (renderer->get_xr_available())
     {
         std::vector<Node*> left, right;
@@ -257,7 +256,7 @@ int SampleEngine::post_initialize()
     }
     main_scene->add_node(testBox);
 
-    // graph nodes at fixed height
+   
     auto* boxNode = static_cast<GraphSystem::GraphNode3D*>(
         editor->createNode("GraphNode3D", "BoxNode", { 300.0f, 300.0f, 0.0f })
         );
