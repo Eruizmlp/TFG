@@ -1,21 +1,19 @@
 #include "node_widget_2d.h"
 #include "port_button_2d.h"
-#include "framework/ui/io.h"
 #include "framework/input.h"
+#include "framework/ui/io.h"
 #include "framework/colors.h"
 #include <GLFW/glfw3.h>
 
 using namespace GraphSystem;
 using namespace ui;
 
-
 glm::vec2 NodeWidget2D::computeSize(GraphNode* node) {
-    constexpr float W = 200.0f, HROW = 20.0f, M = 4.0f;
+    constexpr float W = 200.0f, ROW = 20.0f, M = 4.0f;
     size_t n = node->getOutputs().size() + node->getInputs().size();
-    float h = M + (2 + float(n)) * (HROW + M);
+    float  h = M + (2 + float(n)) * (ROW + M);
     return { W, h };
 }
-
 NodeWidget2D::NodeWidget2D(GraphNode* node,
     GraphEditor* editor,
     const glm::vec3& worldPos)
@@ -27,7 +25,6 @@ NodeWidget2D::NodeWidget2D(GraphNode* node,
     logic_node(node),
     graphEditor(editor)
 {
-    set_priority(Node2DClassType::DRAGGABLE);
 
     // Root container
     rootContainer = new VContainer2D(
@@ -140,30 +137,27 @@ void NodeWidget2D::update(float delta_time) {
     Panel2D::update(delta_time);
 }
 
-// ————— RotateNodeWidget2D —————
+// — RotateNodeWidget2D —
 
 RotateNodeWidget2D::RotateNodeWidget2D(RotateNode* node,
     GraphEditor* editor,
     const glm::vec3& worldPos)
     : NodeWidget2D(node, editor, worldPos)
 {
-   
 }
 
-void RotateNodeWidget2D::toggleInspector(sInputData data) {
-    if (data.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+void RotateNodeWidget2D::toggleInspector(sInputData d) {
+    if (d.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
         if (!inspectPanel) initInspector();
         inspectorVisible = !inspectorVisible;
         inspectPanel->set_visibility(inspectorVisible, true);
     }
 }
 
-
 void RotateNodeWidget2D::initInspector() {
-
     glm::vec2 pos = get_translation() + glm::vec2(get_size().x + 10.0f, 0.0f);
     glm::vec2 sz = { 180.0f, 100.0f };
-    inspectPanel = new Panel2D(
+    inspectPanel = new XRPanel(
         "RotateInspect_" + logic_node->getName(),
         pos,
         sz,
@@ -172,12 +166,11 @@ void RotateNodeWidget2D::initInspector() {
     );
     inspectPanel->set_priority(Node2DClassType::PANEL);
 
-    // Axis buttons
     auto* axisRow = new HContainer2D("AxisRow", { 8, sz.y - 30 }, 0u, colors::GRAY);
     axisRow->item_margin = { 4,0 };
     inspectPanel->add_child(axisRow);
 
-    sButtonDescription bdesc;
+    ui::sButtonDescription bdesc;
     bdesc.size = { 24,24 };
     bdesc.color = colors::WHITE;
 
@@ -192,59 +185,48 @@ void RotateNodeWidget2D::initInspector() {
     axisRow->add_child(axisYBtn);
     axisRow->add_child(axisZBtn);
 
-    Node::bind(axisXBtn->get_name(), FuncVoid([this](const std::string&, void*) {
+    Node::bind(axisXBtn->get_name(), FuncVoid([this](auto, auto*) {
         static_cast<RotateNode*>(logic_node)->setRotationAxis({ 1,0,0 });
         }));
-    Node::bind(axisYBtn->get_name(), FuncVoid([this](const std::string&, void*) {
+    Node::bind(axisYBtn->get_name(), FuncVoid([this](auto, auto*) {
         static_cast<RotateNode*>(logic_node)->setRotationAxis({ 0,1,0 });
         }));
-    Node::bind(axisZBtn->get_name(), FuncVoid([this](const std::string&, void*) {
+    Node::bind(axisZBtn->get_name(), FuncVoid([this](auto, auto*) {
         static_cast<RotateNode*>(logic_node)->setRotationAxis({ 0,0,1 });
         }));
 
-    // Angle slider
     sSliderDescription sd;
     sd.mode = HORIZONTAL;
     sd.position = { 8, sz.y - 60 };
-    sd.size = { 80, 20 };
+    sd.size = { 80,20 };
     sd.fvalue = static_cast<RotateNode*>(logic_node)->getRotationAngle();
     sd.fvalue_min = 0.0f;
     sd.fvalue_max = 360.0f;
     sd.precision = 1;
-    
     angleSlider = new FloatSlider2D("AngleSlider_" + logic_node->getName(), sd);
-   
     inspectPanel->add_child(angleSlider);
 
-    Node::bind(angleSlider->get_name(), FuncFloat([this](const std::string&, float v) {
-        auto* rn = static_cast<RotateNode*>(logic_node);
-        rn->setRotationAngle(v);
-        rn->getInput("Angle")->setData<float>(v);
+    Node::bind(angleSlider->get_name(), FuncFloat([this](auto, float v) {
+        static_cast<RotateNode*>(logic_node)->setRotationAngle(v);
         }));
 
     add_child(inspectPanel);
     inspectPanel->set_visibility(false, true);
-
 }
 
 void RotateNodeWidget2D::updateInspector() {
     if (!inspectPanel || !inspectorVisible) return;
-
-    inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
+    inspectPanel->set_position(get_translation() + glm::vec2(get_size().x + 10.0f, 0.0f));
     angleSlider->set_value(static_cast<RotateNode*>(logic_node)->getRotationAngle());
 }
 
-
 void RotateNodeWidget2D::update(float delta_time) {
-
-    sInputData d = get_input_data(false);
+    // permitir toggle incluso inspector abierto
+    auto d = get_input_data(false);
     if (d.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
         if (!inspectPanel) initInspector();
         inspectorVisible = !inspectorVisible;
         inspectPanel->set_visibility(inspectorVisible, true);
     }
-
     NodeWidget2D::update(delta_time);
 }
-
-
