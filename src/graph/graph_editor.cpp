@@ -15,8 +15,8 @@
 
 using namespace GraphSystem;
 
-GraphEditor::GraphEditor(Graph* graph)
-    : graph(graph)
+GraphEditor::GraphEditor(Graph* graph, Node2D* panel)
+    : graph(graph), graph_container(panel)
 {
 }
 
@@ -49,26 +49,22 @@ GraphNode* GraphEditor::createNode(const std::string& type,
         << " (" << type << ")\n";
 
     
-    auto* eng = Engine::get_instance();
-    if (eng && eng->get_main_scene()) {
-        auto* widget = [&]() -> NodeWidget2D* {
-            if (auto* rn = dynamic_cast<RotateNode*>(node)) {
-              
-                return new RotateNodeWidget2D(rn, this, worldPosition);
-            }
-            else {
-            
-                return new NodeWidget2D(node, this, worldPosition);
-            }
-            }();
+    // choose the right widget subclass
+    NodeWidget2D* widget = nullptr;
+    if (auto* rn = dynamic_cast<RotateNode*>(node))
+        widget = new RotateNodeWidget2D(rn, this, worldPosition);
+    else
+        widget = new NodeWidget2D(node, this, worldPosition);
 
+
+    if (graph_container) {
+        graph_container->add_child(widget);
+    }
+    else if (auto* eng = Engine::get_instance(); eng && eng->get_main_scene()) {
         eng->get_main_scene()->add_node(widget);
-        widgets.push_back(widget);
     }
-    else {
-        std::cerr << "[GraphEditor] No main scene available\n";
-    }
-
+    
+    widgets.push_back(widget);
     return node;
 }
 

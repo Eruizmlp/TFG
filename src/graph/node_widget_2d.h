@@ -1,4 +1,3 @@
-// node_widget_2d.h
 #pragma once
 
 #include <glm/glm.hpp>
@@ -16,11 +15,11 @@
 
 namespace GraphSystem {
 
-    class NodeWidget2D : public ui::Panel2D {
+    class NodeWidget2D : public Node2D {
     protected:
         GraphNode* logic_node;
         GraphEditor* graphEditor;
-        ui::XRPanel* background;
+        ui::XRPanel* background = nullptr;
         ui::VContainer2D* rootContainer;
         bool              dragging = false;
         glm::vec2         dragOffset;
@@ -35,9 +34,9 @@ namespace GraphSystem {
         GraphNode* getLogicNode() const { return logic_node; }
 
         // input / render hooks
-        virtual bool       on_input(sInputData data) override;
-        virtual void       update(float delta_time) override;
-        virtual sInputData get_input_data(bool ignore_focus = false) override;
+        bool       on_input(sInputData data) override;
+        void       update(float delta_time) override;
+        sInputData get_input_data(bool ignore_focus = false) override;
 
         // inspector hooks
         virtual void toggleInspector(sInputData data) {}

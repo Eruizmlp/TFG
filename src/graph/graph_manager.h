@@ -12,7 +12,7 @@ namespace GraphSystem {
 
     public:
         // Create a new graph and return a raw pointer to it
-        Graph* createGraph(const std::string& name, bool isTickGraph = false);
+        Graph* createGraph(const std::string& name);
 
         // Get the list of graphs
         const std::vector<Graph*>& getGraphs() const;

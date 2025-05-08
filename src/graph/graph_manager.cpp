@@ -2,7 +2,7 @@
 
 namespace GraphSystem {
 
-    Graph* GraphManager::createGraph(const std::string& name, bool isTickGraph) {
+    Graph* GraphManager::createGraph(const std::string& name) {
         Graph* graph = new Graph(name);
         graphs.push_back(graph);
         return graph;
@@ -14,7 +14,7 @@ namespace GraphSystem {
 
     void GraphManager::removeGraph(Graph* graph) {
         graphs.erase(std::remove(graphs.begin(), graphs.end(), graph), graphs.end());
-        delete graph;  // Clean up the graph object
+        delete graph;  
     }
 
     
@@ -30,12 +30,11 @@ namespace GraphSystem {
         }
     }
 
-    // Destructor to clean up all dynamically allocated graphs
     GraphManager::~GraphManager() {
         for (auto graph : graphs) {
-            delete graph;  // Delete each graph object
+            delete graph; 
         }
-        graphs.clear();  // Clear the list
+        graphs.clear();  
     }
 
-} // namespace GraphSystem
+} 

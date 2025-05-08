@@ -9,58 +9,79 @@ using namespace GraphSystem;
 using namespace ui;
 
 glm::vec2 NodeWidget2D::computeSize(GraphNode* node) {
-    constexpr float W = 200.0f, ROW = 20.0f, M = 4.0f;
+    constexpr float W = 200.0f, ROW = 20.0f, M = 6.0f;
     size_t n = node->getOutputs().size() + node->getInputs().size();
-    float  h = M + (2 + float(n)) * (ROW + M);
+    float  h = M + (3 + float(n)) * (ROW + M);
     return { W, h };
 }
+
 NodeWidget2D::NodeWidget2D(GraphNode* node,
     GraphEditor* editor,
     const glm::vec3& worldPos)
-    : Panel2D("Widget2D_" + node->getName(),
+    : Node2D("Widget2D_" + node->getName(),
         { worldPos.x, worldPos.y },
         computeSize(node),
-        1u,
-        colors::GRAY),
+        ui::CREATE_3D),
     logic_node(node),
     graphEditor(editor)
 {
 
-    // Root container
-    rootContainer = new VContainer2D(
-        "NodeRoot_" + node->getName(),
-        { 0,0 },
+    background = new XRPanel(
+        "bg_" + node->getName(),
+        { 0, 0 },
+        get_size(),
         0u,
         colors::GRAY
     );
-    rootContainer->padding = { 8,8 };
-    rootContainer->item_margin = { 4,4 };
-    rootContainer->set_fixed_size(get_size());
-    add_child(rootContainer);
+    add_child(background);
 
-    // Title
-    auto* title = new Text2D(node->getName(), { 0,0 });
+    // — root container —
+    rootContainer = new VContainer2D(
+        "NodeRoot_" + node->getName(),
+        { 0, 0 },
+        0u,
+        colors::GRAY
+    );
+
+    rootContainer->padding = { 8, 8 };
+    rootContainer->item_margin = { 4, 4 };
+    rootContainer->set_fixed_size(get_size());
+    background->add_child(rootContainer);
+
+    // — Title (no text‐rect, white, on top) —
+    float titleSize = 20.0f;
+    auto* title = new Text2D(
+        node->getName(),
+        { 8, 8 },
+        titleSize,
+        SKIP_TEXT_RECT
+    );
     title->set_color(colors::WHITE);
     rootContainer->add_child(title);
 
-    // OUTPUT ports
+    // — OUTPUT ports —
     for (auto* outP : logic_node->getOutputs()) {
         auto* row = new HContainer2D(
             "RowOut_" + outP->getName(),
-            { 0,0 },
+            { 0, 0 },
             0u,
             colors::GRAY
         );
-        row->padding = { 4,2 };
-        row->item_margin = { 8,0 };
+        row->padding = { 4, 2 };
+        row->item_margin = { 8, 0 };
         rootContainer->add_child(row);
 
-        auto* lbl = new Text2D(outP->getName(), { 0,0 });
+        auto* lbl = new Text2D(
+            outP->getName(),
+            { 0, 0 },
+            18.0f,
+            SKIP_TEXT_RECT
+        );
         lbl->set_color(colors::GREEN);
         row->add_child(lbl);
 
         sButtonDescription desc;
-        desc.size = { 16,16 };
+        desc.size = { 16, 16 };
         desc.color = colors::GREEN;
         auto* btn = new PortButton2D(
             "outBtn_" + node->getName() + "_" + outP->getName(),
@@ -73,20 +94,20 @@ NodeWidget2D::NodeWidget2D(GraphNode* node,
         row->add_child(btn);
     }
 
-    // INPUT ports
+    // — INPUT ports —
     for (auto* inP : logic_node->getInputs()) {
         auto* row = new HContainer2D(
             "RowIn_" + inP->getName(),
-            { 0,0 },
+            { 0, 0 },
             0u,
             colors::GRAY
         );
-        row->padding = { 4,2 };
-        row->item_margin = { 8,0 };
+        row->padding = { 4, 2 };
+        row->item_margin = { 8, 0 };
         rootContainer->add_child(row);
 
         sButtonDescription desc;
-        desc.size = { 16,16 };
+        desc.size = { 16, 16 };
         desc.color = colors::RED;
         auto* btn = new PortButton2D(
             "inBtn_" + node->getName() + "_" + inP->getName(),
@@ -98,28 +119,38 @@ NodeWidget2D::NodeWidget2D(GraphNode* node,
         );
         row->add_child(btn);
 
-        auto* lbl = new Text2D(inP->getName(), { 0,0 });
+        auto* lbl = new Text2D(
+            inP->getName(),
+            { 0, 0 },
+            18.0f,
+            SKIP_TEXT_RECT
+        );
         lbl->set_color(colors::RED);
         row->add_child(lbl);
     }
 }
 
-sInputData NodeWidget2D::get_input_data(bool ignore_focus) {
-    return Panel2D::get_input_data(ignore_focus);
+
+sInputData NodeWidget2D::get_input_data(bool ignore_focus)
+{
+    return background->get_input_data(ignore_focus);
 }
 
-bool NodeWidget2D::on_input(sInputData data) {
+bool NodeWidget2D::on_input(sInputData data)
+{
     if (data.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
         toggleInspector(data);
         return true;
     }
-    return Panel2D::on_input(data);
+    
+    return background->on_input(data);
 }
 
 
-void NodeWidget2D::update(float delta_time) {
-    // Drag handling
-    sInputData d = get_input_data(false);
+void NodeWidget2D::update(float delta_time)
+{
+
+    auto d = get_input_data(false);
     if (d.was_pressed) {
         dragging = true;
         dragOffset = ::Input::get_mouse_position() - get_translation();
@@ -131,10 +162,9 @@ void NodeWidget2D::update(float delta_time) {
         dragging = false;
     }
 
-    // subclass inspector update
     updateInspector();
 
-    Panel2D::update(delta_time);
+    background->update(delta_time);
 }
 
 // — RotateNodeWidget2D —
@@ -161,10 +191,9 @@ void RotateNodeWidget2D::initInspector() {
         "RotateInspect_" + logic_node->getName(),
         pos,
         sz,
-        0u,
+        ui::CREATE_3D,
         colors::GRAY
     );
-    inspectPanel->set_priority(Node2DClassType::PANEL);
 
     auto* axisRow = new HContainer2D("AxisRow", { 8, sz.y - 30 }, 0u, colors::GRAY);
     axisRow->item_margin = { 4,0 };
@@ -221,7 +250,7 @@ void RotateNodeWidget2D::updateInspector() {
 }
 
 void RotateNodeWidget2D::update(float delta_time) {
-    // permitir toggle incluso inspector abierto
+
     auto d = get_input_data(false);
     if (d.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
         if (!inspectPanel) initInspector();

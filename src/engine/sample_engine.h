@@ -3,6 +3,7 @@
 #include "engine/engine.h"
 #include "graph/graph_manager.h"
 #include "graph/graph_editor.h"
+#include "framework/nodes/panel_2d.h"
 
 class Node3D;
 
@@ -15,7 +16,9 @@ private:
     GraphSystem::GraphManager graphManager;
     GraphSystem::GraphEditor* editor = nullptr;
     std::vector<GraphSystem::NodeWidget2D*> nodeWidgets;
-
+    ui::Panel2D* run_panel = nullptr;
+    Node2D* graph_container = nullptr;
+   
 public:
 
 	int initialize(Renderer* renderer, sEngineConfiguration configuration = {}) override;

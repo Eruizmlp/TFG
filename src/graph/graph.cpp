@@ -180,11 +180,6 @@ namespace GraphSystem {
             node->update(dt);
         }
 
-        // 2) Drain the execution queue properly:
-        //    - Execute each pending node exactly once
-        //    - Propagate its EXECUTION outputs to mark targets pending
-        //    - Clear its pending flag so it doesn’t run again until re-scheduled
-
         bool didRun;
         do {
             didRun = false;

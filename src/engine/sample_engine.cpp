@@ -34,7 +34,7 @@
 
 int SampleEngine::initialize(Renderer* renderer, sEngineConfiguration configuration)
 {
-	return Engine::initialize(renderer, configuration);
+    return Engine::initialize(renderer, configuration);
 }
 
 void SampleEngine::setupGraphUI() {
@@ -44,8 +44,8 @@ void SampleEngine::setupGraphUI() {
     }
 
     // Create UI panel
-    ui::Panel2D* ui_panel = new ui::Panel2D("GraphPanel", glm::vec2(20, 20), glm::vec2(250, 120), 0u, colors::GRAY);
-    main_scene->add_node(ui_panel);
+    run_panel = new ui::Panel2D("RunPanel", glm::vec2(20, 20), glm::vec2(250, 120), ui::CREATE_3D, colors::GRAY);
+    main_scene->add_node(run_panel);
 
     // Setup execute button
     ui::sButtonDescription buttonDesc;
@@ -60,15 +60,17 @@ void SampleEngine::setupGraphUI() {
 
     if (eventGraph) {
         GraphSystem::GraphButton2D* executeBtn = new GraphSystem::GraphButton2D("ExecuteBtn", buttonDesc, eventGraph);
-        ui_panel->add_child(executeBtn);
+        run_panel->add_child(executeBtn);
     }
+
+
 }
 
 void buildPipeline(GraphSystem::Graph& graph) {
     // Create and register nodes
     auto* eventNode = new GraphSystem::RunNode("Begin Play");
-    graph.addNode(eventNode);  
-        
+    graph.addNode(eventNode);
+
     auto* sequenceNode = new GraphSystem::SequenceNode("MainSequence", 2);
     auto* printA = new GraphSystem::PrintNode("DebugPrintA");
     auto* printB = new GraphSystem::PrintNode("DebugPrintB");
@@ -99,7 +101,7 @@ void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
     constexpr float Y = 400.0f;
     constexpr float PANEL_W = 260.0f;
 
-   
+
     VContainer2D* panel = new VContainer2D(
         "NodeCreationPanel",
         { X, Y },
@@ -141,15 +143,15 @@ void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
 
         // botón
         sButtonDescription desc;
-        desc.label = "";      
+        desc.label = "";
         desc.size = { 24.0f, 24.0f };
         desc.color = colors::WHITE;
         auto* btn = new GraphSystem::GraphButton2D(
             name + "Btn",
             desc,
-             nullptr,
-             editor,
-             type
+            nullptr,
+            editor,
+            type
         );
         row->add_child(btn);
         };
@@ -178,13 +180,23 @@ int SampleEngine::post_initialize()
 
     main_scene = new Scene("main_scene");
 
+    graph_container = new Node2D(
+        "GraphContainer",       
+        { 0,0 },
+        { 0,0 },   
+        ui::CREATE_3D          
+    );
+
+    main_scene->add_node(graph_container);
+
+
     // skybox
     {
         MeshInstance3D* skybox = new Environment3D();
         main_scene->add_node(skybox);
     }
 
- 
+
     if (renderer->get_xr_available())
     {
         std::vector<Node*> left, right;
@@ -219,9 +231,13 @@ int SampleEngine::post_initialize()
         main_scene->add_node(grid);
     }
 
+
+
+
     // create graph & editor
-    GraphSystem::Graph* eventGraph = graphManager.createGraph("MainGraph", false);
-    editor = new GraphSystem::GraphEditor(eventGraph);
+    GraphSystem::Graph* eventGraph = graphManager.createGraph("MainGraph");
+
+    editor = new GraphSystem::GraphEditor(eventGraph,graph_container);
 
 
     // instantiate logical nodes
@@ -256,7 +272,7 @@ int SampleEngine::post_initialize()
     }
     main_scene->add_node(testBox);
 
-   
+
     auto* boxNode = static_cast<GraphSystem::GraphNode3D*>(
         editor->createNode("GraphNode3D", "BoxNode", { 300.0f, 300.0f, 0.0f })
         );
@@ -269,20 +285,12 @@ int SampleEngine::post_initialize()
     rotator->setRotationAngle(30.0f);
     rotator->setRotationAxis({ 0,1,0 });
 
-    //// connect and trigger
-    //eventGraph->connect(eventNode, "Execution", sequenceNode, "Execute");
-    //eventGraph->connect(sequenceNode, "Step1", rotator, "Execute");
-    //eventGraph->connect(rotator, "Transform", boxNode, "Transform");
-    //eventNode->setExecutionPending(true);
 
     setupGraphUI();
     setupNodeCreationUI(editor);
 
     return 0u;
 }
-
-
-
 
 
 void SampleEngine::on_frame() {
@@ -297,11 +305,44 @@ void SampleEngine::clean()
 
 void SampleEngine::update(float delta_time)
 {
-    Engine::update(delta_time);
+    if (renderer->get_xr_available()) {
+        controller_mesh_left->set_transform(
+            Transform::mat4_to_transform(
+                Input::get_controller_pose(HAND_LEFT, POSE_AIM)
+            )
+        );
+        controller_mesh_right->set_transform(
+            Transform::mat4_to_transform(
+                Input::get_controller_pose(HAND_RIGHT, POSE_AIM)
+            )
+        );
+    }
 
-    
+    Engine::update(delta_time);
     for (auto* graph : graphManager.getGraphs()) {
         graph->update(delta_time);
+    }
+    
+    if (renderer->get_xr_available()) {
+        glm::mat4 pose = Input::get_controller_pose(HAND_LEFT, POSE_AIM);
+        pose = glm::translate(pose, glm::vec3(0.0f, 0.05f, -0.04f));
+        pose = glm::rotate(pose, glm::radians(120.f), glm::vec3(1, 0, 0));
+
+        glm::mat4 poseR = Input::get_controller_pose(HAND_RIGHT, POSE_AIM);
+        poseR = glm::translate(pose, glm::vec3(0.0f, 0.05f, -0.04f));
+        poseR = glm::rotate(pose, glm::radians(120.f), glm::vec3(1, 0, 0));
+
+        if (graph_container) {
+            graph_container->set_xr_transform(Transform::mat4_to_transform(poseR));
+            graph_container->update(delta_time);
+        }
+
+        if (run_panel) {
+
+            run_panel->set_xr_transform(Transform::mat4_to_transform(pose));
+            run_panel->update(delta_time);
+        }
+       
     }
 
     main_scene->update(delta_time);
