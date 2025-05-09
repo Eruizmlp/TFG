@@ -329,8 +329,8 @@ void SampleEngine::update(float delta_time)
         pose = glm::rotate(pose, glm::radians(120.f), glm::vec3(1, 0, 0));
 
         glm::mat4 poseR = Input::get_controller_pose(HAND_RIGHT, POSE_AIM);
-        poseR = glm::translate(pose, glm::vec3(0.0f, 0.05f, -0.04f));
-        poseR = glm::rotate(pose, glm::radians(120.f), glm::vec3(1, 0, 0));
+        poseR = glm::translate(poseR, glm::vec3(0.0f, 0.05f, -0.04f));
+        poseR = glm::rotate(poseR, glm::radians(120.f), glm::vec3(1, 0, 0));
 
         if (graph_container) {
             graph_container->set_xr_transform(Transform::mat4_to_transform(poseR));

@@ -50,7 +50,7 @@ namespace GraphSystem {
         ui::Button2D* axisXBtn = nullptr;
         ui::Button2D* axisYBtn = nullptr;
         ui::Button2D* axisZBtn = nullptr;
-        bool                inspectorVisible = false;
+        bool  inspectorVisible = false;
 
         void initInspector();
 
