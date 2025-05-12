@@ -48,7 +48,6 @@ NodeWidget2D::NodeWidget2D(GraphNode* node,
     rootContainer->set_fixed_size(get_size());
     background->add_child(rootContainer);
 
-    // — Title (no text‐rect, white, on top) —
     float titleSize = 20.0f;
     auto* title = new Text2D(
         node->getName(),

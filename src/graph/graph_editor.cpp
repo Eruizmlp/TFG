@@ -12,12 +12,21 @@
 #include "graph_node3D.h"
 #include "tick_node.h"
 #include <iostream>
+#include "visual_link_2d.h"
+
 
 using namespace GraphSystem;
 
 GraphEditor::GraphEditor(Graph* graph, Node2D* panel)
     : graph(graph), graph_container(panel)
 {
+    visualLink = new VisualLink2D(graph, this);
+    if (graph_container) {
+        graph_container->add_child(visualLink);
+    }
+    else if (auto* eng = Engine::get_instance(); eng && eng->get_main_scene()) {
+        eng->get_main_scene()->add_node(visualLink);
+    }
 }
 
 GraphNode* GraphEditor::createNode(const std::string& type,
@@ -98,4 +107,11 @@ void GraphEditor::resetConnectionState()
 {
     pendingSource = nullptr;
     pendingOutput.clear();
+}
+
+void GraphEditor::update(float delta_time)
+{
+
+    if (visualLink) visualLink->update(delta_time);
+
 }

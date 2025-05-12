@@ -10,6 +10,8 @@ namespace GraphSystem { class NodeWidget2D; }
 
 namespace GraphSystem {
 
+    class VisualLink2D;
+
     class GraphEditor {
     public:
         explicit GraphEditor(Graph* graph, Node2D* panel);
@@ -25,12 +27,16 @@ namespace GraphSystem {
 
         const std::vector<NodeWidget2D*>& getWidgets() const { return widgets; }
 
+        void update(float delta_time);
+
     private:
         Graph* graph;
         std::vector<NodeWidget2D*> widgets;
         GraphNode* pendingSource = nullptr;
         std::string pendingOutput;
         Node2D* graph_container = nullptr;
+        VisualLink2D* visualLink = nullptr;
+        
 
     };
 
