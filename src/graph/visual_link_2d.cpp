@@ -2,7 +2,7 @@
 #include "port_button_2d.h"
 #include "framework/colors.h"
 #include "graph/graph_editor.h"
-#include <glm/gtx/matrix_transform_2d.hpp>  // gives you translate(mat3,vec2) & rotate(mat3,float)
+
 
 
 using namespace GraphSystem;
@@ -35,7 +35,7 @@ void VisualLink2D::clearLinks() {
 }
 
 void VisualLink2D::buildLinks() {
-    // Iterate over each logical link in the graph
+
     for (auto* link : graph->getLinks()) {
         // Build unique IDs for source and target port buttons
         const std::string outId = "outBtn_" + link->getSourceNode()->getName()
@@ -54,12 +54,11 @@ void VisualLink2D::buildLinks() {
         float     len = glm::length(d);
         float     ang = atan2(d.y, d.x);
 
-        // Calculate midpoint, panel size, and top-left position
+        // Calculate midpoint, panel size, and position
         glm::vec2 mid = (p0 + p1) * 0.5f;
         glm::vec2 size = { len, linkThickness };
         glm::vec2 pos = mid - size * 0.5f;
 
-        // Create an XRPanel spanning between ports
         auto* visualLink_p = new XRPanel(
             "link_" + link->getSourceNode()->getName()
             + "_" + link->getTargetNode()->getName(),
@@ -69,12 +68,12 @@ void VisualLink2D::buildLinks() {
             colors::RUST
         );
 
+        //TODO:
         // Manually rotate around its center pivot
         visualLink_p->translate(size * 0.5f);
         visualLink_p->rotate(ang);
         visualLink_p->translate(-size * 0.5f);
 
-        // Attach to this Node2D and track for cleanup
         add_child(visualLink_p);
         panels.push_back(visualLink_p);
     }
