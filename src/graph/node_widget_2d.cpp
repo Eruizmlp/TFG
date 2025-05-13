@@ -278,5 +278,152 @@ void RotateNodeWidget2D::initInspector() {
 }
 
 
+// -------------------------- TranslateNodeWidget2D --------------------------
+
+TranslateNodeWidget2D::TranslateNodeWidget2D(TranslateNode* node,
+    GraphEditor* editor,
+    const glm::vec3& worldPos)
+    : NodeWidget2D(node, editor, worldPos)
+{
+}
+
+void TranslateNodeWidget2D::toggleInspector(sInputData data) {
+    if (data.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+        if (!inspectPanel) initInspector();
+        inspectorVisible = !inspectorVisible;
+        inspectPanel->set_visibility(inspectorVisible, true);
+    }
+}
+
+void TranslateNodeWidget2D::updateInspector() {
+    if (!inspectPanel || !inspectorVisible) return;
+    inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
+    auto offs = static_cast<TranslateNode*>(logic_node)->getOffset();
+    xSlider->set_value(offs.x);
+    ySlider->set_value(offs.y);
+    zSlider->set_value(offs.z);
+}
+
+void TranslateNodeWidget2D::update(float delta_time) {
+    sInputData d = get_input_data(false);
+    if (d.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+        if (!inspectPanel) initInspector();
+        inspectorVisible = !inspectorVisible;
+        inspectPanel->set_visibility(inspectorVisible, true);
+    }
+
+    NodeWidget2D::update(delta_time);
+    if (inspectPanel && inspectorVisible) inspectPanel->update(delta_time);
+}
+
+void TranslateNodeWidget2D::initInspector() {
+    glm::vec2 pos = get_translation() + glm::vec2(get_size().x + 10.0f, 0.0f);
+    glm::vec2 sz = { 200.0f, 120.0f };
+    inspectPanel = new XRPanel("TransInspect_" + logic_node->getName(), pos, sz, 0u, colors::GRAY);
+
+    // X slider
+    sSliderDescription sdX;
+    sdX.mode = HORIZONTAL;
+    sdX.position = { 8, sz.y - 30 };
+    sdX.size = { 160, 20 };
+    sdX.fvalue = static_cast<TranslateNode*>(logic_node)->getOffset().x;
+    sdX.fvalue_min = -10.0f;
+    sdX.fvalue_max = 10.0f;
+    sdX.precision = 2;
+    xSlider = new FloatSlider2D("TransX_" + logic_node->getName(), sdX);
+    inspectPanel->add_child(xSlider);
+    Node::bind(xSlider->get_name(), FuncFloat([this](const std::string&, float v) {
+        auto o = static_cast<TranslateNode*>(logic_node)->getOffset();
+        o.x = v;
+        static_cast<TranslateNode*>(logic_node)->setOffset(o);
+        }));
+
+    // Y slider
+    sSliderDescription sdY = sdX;
+    sdY.position = { 8, sz.y - 60 };
+    sdY.fvalue = static_cast<TranslateNode*>(logic_node)->getOffset().y;
+    ySlider = new FloatSlider2D("TransY_" + logic_node->getName(), sdY);
+    inspectPanel->add_child(ySlider);
+    Node::bind(ySlider->get_name(), FuncFloat([this](const std::string&, float v) {
+        auto o = static_cast<TranslateNode*>(logic_node)->getOffset();
+        o.y = v;
+        static_cast<TranslateNode*>(logic_node)->setOffset(o);
+        }));
+
+    // Z slider
+    sSliderDescription sdZ = sdX;
+    sdZ.position = { 8, sz.y - 90 };
+    sdZ.fvalue = static_cast<TranslateNode*>(logic_node)->getOffset().z;
+    zSlider = new FloatSlider2D("TransZ_" + logic_node->getName(), sdZ);
+    inspectPanel->add_child(zSlider);
+    Node::bind(zSlider->get_name(), FuncFloat([this](const std::string&, float v) {
+        auto o = static_cast<TranslateNode*>(logic_node)->getOffset();
+        o.z = v;
+        static_cast<TranslateNode*>(logic_node)->setOffset(o);
+        }));
+
+    add_child(inspectPanel);
+    inspectPanel->set_visibility(false, true);
+}
+
+// -------------------------- ScaleNodeWidget2D --------------------------
+
+ScaleNodeWidget2D::ScaleNodeWidget2D(ScaleNode* node,
+    GraphEditor* editor,
+    const glm::vec3& worldPos)
+    : NodeWidget2D(node, editor, worldPos)
+{
+}
+
+void ScaleNodeWidget2D::toggleInspector(sInputData data) {
+    if (data.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+        if (!inspectPanel) initInspector();
+        inspectorVisible = !inspectorVisible;
+        inspectPanel->set_visibility(inspectorVisible, true);
+    }
+}
+
+void ScaleNodeWidget2D::updateInspector() {
+    if (!inspectPanel || !inspectorVisible) return;
+    inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
+    factorSlider->set_value(static_cast<ScaleNode*>(logic_node)->getScaleFactor());
+}
+
+void ScaleNodeWidget2D::update(float delta_time) {
+    sInputData d = get_input_data(false);
+    if (d.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+        if (!inspectPanel) initInspector();
+        inspectorVisible = !inspectorVisible;
+        inspectPanel->set_visibility(inspectorVisible, true);
+    }
+
+    NodeWidget2D::update(delta_time);
+    if (inspectPanel && inspectorVisible) inspectPanel->update(delta_time);
+}
+
+void ScaleNodeWidget2D::initInspector() {
+    glm::vec2 pos = get_translation() + glm::vec2(get_size().x + 10.0f, 0.0f);
+    glm::vec2 sz = { 180.0f, 80.0f };
+    inspectPanel = new XRPanel("ScaleInspect_" + logic_node->getName(), pos, sz, 0u, colors::GRAY);
+
+    sSliderDescription sd;
+    sd.mode = HORIZONTAL;
+    sd.position = { 8, sz.y - 40 };
+    sd.size = { 160, 20 };
+    sd.fvalue = static_cast<ScaleNode*>(logic_node)->getScaleFactor();
+    sd.fvalue_min = 0.1f;
+    sd.fvalue_max = 5.0f;
+    sd.precision = 2;
+    factorSlider = new FloatSlider2D("ScaleFac_" + logic_node->getName(), sd);
+    inspectPanel->add_child(factorSlider);
+    Node::bind(factorSlider->get_name(), FuncFloat([this](const std::string&, float v) {
+        static_cast<ScaleNode*>(logic_node)->setScaleFactor(v);
+        }));
+
+    add_child(inspectPanel);
+    inspectPanel->set_visibility(false, true);
+}
+
+
 
 

@@ -5,7 +5,6 @@
 #include "print_node.h"
 #include "sequence_node.h"
 #include "run_node.h"
-#include "rotate_node.h"
 #include "math_node.h"
 #include "branch_node.h"
 #include "variable_node.h"
@@ -47,6 +46,7 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     else if (type == "BranchNode")    node = new BranchNode(nodeName);
     else if (type == "VariableNode")    node = new VariableNode(nodeName);
     else if (type == "TickNode")    node = new TickNode(nodeName);
+    else if (type == "ScaleNode")    node = new ScaleNode(nodeName);
 
     if (!node) {
         std::cerr << "[GraphEditor] Unknown node type: " << type << "\n";

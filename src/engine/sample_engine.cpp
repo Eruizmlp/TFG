@@ -166,6 +166,7 @@ void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
     addRow("VariableNode", "VariableNode");
     addRow("BranchNode", "BranchNode");
     addRow("TickNode", "TickNode");
+    addRow("ScaleNode", "ScaleNode");
 
     panel->use_fixed_size = false;
     panel->on_children_changed();

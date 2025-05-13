@@ -1,4 +1,3 @@
-// visual_link.h
 #pragma once
 
 #include "framework/nodes/node_2d.h"
@@ -16,7 +15,6 @@ namespace GraphSystem {
         VisualLink2D(Graph* graph, GraphEditor* editor, float thickness = 4.0f);
         ~VisualLink2D() override;
 
-        // Called every frame to update link visuals
         void update(float delta_time) override;
 
     private:

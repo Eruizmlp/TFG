@@ -12,6 +12,8 @@
 #include "graph_editor.h"
 #include "port_button_2d.h"
 #include "rotate_node.h"
+#include "scale_node.h"
+#include "translate_node.h"
 
 namespace GraphSystem {
 
@@ -64,4 +66,43 @@ namespace GraphSystem {
         void update(float delta_time) override;
     };
 
-} // namespace GraphSystem
+    
+    class TranslateNodeWidget2D : public NodeWidget2D {
+    private:
+        ui::XRPanel* inspectPanel = nullptr;
+        ui::FloatSlider2D* xSlider = nullptr;
+        ui::FloatSlider2D* ySlider = nullptr;
+        ui::FloatSlider2D* zSlider = nullptr;
+        bool          inspectorVisible = false;
+
+        void initInspector();
+    public:
+        TranslateNodeWidget2D(TranslateNode* node,
+            GraphEditor* editor,
+            const glm::vec3& worldPos);
+
+        void toggleInspector(sInputData data) override;
+        void updateInspector() override;
+        void update(float delta_time) override;
+    };
+
+   
+    class ScaleNodeWidget2D : public NodeWidget2D {
+    private:
+        ui::XRPanel* inspectPanel = nullptr;
+        ui::FloatSlider2D* factorSlider = nullptr;
+        bool             inspectorVisible = false;
+
+        void initInspector();
+    public:
+        ScaleNodeWidget2D(ScaleNode* node,
+            GraphEditor* editor,
+            const glm::vec3& worldPos);
+
+        void toggleInspector(sInputData data) override;
+        void updateInspector() override;
+        void update(float delta_time) override;
+    };
+
+
+} 
