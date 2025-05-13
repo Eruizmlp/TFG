@@ -57,11 +57,17 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     std::cout << "[GraphEditor] Created node: " << nodeName
         << " (" << type << ")\n";
 
-    
+
     // choose the right widget subclass
     NodeWidget2D* widget = nullptr;
     if (auto* rn = dynamic_cast<RotateNode*>(node))
         widget = new RotateNodeWidget2D(rn, this, worldPosition);
+    else if (auto tr = dynamic_cast<TranslateNode*>(node)) {
+        widget = new TranslateNodeWidget2D(tr, this, worldPosition);
+    }
+    else if (auto sc = dynamic_cast<ScaleNode*>(node)) {
+        widget = new ScaleNodeWidget2D(sc, this, worldPosition);
+    }
     else
         widget = new NodeWidget2D(node, this, worldPosition);
 

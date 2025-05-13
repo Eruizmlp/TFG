@@ -408,8 +408,8 @@ void ScaleNodeWidget2D::initInspector() {
 
     sSliderDescription sd;
     sd.mode = HORIZONTAL;
-    sd.position = { 8, sz.y - 40 };
-    sd.size = { 160, 20 };
+    sd.position = { 8, sz.y - 60 };
+    sd.size = { 80, 20 };
     sd.fvalue = static_cast<ScaleNode*>(logic_node)->getScaleFactor();
     sd.fvalue_min = 0.1f;
     sd.fvalue_max = 5.0f;
