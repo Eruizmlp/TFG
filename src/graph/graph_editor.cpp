@@ -44,7 +44,7 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     else if (type == "RunNode")    node = new RunNode(nodeName);
     else if (type == "MathNode")    node = new MathNode(nodeName);
     else if (type == "BranchNode")    node = new BranchNode(nodeName);
-    else if (type == "VariableNode")    node = new VariableNode(nodeName, "v_");
+    else if (type == "VariableNode")    node = new VariableNode(nodeName);
     else if (type == "TickNode")    node = new TickNode(nodeName);
     else if (type == "ScaleNode")    node = new ScaleNode(nodeName);
 
