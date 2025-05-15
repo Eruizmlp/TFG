@@ -1,4 +1,3 @@
-// tick_node.cpp
 #include "tick_node.h"
 using namespace GraphSystem;
 
@@ -14,16 +13,15 @@ TickNode::TickNode(const std::string& name)
 }
 
 void TickNode::execute() {
-    // Only run once per Exec pulse
+
     if (!isExecutionPending()) return;
     setExecutionPending(false);
 
-    // Toggle the running flag on any Exec pulse
     running = !running;
 }
 
 void TickNode::update(float dt) {
-    // If we're running, emit a Tick every frame
+
     if (!running) return;
 
     for (auto* link : tickOutput->getLinks()) {
