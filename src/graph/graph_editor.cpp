@@ -12,6 +12,7 @@
 #include "tick_node.h"
 #include <iostream>
 #include "visual_link_2d.h"
+#include "math_node_widget_2d.h"
 
 
 using namespace GraphSystem;
@@ -68,6 +69,10 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     else if (auto sc = dynamic_cast<ScaleNode*>(node)) {
         widget = new ScaleNodeWidget2D(sc, this, worldPosition);
     }
+    else if (auto sc = dynamic_cast<MathNode*>(node)) {
+        widget = new MathNodeWidget2D(sc, this, worldPosition);
+    }
+
     else
         widget = new NodeWidget2D(node, this, worldPosition);
 
