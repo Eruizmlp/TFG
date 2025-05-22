@@ -4,7 +4,7 @@
 namespace GraphSystem {
 
     TrigonometricNode::TrigonometricNode(const std::string& name, char op)
-        : GraphNode(name), operation(op), defaultAngle(0.0f)
+        : GraphNode(name, NodeCategory::DATA), operation(op), defaultAngle(0.0f)
     {
         execInput = addInput("Execute", IOType::EXECUTION);
         angleInput = addInput("Angle", IOType::FLOAT);

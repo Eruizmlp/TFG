@@ -8,6 +8,17 @@
 using namespace GraphSystem;
 using namespace ui;
 
+glm::vec4 getColorForCategory(GraphSystem::NodeCategory cat) {
+    switch (cat) {
+    case NodeCategory::DATA:        return colors::CYAN;
+    case NodeCategory::FLOW:        return colors::YELLOW;
+    case NodeCategory::TRANSFORM:   return colors::GREEN;
+    case NodeCategory::LOGIC:       return colors::PURPLE;
+    case NodeCategory::INTERACTION: return colors::RUST;
+    default:                        return colors::GRAY;
+    }
+}
+
 glm::vec2 NodeWidget2D::computeSize(GraphNode* node) {
     constexpr float W = 200.0f, ROW = 20.0f, M = 6.0f;
     size_t n = node->getOutputs().size() + node->getInputs().size();
@@ -31,7 +42,7 @@ NodeWidget2D::NodeWidget2D(GraphNode* node,
         { 0, 0 },
         get_size(),
         0u,
-        colors::GRAY
+        getColorForCategory(node->getCategory())
     );
     add_child(background);
 
@@ -217,7 +228,7 @@ void RotateNodeWidget2D::initInspector() {
         pos,
         sz,
         0u,
-        colors::GRAY
+        colors::GREEN
     );
 
     auto* axisRow = new HContainer2D("AxisRow", { 8, sz.y - 30 }, 0u, colors::GRAY);
@@ -319,7 +330,7 @@ void TranslateNodeWidget2D::update(float delta_time) {
 void TranslateNodeWidget2D::initInspector() {
     glm::vec2 pos = get_translation() + glm::vec2(get_size().x + 10.0f, 0.0f);
     glm::vec2 sz = { 200.0f, 120.0f };
-    inspectPanel = new XRPanel("TransInspect_" + logic_node->getName(), pos, sz, 0u, colors::GRAY);
+    inspectPanel = new XRPanel("TransInspect_" + logic_node->getName(), pos, sz, 0u, colors::GREEN);
 
     // X slider
     sSliderDescription sdX;
@@ -404,7 +415,7 @@ void ScaleNodeWidget2D::update(float delta_time) {
 void ScaleNodeWidget2D::initInspector() {
     glm::vec2 pos = get_translation() + glm::vec2(get_size().x + 10.0f, 0.0f);
     glm::vec2 sz = { 180.0f, 80.0f };
-    inspectPanel = new XRPanel("ScaleInspect_" + logic_node->getName(), pos, sz, 0u, colors::GRAY);
+    inspectPanel = new XRPanel("ScaleInspect_" + logic_node->getName(), pos, sz, 0u, colors::GREEN);
 
     sSliderDescription sd;
     sd.mode = HORIZONTAL;

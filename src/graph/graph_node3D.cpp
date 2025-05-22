@@ -4,7 +4,7 @@
 namespace GraphSystem{
 
     GraphNode3D::GraphNode3D(const std::string& name, GraphSystem::Graph* graph)
-        : GraphSystem::GraphNode(name),  
+        : GraphSystem::GraphNode(name, NodeCategory::TRANSFORM),  
         Node3D(),                     
         graph(graph),
         inputTransform(addInput("TransformIn", GraphSystem::IOType::TRANSFORM)),

@@ -3,7 +3,7 @@
 namespace GraphSystem {
 
     ScaleNode::ScaleNode(const std::string& name, float factor)
-        : GraphNode(name),
+        : GraphNode(name, NodeCategory::TRANSFORM),
 
         execInput(addInput("Execute", IOType::EXECUTION)),
         execOutput(addOutput("Exec", IOType::EXECUTION)),

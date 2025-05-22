@@ -4,7 +4,7 @@
 namespace GraphSystem {
 
     RunNode::RunNode(const std::string& name)
-        : GraphNode(name),
+        : GraphNode(name, NodeCategory::FLOW),
         eventName("DefaultEvent"),
         execOutput(addOutput("Execution", IOType::EXECUTION))  
     {

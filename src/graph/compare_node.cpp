@@ -3,7 +3,7 @@
 namespace GraphSystem {
 
     CompareNode::CompareNode(const std::string& name, CompareOp op)
-        : GraphNode(name), operation(op)
+        : GraphNode(name, NodeCategory::LOGIC), operation(op)
     {
         aInput = addInput("A", IOType::FLOAT);
         bInput = addInput("B", IOType::FLOAT);

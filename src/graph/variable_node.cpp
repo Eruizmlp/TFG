@@ -5,7 +5,7 @@ namespace GraphSystem {
     std::unordered_map<std::string, float> VariableNode::variableStore;
 
     VariableNode::VariableNode(const std::string& name, const std::string& varName, float initialValue)
-        : GraphNode(name), variableName(varName), defaultValue(initialValue)
+        : GraphNode(name, NodeCategory::DATA), variableName(varName), defaultValue(initialValue)
     {
         execInput = addInput("Execute", IOType::EXECUTION);
         inValue = addInput("Value", IOType::FLOAT);

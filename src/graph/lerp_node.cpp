@@ -3,7 +3,7 @@
 namespace GraphSystem {
 
     LerpNode::LerpNode(const std::string& name)
-        : GraphNode(name)
+        : GraphNode(name, NodeCategory::DATA)
     {
         aInput = addInput("A", IOType::FLOAT);
         bInput = addInput("B", IOType::FLOAT);

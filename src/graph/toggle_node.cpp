@@ -3,7 +3,7 @@
 namespace GraphSystem {
 
     ToggleNode::ToggleNode(const std::string& name)
-        : GraphNode(name)
+        : GraphNode(name, NodeCategory::LOGIC)
     {
         execInput = addInput("Execute", IOType::EXECUTION);
         execOutput = addOutput("Exec", IOType::EXECUTION);

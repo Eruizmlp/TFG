@@ -3,7 +3,7 @@
 namespace GraphSystem {
 
     LoopNode::LoopNode(const std::string& name)
-        : GraphNode(name)
+        : GraphNode(name, NodeCategory::FLOW)
     {
         execInput = addInput("Execute", IOType::EXECUTION);
         countInput = addInput("Count", IOType::FLOAT);

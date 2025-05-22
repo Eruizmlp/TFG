@@ -4,7 +4,7 @@
 namespace GraphSystem {
 
     ClampNode::ClampNode(const std::string& name)
-        : GraphNode(name)
+        : GraphNode(name, NodeCategory::DATA)
     {
         valueInput = addInput("Value", IOType::FLOAT);
         minInput = addInput("Min", IOType::FLOAT);

@@ -3,7 +3,7 @@
 namespace GraphSystem {
 
     RotateNode::RotateNode(const std::string& name, float angle, glm::vec3 axis)
-        : GraphNode(name),
+        : GraphNode(name, NodeCategory::TRANSFORM),
 
         execInput(addInput("Execute", IOType::EXECUTION)),
         execOutput(addOutput("Exec", IOType::EXECUTION)),

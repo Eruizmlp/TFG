@@ -7,6 +7,14 @@
 #include "link.h"
 
 namespace GraphSystem {
+    enum class NodeCategory {
+        DATA,
+        FLOW,
+        TRANSFORM,
+        LOGIC,
+        INTERACTION,
+        OTHER
+    };
 
     class GraphNode {
     protected:
@@ -15,9 +23,10 @@ namespace GraphSystem {
         std::list<Output*> m_outputs;
         bool m_isEntryPoint;
         bool m_executionPending;
+        NodeCategory m_category = NodeCategory::OTHER;
 
     public:
-        explicit GraphNode(const std::string& name);
+        explicit GraphNode(const std::string& name, NodeCategory category = NodeCategory::OTHER);
         GraphNode() : GraphNode("UnnamedNode") {}
 
         virtual ~GraphNode();
@@ -52,6 +61,9 @@ namespace GraphSystem {
 
         bool isExecutionPending() const { return m_executionPending; }
         void setExecutionPending(bool pending) { m_executionPending = pending; }
+
+        NodeCategory getCategory() const { return m_category; }
+        void setCategory(NodeCategory cat) { m_category = cat; }
     };
 
 } // namespace GraphSystem

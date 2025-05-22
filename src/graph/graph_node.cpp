@@ -3,8 +3,10 @@
 
 namespace GraphSystem {
 
-    GraphNode::GraphNode(const std::string& name)
-        : m_name(name), m_isEntryPoint(false), m_executionPending(false) {}
+    GraphNode::GraphNode(const std::string& name, NodeCategory category)
+        : m_name(name), m_isEntryPoint(false), m_executionPending(false), m_category(category)
+    {
+    }
 
     GraphNode::~GraphNode() {
         for (auto input : m_inputs) delete input;

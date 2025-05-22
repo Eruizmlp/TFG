@@ -5,7 +5,7 @@
 namespace GraphSystem {
 
     RandomNode::RandomNode(const std::string& name)
-        : GraphNode(name)
+        : GraphNode(name, NodeCategory::DATA)
     {
         execInput = addInput("Execute", IOType::EXECUTION);
         minInput = addInput("Min", IOType::FLOAT);

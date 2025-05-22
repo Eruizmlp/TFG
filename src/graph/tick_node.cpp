@@ -2,7 +2,7 @@
 using namespace GraphSystem;
 
 TickNode::TickNode(const std::string& name)
-    : GraphNode(name)
+    : GraphNode(name, NodeCategory::FLOW)
 {
     // Two Exec inputs: Start and Stop
     startInput = addInput("Start", IOType::EXECUTION);

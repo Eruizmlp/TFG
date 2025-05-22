@@ -3,7 +3,7 @@
 namespace GraphSystem {
 
     MathNode::MathNode(const std::string& name, char op)
-        : GraphNode(name), operation(op), aValue(0.0f), bValue(0.0f)
+        : GraphNode(name, NodeCategory::DATA), operation(op), aValue(0.0f), bValue(0.0f)
     {
         execInput = addInput("Execute", IOType::EXECUTION);
         aInput = addInput("A", IOType::FLOAT);

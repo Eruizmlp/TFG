@@ -4,7 +4,7 @@
 namespace GraphSystem {
 
     GetVariableNode::GetVariableNode(const std::string& name, const std::string& varName)
-        : GraphNode(name), variableName(varName)
+        : GraphNode(name, NodeCategory::DATA), variableName(varName)
     {
         addInput("Execute", IOType::EXECUTION);
         outValue = addOutput("Value", IOType::FLOAT);

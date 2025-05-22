@@ -4,7 +4,7 @@ namespace GraphSystem {
 
     TranslateNode::TranslateNode(const std::string& name,
         const glm::vec3& offset)
-        : GraphNode(name),
+        : GraphNode(name, NodeCategory::TRANSFORM),
 
         execInput(addInput("Execute", IOType::EXECUTION)),
         execOutput(addOutput("Exec", IOType::EXECUTION)),

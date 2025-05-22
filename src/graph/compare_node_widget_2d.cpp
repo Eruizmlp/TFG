@@ -34,7 +34,7 @@ namespace GraphSystem {
         glm::vec2 pos = get_translation() + glm::vec2(get_size().x + 10.0f, 0.0f);
         glm::vec2 sz = { 180, 120 };
 
-        inspectPanel = new ui::XRPanel("CompareInspect_" + logic_node->getName(), pos, sz, 0u, colors::GRAY);
+        inspectPanel = new ui::XRPanel("CompareInspect_" + logic_node->getName(), pos, sz, 0u, colors::PURPLE);
 
         auto* container = new ui::VContainer2D("CompareBtns", { 8, 8 }, 0u, colors::GRAY);
         container->item_margin = { 4, 4 };

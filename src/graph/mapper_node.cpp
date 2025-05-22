@@ -4,7 +4,7 @@
 namespace GraphSystem {
 
     MapperNode::MapperNode(const std::string& name)
-        : GraphNode(name), buttonCode(GLFW_KEY_A) // por defecto
+        : GraphNode(name, NodeCategory::INTERACTION), buttonCode(GLFW_KEY_A) // por defecto
     {
         isPressedOutput = addOutput("IsPressed", IOType::BOOL);
         wasPressedOutput = addOutput("WasPressed", IOType::BOOL);

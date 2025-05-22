@@ -3,7 +3,7 @@
 namespace GraphSystem {
 
     BranchNode::BranchNode(const std::string& name)
-        : GraphNode(name)
+        : GraphNode(name, NodeCategory::LOGIC)
     {
         execInput = addInput("Execute", IOType::EXECUTION);
         conditionInput = addInput("Condition", IOType::BOOL);

@@ -4,7 +4,7 @@
 namespace GraphSystem {
 
     TimerNode::TimerNode(const std::string& name)
-        : GraphNode(name)
+        : GraphNode(name, NodeCategory::FLOW)
     {
         execInput = addInput("Execute", IOType::EXECUTION);
         delayInput = addInput("Delay", IOType::FLOAT);
