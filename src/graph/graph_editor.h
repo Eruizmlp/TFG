@@ -10,7 +10,7 @@ namespace GraphSystem { class NodeWidget2D; }
 
 namespace GraphSystem {
 
-    class VisualLink2D;
+    class LinkRenderer2D;
 
     class GraphEditor {
     public:
@@ -35,7 +35,7 @@ namespace GraphSystem {
         GraphNode* pendingSource = nullptr;
         std::string pendingOutput;
         Node2D* graph_container = nullptr;
-        VisualLink2D* visualLink = nullptr;
+        LinkRenderer2D* visualLink = nullptr;
         
 
     };

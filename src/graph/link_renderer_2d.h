@@ -4,16 +4,17 @@
 #include "framework/nodes/panel_2d.h"
 #include "graph.h"
 #include <vector>
+#include "link_quad.h"
 
 namespace GraphSystem {
 
     class PortButton2D;
     class GraphEditor;
 
-    class VisualLink2D : public Node2D {
+    class LinkRenderer2D : public Node2D {
     public:
-        VisualLink2D(Graph* graph, GraphEditor* editor, float thickness = 4.0f);
-        ~VisualLink2D() override;
+        LinkRenderer2D(Graph* graph, GraphEditor* editor, float thickness = 4.0f);
+        ~LinkRenderer2D() override;
 
         void update(float delta_time) override;
 
@@ -24,7 +25,8 @@ namespace GraphSystem {
         Graph* graph;
         GraphEditor* editor;
         float linkThickness;
-        std::vector<ui::XRPanel*> panels;
+        std::vector<LinkQuad*> links;
+
     };
 
 }

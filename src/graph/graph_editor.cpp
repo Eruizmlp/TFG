@@ -11,7 +11,7 @@
 #include "graph_node3D.h"
 #include "tick_node.h"
 #include <iostream>
-#include "visual_link_2d.h"
+#include "link_renderer_2d.h"
 #include "math_node_widget_2d.h"
 
 
@@ -20,7 +20,7 @@ using namespace GraphSystem;
 GraphEditor::GraphEditor(Graph* graph, Node2D* panel)
     : graph(graph), graph_container(panel)
 {
-    visualLink = new VisualLink2D(graph, this);
+    visualLink = new LinkRenderer2D(graph, this);
     if (graph_container) {
         graph_container->add_child(visualLink);
     }
