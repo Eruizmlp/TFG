@@ -50,7 +50,6 @@ LinkQuad::LinkQuad(const std::string& name,
     mat->set_cull_type(CULL_BACK);
     mat->set_transparency_type(ALPHA_BLEND);
     mat->set_depth_read_write(false);
-    mat->set_priority(Node2DClassType::PANEL);
     mat->set_shader(RendererStorage::get_shader_from_source(
         shaders::mesh_forward::source,
         shaders::mesh_forward::path,

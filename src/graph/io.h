@@ -4,7 +4,7 @@
 #include <string>
 #include <list>
 #include <glm/glm.hpp>
-#include "framework/nodes/node_3d.h"
+#include "framework/nodes/mesh_instance_3d.h"
 
 namespace GraphSystem {
 
@@ -15,7 +15,7 @@ namespace GraphSystem {
     enum class IOType {
         BOOL, INT, FLOAT, STRING,
         VEC2, VEC3, VEC4, MAT4,
-        TRANSFORM, EXECUTION
+        TRANSFORM, MESH, EXECUTION
     };
 
     class IO {
@@ -34,6 +34,8 @@ namespace GraphSystem {
             glm::vec4 vec4Value;
             glm::mat4 mat4Value;
             Transform transformValue;
+            MeshInstance3D* meshValue;
+            
 
             Data() : stringValue() {}
             ~Data() {}
@@ -48,7 +50,12 @@ namespace GraphSystem {
 
         // Template method for type-safe data setting
         template<typename T>
+
         void setData(const T& value);
+
+        void setData(MeshInstance3D* ptr);
+        MeshInstance3D* getMeshInstance() const;
+
 
         // Type-specific getters
         bool getBool() const;
@@ -60,6 +67,7 @@ namespace GraphSystem {
         glm::vec4 getVec4() const;
         glm::mat4 getMat4() const;
         Transform getTransform() const;
+        MeshInstance3D* getMesh() const;
 
         IOType getType() const { return type; }
         const std::string& getName() const { return name; }

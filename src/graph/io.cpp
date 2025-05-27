@@ -17,6 +17,7 @@ namespace GraphSystem {
         case IOType::VEC4: data.vec4Value = glm::vec4(0.0f); break;
         case IOType::MAT4: data.mat4Value = glm::mat4(1.0f); break;
         case IOType::TRANSFORM: data.transformValue = Transform(); break;
+        case IOType::MESH: data.meshValue = nullptr; break;
         case IOType::EXECUTION: break;
         default: throw std::runtime_error("Unknown IOType in IO constructor");
         }
@@ -89,6 +90,16 @@ namespace GraphSystem {
         is_dirty = true;
     }
 
+
+    void IO::setData(MeshInstance3D* ptr) {
+        if (type != IOType::MESH) {
+            throw std::runtime_error("MeshInstance3D type mismatch");
+        }
+        data.meshValue = ptr;
+        is_dirty = true;
+    }
+
+
     // Data getters
     bool IO::getBool() const {
         if (type != IOType::BOOL) throw std::runtime_error("Bool data type mismatch");
@@ -135,6 +146,14 @@ namespace GraphSystem {
         return data.transformValue;
     }
 
+    MeshInstance3D* IO::getMeshInstance() const {
+        if (type != IOType::MESH) {
+            throw std::runtime_error("IO type mismatch: not a MeshInstance3D");
+        }
+        return data.meshValue;
+    }
+
+
     bool IO::hasData() const {
         switch (type) {
         case IOType::BOOL: return true;
@@ -146,6 +165,7 @@ namespace GraphSystem {
         case IOType::VEC4: return true;
         case IOType::MAT4: return true;
         case IOType::TRANSFORM: return true;
+        case IOType::MESH: return true;
         case IOType::EXECUTION: return false;
         default: return false;
         }
