@@ -43,6 +43,9 @@ namespace GraphSystem {
         // inspector hooks
         virtual void toggleInspector(sInputData data) {}
         virtual void updateInspector() {}
+
+        virtual void on_right_click();
+
     };
 
     class RotateNodeWidget2D : public NodeWidget2D {

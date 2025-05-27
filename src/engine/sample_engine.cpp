@@ -37,6 +37,22 @@ int SampleEngine::initialize(Renderer* renderer, sEngineConfiguration configurat
     return Engine::initialize(renderer, configuration);
 }
 
+void SampleEngine::push_context_menu(ui::ContextMenu* cm) {
+    context_menus.push_back(cm);
+    IO::set_focus(cm); 
+}
+
+void SampleEngine::delete_context_menu(ui::ContextMenu* cm) {
+    IO::blur(); 
+    auto it = std::find(context_menus.begin(), context_menus.end(), cm);
+    if (it != context_menus.end()) {
+        context_menus.erase(it);
+        delete cm;
+    }
+}
+
+
+
 void SampleEngine::setupGraphUI() {
     if (!main_scene) {
         std::cerr << "Cannot create UI - no main scene\n";

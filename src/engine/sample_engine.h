@@ -5,6 +5,10 @@
 #include "graph/graph_editor.h"
 #include "framework/nodes/panel_2d.h"
 
+namespace ui {
+    class ContextMenu; 
+}
+
 class Node3D;
 
 class SampleEngine : public Engine {
@@ -18,6 +22,8 @@ private:
     std::vector<GraphSystem::NodeWidget2D*> nodeWidgets;
     ui::Panel2D* run_panel = nullptr;
     Node2D* graph_container = nullptr;
+
+    std::vector<ui::ContextMenu*> context_menus;
    
 public:
 
@@ -29,6 +35,9 @@ public:
     void registerNodeWidget(GraphSystem::NodeWidget2D* w) { nodeWidgets.push_back(w); }
 
     static SampleEngine* get_sample_instance() { return static_cast<SampleEngine*>(instance); }
+
+    void push_context_menu(ui::ContextMenu* cm);
+    void delete_context_menu(ui::ContextMenu* cm);
 
 	void update(float delta_time) override;
 	void render() override;
