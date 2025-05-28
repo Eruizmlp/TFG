@@ -31,6 +31,8 @@
 #include <backends/imgui_impl_glfw.h>
 #include "framework/utils/ImGuizmo.h"
 
+#include "graph/context_menu.h"
+
 
 int SampleEngine::initialize(Renderer* renderer, sEngineConfiguration configuration)
 {
@@ -183,6 +185,8 @@ void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
     addRow("BranchNode", "BranchNode");
     addRow("TickNode", "TickNode");
     addRow("ScaleNode", "ScaleNode");
+    addRow("EntityNode3D", "EntityNode3D");
+
 
     panel->use_fixed_size = false;
     panel->on_children_changed();

@@ -44,7 +44,7 @@ namespace GraphSystem {
         virtual void toggleInspector(sInputData data) {}
         virtual void updateInspector() {}
 
-        virtual void on_right_click();
+        virtual void on_right_click() {}
 
     };
 

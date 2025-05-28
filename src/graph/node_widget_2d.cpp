@@ -149,7 +149,6 @@ sInputData NodeWidget2D::get_input_data(bool ignore_focus)
 bool NodeWidget2D::on_input(sInputData data) {
     if (data.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
         toggleInspector(data);     
-        on_right_click();           
         return true;
     }
     return background->on_input(data);

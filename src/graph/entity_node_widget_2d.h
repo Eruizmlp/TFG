@@ -2,24 +2,24 @@
 
 #include "node_widget_2d.h"
 #include "entity_node_3d.h"
-#include "context_menu.h"
-#include "engine/sample_engine.h"
+#include "framework/nodes/mesh_instance_3d.h"
 
 namespace GraphSystem {
 
     class EntityNodeWidget2D : public NodeWidget2D {
     private:
-        EntityNode3D* entityNode;
+        EntityNode3D* entityNode = nullptr;
+        MeshInstance3D* entity = nullptr;
 
     public:
         EntityNodeWidget2D(EntityNode3D* node,
             GraphEditor* editor,
             const glm::vec3& worldPos);
 
-        void on_right_click() override;
-
-    private:
-        void show_entity_selector(); 
+        void toggleInspector(sInputData data) override;
+        void updateInspector() override;
+        void update(float delta_time) override;
+        void setEntity(MeshInstance3D* e);
     };
 
-} 
+}

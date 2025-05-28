@@ -13,7 +13,8 @@
 #include <iostream>
 #include "link_renderer_2d.h"
 #include "math_node_widget_2d.h"
-
+#include "entity_node_3d.h"
+#include "entity_node_widget_2d.h"
 
 using namespace GraphSystem;
 
@@ -48,6 +49,9 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     else if (type == "VariableNode")    node = new VariableNode(nodeName);
     else if (type == "TickNode")    node = new TickNode(nodeName);
     else if (type == "ScaleNode")    node = new ScaleNode(nodeName);
+    else if (type == "EntityNode3D") node = new EntityNode3D();
+
+
 
     if (!node) {
         std::cerr << "[GraphEditor] Unknown node type: " << type << "\n";
@@ -72,6 +76,8 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     else if (auto sc = dynamic_cast<MathNode*>(node)) {
         widget = new MathNodeWidget2D(sc, this, worldPosition);
     }
+    else if (auto* en = dynamic_cast<EntityNode3D*>(node))
+        widget = new EntityNodeWidget2D(en, this, worldPosition);
 
     else
         widget = new NodeWidget2D(node, this, worldPosition);
@@ -79,10 +85,15 @@ GraphNode* GraphEditor::createNode(const std::string& type,
 
     if (graph_container) {
         graph_container->add_child(widget);
+        
     }
     else if (auto* eng = Engine::get_instance(); eng && eng->get_main_scene()) {
         eng->get_main_scene()->add_node(widget);
     }
+    else {
+        std::cout << "[GraphEditor] graph_container is null!\n";
+    }
+    
     
     widgets.push_back(widget);
     return node;
