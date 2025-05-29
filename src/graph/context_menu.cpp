@@ -82,18 +82,19 @@ namespace ui {
 
     void ContextMenu::update(float delta_time)
     {
-        Node2D::update(delta_time);
+        if (markedForDeletion) return;
 
-        // delete if unhovered..
+        Node2D::update(delta_time);
 
         sInputData data = root->get_input_data(true);
 
         if (!data.is_hovered) {
+            markedForDeletion = true;
             auto* eng = SampleEngine::get_sample_instance();
-
             eng->delete_context_menu(this);
         }
     }
+
 
     void ContextMenu::add_option(const sContextMenuOption& option)
     {

@@ -40,18 +40,28 @@ int SampleEngine::initialize(Renderer* renderer, sEngineConfiguration configurat
 }
 
 void SampleEngine::push_context_menu(ui::ContextMenu* cm) {
-    context_menus.push_back(cm);
-    IO::set_focus(cm); 
+    active_context_menu = cm;
+
+    if (graph_container) {
+        graph_container->add_child(cm);  
+    }
 }
 
 void SampleEngine::delete_context_menu(ui::ContextMenu* cm) {
-    IO::blur(); 
-    auto it = std::find(context_menus.begin(), context_menus.end(), cm);
-    if (it != context_menus.end()) {
-        context_menus.erase(it);
-        delete cm;
+    if (active_context_menu == cm) {
+        active_context_menu = nullptr;
     }
+
+    IO::blur();  
+
+    if (graph_container) {
+        graph_container->remove_child(cm);  
+    }
+
+    delete cm;  
 }
+
+
 
 
 
@@ -365,6 +375,7 @@ void SampleEngine::update(float delta_time)
         }
        
     }
+
 
     main_scene->update(delta_time);
 }

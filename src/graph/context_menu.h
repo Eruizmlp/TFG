@@ -29,11 +29,15 @@ namespace ui {
         XRPanel* root = nullptr;
         VContainer2D* body = nullptr;
 
+        bool markedForDeletion = false;
+
+
         uint32_t option_count = 0u;
 
         HContainer2D* create_row();
 
         void add_option(const sContextMenuOption& option);
+
 
     public:
 

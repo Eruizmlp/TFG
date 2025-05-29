@@ -24,6 +24,9 @@ private:
     Node2D* graph_container = nullptr;
 
     std::vector<ui::ContextMenu*> context_menus;
+
+    ui::ContextMenu* active_context_menu = nullptr;
+
    
 public:
 
@@ -35,9 +38,13 @@ public:
     void registerNodeWidget(GraphSystem::NodeWidget2D* w) { nodeWidgets.push_back(w); }
 
     static SampleEngine* get_sample_instance() { return static_cast<SampleEngine*>(instance); }
+    Node2D* get_graph_container() const { return graph_container; }
+
 
     void push_context_menu(ui::ContextMenu* cm);
     void delete_context_menu(ui::ContextMenu* cm);
+
+
 
 	void update(float delta_time) override;
 	void render() override;

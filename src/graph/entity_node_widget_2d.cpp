@@ -1,6 +1,3 @@
-// ContextMenu integration in EntityNodeWidget2D
-// Assuming your context_menu.cpp/h is working correctly and already in use
-
 #include "entity_node_widget_2d.h"
 #include "graph/context_menu.h"
 #include "engine/sample_engine.h"
@@ -20,41 +17,44 @@ namespace GraphSystem {
     }
 
     void EntityNodeWidget2D::toggleInspector(sInputData data) {
-        if (!data.is_hovered || !::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) return;
+        if (!data.is_hovered || !::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT))
+            return;
+
+        auto* eng = SampleEngine::get_sample_instance();
+        Node2D* container = eng ? eng->get_graph_container() : nullptr;
+        if (!container)
+            return;
 
         std::vector<ui::sContextMenuOption> options;
 
-        auto* eng = SampleEngine::get_sample_instance();
-        if (!eng || !eng->get_main_scene()) return;
+        Scene* scene = eng->get_main_scene();
+        for (Node* node : scene->get_nodes()) {
+            if (auto* mesh = dynamic_cast<MeshInstance3D*>(node)) {
+                ui::sContextMenuOption option;
+                option.name = std::string(mesh->get_name());
 
-        for (Node* node : eng->get_main_scene()->get_nodes()) {
-            auto* mesh = dynamic_cast<MeshInstance3D*>(node);
-            if (!mesh) continue;
-
-            ui::sContextMenuOption opt;
-            opt.name = mesh->get_name();
-            opt.event = FuncInt([this, mesh](const std::string&, int) {
-                entityNode->setEntity(mesh);
-                setEntity(mesh);
-                });
-
-            options.push_back(opt);
+                option.event = FuncInt([this, mesh](const std::string&, int) {
+                    setEntity(mesh);
+                    });
+                options.push_back(option);
+            }
         }
+
+        if (options.empty()) return;
 
         glm::vec2 menuPos = get_translation() + glm::vec2(get_size().x + 20.f, 0.f);
         glm::vec3 worldPos = { menuPos.x, menuPos.y, 0.f };
 
         auto* contextMenu = new ui::ContextMenu(menuPos, worldPos, options);
-        eng->get_main_scene()->add_node(contextMenu);
+        container->add_child(contextMenu);  
     }
 
     void EntityNodeWidget2D::updateInspector() {
-        // no-op, handled by context menu
+        // Not used
     }
 
     void EntityNodeWidget2D::update(float delta_time) {
         NodeWidget2D::update(delta_time);
-
         sInputData d = get_input_data(false);
         if (d.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
             toggleInspector(d);
