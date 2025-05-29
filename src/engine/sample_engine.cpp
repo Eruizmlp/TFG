@@ -34,7 +34,7 @@
 #include "graph/context_menu.h"
 
 
-int SampleEngine::initialize(Renderer* renderer, sEngineConfiguration configuration)
+int SampleEngine::initialize(Renderer* renderer, const sEngineConfiguration& configuration)
 {
     return Engine::initialize(renderer, configuration);
 }
