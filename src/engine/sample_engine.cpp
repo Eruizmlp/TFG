@@ -2,7 +2,7 @@
 
 #include "framework/nodes/environment_3d.h"
 #include "framework/parsers/parse_gltf.h"
-//#include "framework/parsers/parse_obj.h"
+#include "framework/parsers/parse_scene.h"
 #include "framework/input.h"
 #include "framework/math/intersections.h"
 #include "framework/ui/io.h"
@@ -14,6 +14,7 @@
 
 #include "shaders/mesh_forward.wgsl.gen.h"
 #include "shaders/mesh_grid.wgsl.gen.h"
+#include "shaders/ui/ui_ray_pointer.wgsl.gen.h"
 
 #include "spdlog/spdlog.h"
 
@@ -220,14 +221,13 @@ int SampleEngine::post_initialize()
 
     main_scene->add_node(graph_container);
 
-
     // skybox
     {
         MeshInstance3D* skybox = new Environment3D();
         main_scene->add_node(skybox);
     }
 
-
+    // Load Meta Quest Controllers and Controller pointer
     if (renderer->get_xr_available())
     {
         std::vector<Node*> left, right;
@@ -236,6 +236,28 @@ int SampleEngine::post_initialize()
         parser.parse("data/meshes/controllers/right_controller.glb", right);
         controller_mesh_left = static_cast<Node3D*>(left[0]);
         controller_mesh_right = static_cast<Node3D*>(right[0]);
+
+        // Controller pointer
+        ray_pointer = parse_mesh("data/meshes/raycast.obj");
+
+        Material* pointer_material = new Material();
+        pointer_material->set_transparency_type(ALPHA_BLEND);
+        pointer_material->set_cull_type(CULL_NONE);
+        pointer_material->set_type(MATERIAL_UNLIT);
+        pointer_material->set_shader(RendererStorage::get_shader_from_source(shaders::ui_ray_pointer::source, shaders::ui_ray_pointer::path, shaders::ui_ray_pointer::libraries, pointer_material));
+
+        ray_pointer->set_surface_material_override(ray_pointer->get_surface(0), pointer_material);
+
+        sphere_pointer = parse_mesh("data/meshes/sphere.obj");
+
+        Material* sphere_pointer_material = new Material();
+        sphere_pointer_material->set_depth_read(false);
+        sphere_pointer_material->set_priority(0);
+        sphere_pointer_material->set_transparency_type(ALPHA_BLEND);
+        sphere_pointer_material->set_type(MATERIAL_UNLIT);
+        sphere_pointer_material->set_shader(RendererStorage::get_shader_from_source(shaders::mesh_forward::source, shaders::mesh_forward::path, shaders::mesh_forward::libraries, sphere_pointer_material));
+
+        sphere_pointer->set_surface_material_override(sphere_pointer->get_surface(0), sphere_pointer_material);
     }
 
     // grid
@@ -339,16 +361,8 @@ void SampleEngine::clean()
 void SampleEngine::update(float delta_time)
 {
     if (renderer->get_xr_available()) {
-        controller_mesh_left->set_transform(
-            Transform::mat4_to_transform(
-                Input::get_controller_pose(HAND_LEFT, POSE_AIM)
-            )
-        );
-        controller_mesh_right->set_transform(
-            Transform::mat4_to_transform(
-                Input::get_controller_pose(HAND_RIGHT, POSE_AIM)
-            )
-        );
+        controller_mesh_right->set_transform(Transform::mat4_to_transform(Input::get_controller_pose(HAND_RIGHT)));
+        controller_mesh_left->set_transform(Transform::mat4_to_transform(Input::get_controller_pose(HAND_LEFT)));
     }
 
     Engine::update(delta_time);
@@ -418,6 +432,16 @@ void SampleEngine::render()
     main_scene->render();
 
     if (renderer->get_xr_available()) {
+
+        const glm::mat4x4& raycast_transform = Input::get_controller_pose(HAND_RIGHT, POSE_AIM);
+        ray_pointer->set_transform(Transform::mat4_to_transform(raycast_transform));
+        ray_pointer->scale(glm::vec3(1.0f, 1.0f, 0.5f));
+        ray_pointer->render();
+
+        sphere_pointer->set_transform(Transform::mat4_to_transform(raycast_transform));
+        sphere_pointer->scale(glm::vec3(0.1f));
+        sphere_pointer->render();
+
         controller_mesh_left->render();
         controller_mesh_right->render();
     }

@@ -10,11 +10,14 @@ namespace ui {
 }
 
 class Node3D;
+class MeshInstance3D;
 
 class SampleEngine : public Engine {
 
     Node3D* controller_mesh_left = nullptr;
     Node3D* controller_mesh_right = nullptr;
+    MeshInstance3D* ray_pointer = nullptr;
+    MeshInstance3D* sphere_pointer = nullptr;
 
 private:
     GraphSystem::GraphManager graphManager;
