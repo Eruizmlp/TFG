@@ -287,6 +287,8 @@ int SampleEngine::post_initialize()
     testBox->set_position({ 0,1,0 });
     testBox->scale({ 1,1,1 });
     testBox->add_surface(RendererStorage::get_surface("box"));
+    testBox->update_aabb();
+
     {
         Material* boxMat = new Material();
         boxMat->set_transparency_type(ALPHA_OPAQUE);
@@ -376,6 +378,33 @@ void SampleEngine::update(float delta_time)
        
     }
 
+    bool select_pressed = Input::was_trigger_pressed(HAND_RIGHT) || Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_LEFT);
+    if (select_pressed) {
+
+        const std::vector<std::string>& notAllowedNames = { "Environment3D",  "Grid" };
+
+        for(auto node : main_scene->get_nodes())
+        {
+            auto node3d = dynamic_cast<Node3D*>(node);
+            if (!node3d) continue;
+            if (std::find(notAllowedNames.begin(), notAllowedNames.end(), node3d->get_name()) != notAllowedNames.end()) {
+                continue;
+            }
+
+            glm::vec3 ray_origin;
+            glm::vec3 ray_direction;
+            float distance = 1e9f;
+
+            Engine::instance->get_scene_ray(ray_origin, ray_direction);
+
+            if (node3d->test_ray_collision(ray_origin, ray_direction, distance)) {
+
+                // If needed:
+                // const glm::vec3& intersection_point = ray_direction + ray_direction * distance;
+            }
+        }
+
+    }
 
     main_scene->update(delta_time);
 }
