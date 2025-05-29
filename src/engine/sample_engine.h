@@ -28,6 +28,8 @@ private:
     ui::ContextMenu* active_context_menu = nullptr;
 
    
+    Node3D* scene_root = nullptr;
+
 public:
 
 	int initialize(Renderer* renderer, const sEngineConfiguration& configuration = {}) override;
@@ -49,6 +51,8 @@ public:
 	void update(float delta_time) override;
 	void render() override;
     void on_frame() override;
+
+    void append_glb(const std::string& filename);
 
 #ifdef __EMSCRIPTEN__
     void set_wasm_module_initialized(bool value) {
