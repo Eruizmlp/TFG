@@ -34,7 +34,7 @@ namespace GraphSystem {
         if (!isExecutionPending())
             return;
 
-        if (!targetMesh) {   
+        if (!targetMesh) {
             if (transformInput && transformInput->hasData()) {
                 targetMesh = transformInput->getMesh();
             }
@@ -44,9 +44,13 @@ namespace GraphSystem {
 
         if (factorInput && factorInput->hasData()) {
             factor = factorInput->getFloat();
+           
+            factor = glm::clamp(std::abs(factor), 0.01f, 10.0f); 
         }
 
-        targetMesh->scale(glm::vec3(factor));
+        Transform t = targetMesh->get_transform();
+        t.set_scale(glm::vec3(factor)); 
+        targetMesh->set_transform(t);
 
         transformOutput->setData(targetMesh);
 
@@ -54,9 +58,9 @@ namespace GraphSystem {
             if (auto next = link->getTargetNode())
                 next->setExecutionPending(true);
         }
-
         setExecutionPending(false);
     }
+
 
 
 }

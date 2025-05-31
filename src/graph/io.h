@@ -5,12 +5,14 @@
 #include <list>
 #include <glm/glm.hpp>
 #include "framework/nodes/mesh_instance_3d.h"
+#include <functional> 
 
 namespace GraphSystem {
 
     // Forward declarations
     class Link;
     class GraphNode;
+    class Output; // Necesario para la referencia en IO
 
     enum class IOType {
         BOOL, INT, FLOAT, STRING,
@@ -24,6 +26,8 @@ namespace GraphSystem {
         IOType type;
         bool is_dirty;
 
+        Output* connectedOutput = nullptr; 
+
         union Data {
             bool boolValue;
             int intValue;
@@ -35,7 +39,6 @@ namespace GraphSystem {
             glm::mat4 mat4Value;
             Transform transformValue;
             MeshInstance3D* meshValue;
-            
 
             Data() : stringValue() {}
             ~Data() {}
@@ -48,15 +51,15 @@ namespace GraphSystem {
         IO(const IO&) = delete;
         IO& operator=(const IO&) = delete;
 
-        // Template method for type-safe data setting
-        template<typename T>
+        void connectTo(Output* output) { connectedOutput = output; }
+        Output* getConnectedOutput() const { return connectedOutput; }
 
+        template<typename T>
         void setData(const T& value);
 
         void setData(MeshInstance3D* ptr);
 
         void copyTo(IO* dst) const;
-
 
         // Type-specific getters
         bool getBool() const;
@@ -87,6 +90,9 @@ namespace GraphSystem {
     private:
         GraphNode* ownerNode;
         std::list<Link*> links;
+
+        std::function<float()> computeFloatFunction;
+
     public:
         Output(GraphNode* owner, const std::string& name, IOType type);
         ~Output();
@@ -96,8 +102,16 @@ namespace GraphSystem {
         void addLink(Link* link);
         void removeLink(Link* link);
 
-        std::list<Link*>& getLinks() { return links; }
-        const std::list<Link*>& getLinks() const { return links; }
+        std::list<Link*>& getLinks();
+        const std::list<Link*>& getLinks() const;
+
+        void setComputeFunction(std::function<float()> func) {
+            computeFloatFunction = func;
+        }
+
+        std::function<float()> getComputeFunction() const {
+            return computeFloatFunction;
+        }
 
         Output(const Output&) = delete;
         Output& operator=(const Output&) = delete;

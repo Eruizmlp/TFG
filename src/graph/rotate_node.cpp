@@ -50,9 +50,12 @@ namespace GraphSystem {
             angle = angleInput->getFloat();
         }
 
-        glm::quat current = targetMesh->get_rotation();
-        glm::quat delta = glm::angleAxis(glm::radians(angle), axis);
-        targetMesh->set_rotation(glm::normalize(delta * current));
+        glm::quat absoluteRotation = glm::angleAxis(glm::radians(angle), glm::normalize(axis));
+        Transform t = targetMesh->get_transform();
+        t.set_rotation(glm::normalize(absoluteRotation));
+
+        targetMesh->set_transform(t);
+
 
         transformOutput->setData(targetMesh);
 

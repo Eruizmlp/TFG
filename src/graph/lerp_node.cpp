@@ -10,6 +10,9 @@ namespace GraphSystem {
         tInput = addInput("T", IOType::FLOAT);
 
         resultOutput = addOutput("Result", IOType::FLOAT);
+
+        float result = defaultA + (defaultB - defaultA) * defaultT;
+        resultOutput->setData(result);
     }
 
     void LerpNode::execute() {

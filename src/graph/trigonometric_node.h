@@ -8,7 +8,7 @@ namespace GraphSystem {
         TrigonometricNode(const std::string& name, char op = 's'); 
 
         void setOperation(char op);  // 's' = sin, 'c' = cos, 't' = tan
-        void execute() override;
+        
 
     private:
         Input* execInput;

@@ -6,22 +6,13 @@ namespace GraphSystem {
     GetVariableNode::GetVariableNode(const std::string& name, const std::string& varName)
         : GraphNode(name, NodeCategory::DATA), variableName(varName)
     {
-        addInput("Execute", IOType::EXECUTION);
         outValue = addOutput("Value", IOType::FLOAT);
-        execOutput = addOutput("Exec", IOType::EXECUTION);
-    }
 
-    void GetVariableNode::execute() {
-        if (!isExecutionPending()) return;
-        setExecutionPending(false);
+        outValue->setComputeFunction([this]() -> float {
+            return VariableNode::getStoredValue(variableName);
+            });
 
-        float val = VariableNode::getStoredValue(variableName);
-        outValue->setData(val);
-
-        for (auto& link : execOutput->getLinks()) {
-            if (auto next = link->getTargetNode())
-                next->setExecutionPending(true);
-        }
+        outValue->setData(VariableNode::getStoredValue(variableName));
     }
 
 }

@@ -47,7 +47,9 @@ namespace GraphSystem {
             offset = offsetInput->getVec3();
         }
 
-        targetMesh->translate(offset);
+        Transform t = targetMesh->get_transform();
+        t.set_position(offset);
+        targetMesh->set_transform(t);
 
         transformOutput->setData(targetMesh);
 
@@ -55,9 +57,9 @@ namespace GraphSystem {
             if (auto next = link->getTargetNode())
                 next->setExecutionPending(true);
         }
-
         setExecutionPending(false);
     }
+
 
 
 }

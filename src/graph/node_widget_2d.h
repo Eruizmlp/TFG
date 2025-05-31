@@ -52,9 +52,11 @@ namespace GraphSystem {
     private:
         ui::XRPanel* inspectPanel = nullptr;
         ui::FloatSlider2D* angleSlider = nullptr;
+        ui::Text2D* angleValueLabel = nullptr;
         ui::Button2D* axisXBtn = nullptr;
         ui::Button2D* axisYBtn = nullptr;
         ui::Button2D* axisZBtn = nullptr;
+
         bool  inspectorVisible = false;
 
         void initInspector();
@@ -76,6 +78,11 @@ namespace GraphSystem {
         ui::FloatSlider2D* xSlider = nullptr;
         ui::FloatSlider2D* ySlider = nullptr;
         ui::FloatSlider2D* zSlider = nullptr;
+
+        ui::Text2D* xValueLabel = nullptr;
+        ui::Text2D* yValueLabel = nullptr;
+        ui::Text2D* zValueLabel = nullptr;
+
         bool          inspectorVisible = false;
 
         void initInspector();
@@ -94,6 +101,7 @@ namespace GraphSystem {
     private:
         ui::XRPanel* inspectPanel = nullptr;
         ui::FloatSlider2D* factorSlider = nullptr;
+        ui::Text2D* scaleValueLabel = nullptr;
         bool             inspectorVisible = false;
 
         void initInspector();

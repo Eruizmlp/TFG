@@ -11,6 +11,9 @@ namespace GraphSystem {
         maxInput = addInput("Max", IOType::FLOAT);
 
         resultOutput = addOutput("Result", IOType::FLOAT);
+
+        float clamped = std::clamp(defaultValue, defaultMin, defaultMax);
+        resultOutput->setData(clamped);
     }
 
     void ClampNode::execute() {

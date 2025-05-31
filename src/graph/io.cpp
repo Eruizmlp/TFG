@@ -29,13 +29,11 @@ namespace GraphSystem {
         }
     }
 
-    // Template specialization implementation
     template<typename T>
     void IO::setData(const T& value) {
         throw std::runtime_error("Unsupported data type for IO");
     }
 
-    // Explicit template specializations
     template<> void IO::setData<bool>(const bool& value) {
         if (type != IOType::BOOL) throw std::runtime_error("Bool data type mismatch");
         data.boolValue = value;
@@ -90,7 +88,6 @@ namespace GraphSystem {
         is_dirty = true;
     }
 
-
     void IO::setData(MeshInstance3D* ptr) {
         if (type != IOType::MESH) {
             throw std::runtime_error("MeshInstance3D type mismatch");
@@ -99,8 +96,25 @@ namespace GraphSystem {
         is_dirty = true;
     }
 
+    float IO::getFloat() const {
+        if (type != IOType::FLOAT) throw std::runtime_error("Float data type mismatch");
 
-    // Data getters
+        if (connectedOutput) {
+            return connectedOutput->getFloat(); 
+        }
+
+        const Output* output = dynamic_cast<const Output*>(this);
+        if (output) {
+            auto computeFunc = output->getComputeFunction();
+            if (computeFunc) {
+                return computeFunc();
+            }
+        }
+
+        return data.floatValue;
+    }
+
+
     bool IO::getBool() const {
         if (type != IOType::BOOL) throw std::runtime_error("Bool data type mismatch");
         return data.boolValue;
@@ -109,11 +123,6 @@ namespace GraphSystem {
     int IO::getInt() const {
         if (type != IOType::INT) throw std::runtime_error("Int data type mismatch");
         return data.intValue;
-    }
-
-    float IO::getFloat() const {
-        if (type != IOType::FLOAT) throw std::runtime_error("Float data type mismatch");
-        return data.floatValue;
     }
 
     std::string IO::getString() const {
@@ -152,7 +161,6 @@ namespace GraphSystem {
         }
         return data.meshValue;
     }
-
 
     bool IO::hasData() const {
         switch (type) {
@@ -194,16 +202,13 @@ namespace GraphSystem {
         }
     }
 
-
-    // Input implementation
     Input::Input(const std::string& name, IOType type) : IO(name, type) {}
 
-    // Output implementation
     Output::Output(GraphNode* owner, const std::string& name, IOType type)
-        : IO(name, type), ownerNode(owner) {} 
+        : IO(name, type), ownerNode(owner) {
+    }
 
     Output::~Output() {
-        // Clean up all links
         for (auto* link : links) {
             if (link) {
                 delete link;
@@ -221,8 +226,16 @@ namespace GraphSystem {
     void Output::removeLink(Link* link) {
         if (link) {
             links.remove(link);
-            delete link;  
+            delete link;
         }
     }
 
-} 
+    std::list<Link*>& Output::getLinks() {
+        return links;
+    }
+
+    const std::list<Link*>& Output::getLinks() const {
+        return links;
+    }
+
+} // namespace GraphSystem

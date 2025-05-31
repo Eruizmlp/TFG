@@ -3,34 +3,30 @@
 namespace GraphSystem {
 
     std::unordered_map<std::string, float> VariableNode::variableStore;
-
     VariableNode::VariableNode(const std::string& name, const std::string& varName, float initialValue)
         : GraphNode(name, NodeCategory::DATA), variableName(varName), defaultValue(initialValue)
     {
-        execInput = addInput("Execute", IOType::EXECUTION);
         inValue = addInput("Value", IOType::FLOAT);
-
-        execOutput = addOutput("Exec", IOType::EXECUTION);
         outValue = addOutput("Value", IOType::FLOAT);
 
         if (!variableStore.count(variableName))
             variableStore[variableName] = defaultValue;
+
+        outValue->setComputeFunction([this]() -> float {
+            float val;
+            if (inValue->getConnectedOutput()) {
+                val = inValue->getFloat();
+            }
+            else {
+                val = defaultValue;
+            }
+            variableStore[variableName] = val;
+            return val;
+            });
+
+        outValue->setData(defaultValue); 
     }
 
-    void VariableNode::execute() {
-        if (!isExecutionPending()) return;
-        setExecutionPending(false);
-
-        float val = inValue->hasData() ? inValue->getFloat() : defaultValue;
-        variableStore[variableName] = val;
-
-        outValue->setData(val);
-
-        for (auto& link : execOutput->getLinks()) {
-            if (auto next = link->getTargetNode())
-                next->setExecutionPending(true);
-        }
-    }
 
     float VariableNode::getStoredValue(const std::string& varName) {
         auto it = variableStore.find(varName);

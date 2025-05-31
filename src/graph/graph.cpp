@@ -53,7 +53,7 @@ namespace GraphSystem {
             return false;
         }
 
-        // find source output
+        // Find source output
         Output* output = nullptr;
         for (auto* out : source->getOutputs()) {
             if (out && out->getName() == outputName) {
@@ -66,7 +66,7 @@ namespace GraphSystem {
             return false;
         }
 
-        // find target input (if given)
+        // Find target input (if given)
         Input* input = nullptr;
         if (!inputName.empty()) {
             for (auto* in : target->getInputs()) {
@@ -86,7 +86,7 @@ namespace GraphSystem {
             }
         }
 
-        // check duplicates
+        // Check duplicates
         for (auto* link : links) {
             if (link->getOutput() == output &&
                 link->getTargetNode() == target &&
@@ -96,14 +96,12 @@ namespace GraphSystem {
             }
         }
 
-        // create it
+        // Create link
         try {
             Link* link = new Link(output, target, input);
 
             if (output && input) {
-                if (output->hasData()) {
-                    output->copyTo(input);  
-                }
+                link->transferData(); 
             }
 
             links.push_back(link);

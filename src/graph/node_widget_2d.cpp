@@ -4,6 +4,9 @@
 #include "framework/ui/io.h"
 #include "framework/colors.h"
 #include <GLFW/glfw3.h>
+#include <iomanip>
+#include <sstream>
+
 
 using namespace GraphSystem;
 using namespace ui;
@@ -17,6 +20,13 @@ glm::vec4 getColorForCategory(GraphSystem::NodeCategory cat) {
     case NodeCategory::INTERACTION: return colors::RUST;
     default:                        return colors::GRAY;
     }
+}
+
+
+inline std::string formatFloat(float value, int precision = 2) {
+    std::stringstream stream;
+    stream << std::fixed << std::setprecision(precision) << value;
+    return stream.str();
 }
 
 glm::vec2 NodeWidget2D::computeSize(GraphNode* node) {
@@ -182,6 +192,7 @@ RotateNodeWidget2D::RotateNodeWidget2D(RotateNode* node,
     const glm::vec3& worldPos)
     : NodeWidget2D(node, editor, worldPos)
 {
+
 }
 
 void RotateNodeWidget2D::toggleInspector(sInputData data) {
@@ -192,22 +203,6 @@ void RotateNodeWidget2D::toggleInspector(sInputData data) {
         inspectPanel->set_visibility(inspectorVisible, true);
     }
 }
-
-void RotateNodeWidget2D::updateInspector() {
-    if (!inspectPanel || !inspectorVisible) return;
-    inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
-
-    auto* rotateNode = static_cast<RotateNode*>(logic_node);
-    auto* angleInput = rotateNode->getInput("Angle");
-
-    if (angleInput && angleInput->hasData()) {
-        angleSlider->set_value(angleInput->getFloat());  // Mostrar valor conectado
-    }
-    else {
-        angleSlider->set_value(rotateNode->getRotationAngle());  // Mostrar valor manual
-    }
-}
-
 
 void RotateNodeWidget2D::update(float delta_time) {
     sInputData d = get_input_data(false);
@@ -225,9 +220,7 @@ void RotateNodeWidget2D::update(float delta_time) {
     }
 }
 
-
 void RotateNodeWidget2D::initInspector() {
-
     glm::vec2 pos = get_translation() + glm::vec2(get_size().x + 10.0f, 0.0f);
     glm::vec2 sz = { 180.0f, 100.0f };
 
@@ -239,64 +232,54 @@ void RotateNodeWidget2D::initInspector() {
         colors::GREEN
     );
 
-    auto* axisRow = new HContainer2D("AxisRow", { 8, sz.y - 30 }, 0u, colors::GRAY);
+    auto* rotateNode = static_cast<RotateNode*>(logic_node);
 
-    axisRow->item_margin = { 4,0 };
-    inspectPanel->add_child(axisRow);
+    float currentY = 20.0f;
 
-    sButtonDescription bdesc;
-    bdesc.size = { 24,24 };
-    bdesc.color = colors::WHITE;
+    auto* label = new Text2D("Angle:", { 8, currentY });
+    inspectPanel->add_child(label);
+    currentY += 20.0f;
 
-    axisXBtn = new Button2D("RotateAxisX_" + logic_node->getName(), bdesc);
-    axisXBtn->add_child(new Text2D("X", { 0,0 }));
-    axisYBtn = new Button2D("RotateAxisY_" + logic_node->getName(), bdesc);
-    axisYBtn->add_child(new Text2D("Y", { 0,0 }));
-    axisZBtn = new Button2D("RotateAxisZ_" + logic_node->getName(), bdesc);
-    axisZBtn->add_child(new Text2D("Z", { 0,0 }));
-
-    axisRow->add_child(axisXBtn);
-    axisRow->add_child(axisYBtn);
-    axisRow->add_child(axisZBtn);
-
-    Node::bind(axisXBtn->get_name(), FuncVoid([this](const std::string&, void*) {
-
-        static_cast<RotateNode*>(logic_node)->setRotationAxis({ 1,0,0 });
-        }));
-
-
-    Node::bind(axisYBtn->get_name(), FuncVoid([this](const std::string&, void*) {
-
-        static_cast<RotateNode*>(logic_node)->setRotationAxis({ 0,1,0 });
-        }));
-
-    Node::bind(axisZBtn->get_name(), FuncVoid([this](const std::string&, void*) {
-        static_cast<RotateNode*>(logic_node)->setRotationAxis({ 0,0,1 });
-        }));
-
-    // Angle slider
     sSliderDescription sd;
     sd.mode = HORIZONTAL;
-    sd.position = { 8, sz.y - 60 };
+    sd.position = { 8, currentY };
     sd.size = { 80, 20 };
-    sd.fvalue = static_cast<RotateNode*>(logic_node)->getRotationAngle();
-    sd.fvalue_min = 0.0f;
-    sd.fvalue_max = 360.0f;
+    sd.fvalue = rotateNode->getRotationAngle();
+    sd.fvalue_min = -180.0f;
+    sd.fvalue_max = 180.0f;
     sd.precision = 1;
 
     angleSlider = new FloatSlider2D("AngleSlider_" + logic_node->getName(), sd);
     inspectPanel->add_child(angleSlider);
 
-    Node::bind(angleSlider->get_name(), FuncFloat([this](const std::string&, float v) {
-        auto* rotateNode = static_cast<RotateNode*>(logic_node);
+    angleValueLabel = new Text2D(formatFloat(rotateNode->getRotationAngle(), 1), { 100, currentY });
+    inspectPanel->add_child(angleValueLabel);
+
+    Node::bind(angleSlider->get_name(), FuncFloat([this, rotateNode](const std::string&, float v) {
         rotateNode->setRotationAngle(v);
         rotateNode->getInput("Angle")->setData<float>(v);
 
+        angleValueLabel->set_text(formatFloat(v, 1));
         }));
+
     add_child(inspectPanel);
-
     inspectPanel->set_visibility(false, true);
+}
 
+void RotateNodeWidget2D::updateInspector() {
+    if (!inspectPanel || !inspectorVisible) return;
+    inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
+
+    auto* rotateNode = static_cast<RotateNode*>(logic_node);
+    auto* angleInput = rotateNode->getInput("Angle");
+
+    float valueToDisplay = rotateNode->getRotationAngle();
+    if (angleInput && angleInput->hasData()) {
+        valueToDisplay = angleInput->getFloat();
+    }
+
+    angleSlider->set_value(valueToDisplay);
+    angleValueLabel->set_text(formatFloat(valueToDisplay, 1));
 }
 
 
@@ -317,15 +300,6 @@ void TranslateNodeWidget2D::toggleInspector(sInputData data) {
     }
 }
 
-void TranslateNodeWidget2D::updateInspector() {
-    if (!inspectPanel || !inspectorVisible) return;
-    inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
-    auto offs = static_cast<TranslateNode*>(logic_node)->getOffset();
-    xSlider->set_value(offs.x);
-    ySlider->set_value(offs.y);
-    zSlider->set_value(offs.z);
-}
-
 void TranslateNodeWidget2D::update(float delta_time) {
     sInputData d = get_input_data(false);
     if (d.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
@@ -337,56 +311,94 @@ void TranslateNodeWidget2D::update(float delta_time) {
     NodeWidget2D::update(delta_time);
     if (inspectPanel && inspectorVisible) inspectPanel->update(delta_time);
 }
-
 void TranslateNodeWidget2D::initInspector() {
     glm::vec2 pos = get_translation() + glm::vec2(get_size().x + 10.0f, 0.0f);
-    glm::vec2 sz = { 200.0f, 120.0f };
+    glm::vec2 sz = { 180.0f, 250.0f };
     inspectPanel = new XRPanel("TransInspect_" + logic_node->getName(), pos, sz, 0u, colors::GREEN);
 
-    // X slider
-    sSliderDescription sdX;
-    sdX.mode = HORIZONTAL;
-    sdX.position = { 8, sz.y - 30 };
-    sdX.size = { 160, 20 };
-    sdX.fvalue = static_cast<TranslateNode*>(logic_node)->getOffset().x;
-    sdX.fvalue_min = -10.0f;
-    sdX.fvalue_max = 10.0f;
-    sdX.precision = 2;
-    xSlider = new FloatSlider2D("TransX_" + logic_node->getName(), sdX);
-    inspectPanel->add_child(xSlider);
-    Node::bind(xSlider->get_name(), FuncFloat([this](const std::string&, float v) {
+    float currentY = 20.0f;
+    float margin = 10.0f;
+
+    const float minPosition = -1000.0f;
+    const float maxPosition = 1000.0f;
+    const int precision = 2;
+
+    auto createLabelAndSlider = [this, &currentY, margin, minPosition, maxPosition, precision](const std::string& labelText, const std::string& sliderName, float initialValue, Text2D*& valueLabelPtr, std::function<void(float)> callback) {
+        auto* label = new Text2D(labelText, { 8, currentY });
+        inspectPanel->add_child(label);
+        currentY += 20.0f;
+
+        sSliderDescription sd;
+        sd.mode = HORIZONTAL;
+        sd.position = { 8, currentY };
+        sd.size = { 80, 20 };
+        sd.fvalue = initialValue;
+        sd.fvalue_min = minPosition;
+        sd.fvalue_max = maxPosition;
+        sd.precision = precision;
+
+        auto* slider = new FloatSlider2D(sliderName, sd);
+        inspectPanel->add_child(slider);
+
+        valueLabelPtr = new Text2D(formatFloat(initialValue, precision), { 100, currentY });
+        inspectPanel->add_child(valueLabelPtr);
+
+        Node::bind(slider->get_name(), FuncFloat([callback, valueLabelPtr, precision](const std::string&, float v) {
+            valueLabelPtr->set_text(formatFloat(v, precision));
+            callback(v);
+            }));
+
+        currentY += 30.0f + margin;
+
+        return slider;
+        };
+
+    auto offset = static_cast<TranslateNode*>(logic_node)->getOffset();
+
+    xSlider = createLabelAndSlider("X:", "TransX_" + logic_node->getName(), offset.x, xValueLabel, [this](float v) {
         auto o = static_cast<TranslateNode*>(logic_node)->getOffset();
         o.x = v;
         static_cast<TranslateNode*>(logic_node)->setOffset(o);
-        }));
+        });
 
-    // Y slider
-    sSliderDescription sdY = sdX;
-    sdY.position = { 8, sz.y - 60 };
-    sdY.fvalue = static_cast<TranslateNode*>(logic_node)->getOffset().y;
-    ySlider = new FloatSlider2D("TransY_" + logic_node->getName(), sdY);
-    inspectPanel->add_child(ySlider);
-    Node::bind(ySlider->get_name(), FuncFloat([this](const std::string&, float v) {
+    ySlider = createLabelAndSlider("Y:", "TransY_" + logic_node->getName(), offset.y, yValueLabel, [this](float v) {
         auto o = static_cast<TranslateNode*>(logic_node)->getOffset();
         o.y = v;
         static_cast<TranslateNode*>(logic_node)->setOffset(o);
-        }));
+        });
 
-    // Z slider
-    sSliderDescription sdZ = sdX;
-    sdZ.position = { 8, sz.y - 90 };
-    sdZ.fvalue = static_cast<TranslateNode*>(logic_node)->getOffset().z;
-    zSlider = new FloatSlider2D("TransZ_" + logic_node->getName(), sdZ);
-    inspectPanel->add_child(zSlider);
-    Node::bind(zSlider->get_name(), FuncFloat([this](const std::string&, float v) {
+    zSlider = createLabelAndSlider("Z:", "TransZ_" + logic_node->getName(), offset.z, zValueLabel, [this](float v) {
         auto o = static_cast<TranslateNode*>(logic_node)->getOffset();
         o.z = v;
         static_cast<TranslateNode*>(logic_node)->setOffset(o);
-        }));
+        });
 
     add_child(inspectPanel);
     inspectPanel->set_visibility(false, true);
 }
+
+void TranslateNodeWidget2D::updateInspector() {
+    if (!inspectPanel || !inspectorVisible) return;
+    inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
+
+    auto* translateNode = static_cast<TranslateNode*>(logic_node);
+    auto* offsetInput = translateNode->getInput("Offset");
+
+    glm::vec3 offset = translateNode->getOffset();
+    if (offsetInput && offsetInput->hasData()) {
+        offset = offsetInput->getVec3();
+    }
+
+    xSlider->set_value(offset.x);
+    xValueLabel->set_text(formatFloat(offset.x, 2));
+
+    ySlider->set_value(offset.y);
+    yValueLabel->set_text(formatFloat(offset.y, 2));
+
+    zSlider->set_value(offset.z);
+    zValueLabel->set_text(formatFloat(offset.z, 2));
+}
+
 
 // -------------------------- ScaleNodeWidget2D --------------------------
 
@@ -405,21 +417,6 @@ void ScaleNodeWidget2D::toggleInspector(sInputData data) {
     }
 }
 
-void ScaleNodeWidget2D::updateInspector() {
-    if (!inspectPanel || !inspectorVisible) return;
-    inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
-
-    auto* scaleNode = static_cast<ScaleNode*>(logic_node);
-    auto* factorInput = scaleNode->getInput("Factor");
-
-    if (factorInput && factorInput->hasData()) {
-        factorSlider->set_value(factorInput->getFloat()); // Mostrar valor conectado
-    }
-    else {
-        factorSlider->set_value(scaleNode->getScaleFactor()); // Mostrar valor manual
-    }
-}
-
 
 void ScaleNodeWidget2D::update(float delta_time) {
     sInputData d = get_input_data(false);
@@ -435,28 +432,57 @@ void ScaleNodeWidget2D::update(float delta_time) {
 
 void ScaleNodeWidget2D::initInspector() {
     glm::vec2 pos = get_translation() + glm::vec2(get_size().x + 10.0f, 0.0f);
-    glm::vec2 sz = { 180.0f, 80.0f };
+    glm::vec2 sz = { 180.0f, 100.0f };
     inspectPanel = new XRPanel("ScaleInspect_" + logic_node->getName(), pos, sz, 0u, colors::GREEN);
+
+    auto* scaleNode = static_cast<ScaleNode*>(logic_node);
+
+    float currentY = 20.0f;
+
+    auto* label = new Text2D("Scale:", { 8, currentY });
+    inspectPanel->add_child(label);
+    currentY += 20.0f;
 
     sSliderDescription sd;
     sd.mode = HORIZONTAL;
-    sd.position = { 8, sz.y - 60 };
+    sd.position = { 8, currentY };
     sd.size = { 80, 20 };
-    sd.fvalue = static_cast<ScaleNode*>(logic_node)->getScaleFactor();
+    sd.fvalue = scaleNode->getScaleFactor();
     sd.fvalue_min = 0.1f;
-    sd.fvalue_max = 5.0f;
+    sd.fvalue_max = 10.0f;
     sd.precision = 2;
+
     factorSlider = new FloatSlider2D("ScaleFac_" + logic_node->getName(), sd);
     inspectPanel->add_child(factorSlider);
-    Node::bind(factorSlider->get_name(), FuncFloat([this](const std::string&, float v) {
-        auto* scaleNode = static_cast<ScaleNode*>(logic_node);
-        scaleNode->setScaleFactor(v);
-        scaleNode->getInput("Factor")->setData<float>(v); 
-        }));
 
+    scaleValueLabel = new Text2D(formatFloat(scaleNode->getScaleFactor(), 2), { 100, currentY });
+    inspectPanel->add_child(scaleValueLabel);
+
+    Node::bind(factorSlider->get_name(), FuncFloat([this, scaleNode](const std::string&, float v) {
+        scaleNode->setScaleFactor(v);
+        scaleNode->getInput("Factor")->setData<float>(v);
+
+        scaleValueLabel->set_text(formatFloat(v, 2));
+        }));
 
     add_child(inspectPanel);
     inspectPanel->set_visibility(false, true);
+}
+
+void ScaleNodeWidget2D::updateInspector() {
+    if (!inspectPanel || !inspectorVisible) return;
+    inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
+
+    auto* scaleNode = static_cast<ScaleNode*>(logic_node);
+    auto* factorInput = scaleNode->getInput("Factor");
+
+    float valueToDisplay = scaleNode->getScaleFactor();
+    if (factorInput && factorInput->hasData()) {
+        valueToDisplay = factorInput->getFloat();
+    }
+
+    factorSlider->set_value(valueToDisplay);
+    scaleValueLabel->set_text(formatFloat(valueToDisplay, 2));
 }
 
 
