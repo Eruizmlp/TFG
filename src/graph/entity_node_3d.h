@@ -8,10 +8,8 @@ namespace GraphSystem {
     class EntityNode3D : public GraphNode {
         MeshInstance3D* entity = nullptr;
 
-        // Output references
-        Output* outputMesh = nullptr;
-        Output* outputTransform = nullptr;
-
+        Output* outputEntity = nullptr;
+        
     public:
         EntityNode3D();
 

@@ -99,6 +99,13 @@ namespace GraphSystem {
         // create it
         try {
             Link* link = new Link(output, target, input);
+
+            if (output && input) {
+                if (output->hasData()) {
+                    output->copyTo(input);  
+                }
+            }
+
             links.push_back(link);
             std::cout << "[Graph] Connected "
                 << source->getName() << ":" << outputName
@@ -110,6 +117,8 @@ namespace GraphSystem {
             return false;
         }
     }
+
+
 
     void Graph::render() {
         for (auto* node : nodes) node->render();

@@ -54,7 +54,8 @@ namespace GraphSystem {
         void setData(const T& value);
 
         void setData(MeshInstance3D* ptr);
-        MeshInstance3D* getMeshInstance() const;
+
+        void copyTo(IO* dst) const;
 
 
         // Type-specific getters

@@ -9,6 +9,7 @@ namespace GraphSystem {
         glm::vec3 offset;
 
         Input* execInput = nullptr;
+        Input* transformInput = nullptr;
         Output* execOutput = nullptr;
         Input* offsetInput = nullptr;
         Output* transformOutput = nullptr;

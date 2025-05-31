@@ -146,7 +146,7 @@ namespace GraphSystem {
         return data.transformValue;
     }
 
-    MeshInstance3D* IO::getMeshInstance() const {
+    MeshInstance3D* IO::getMesh() const {
         if (type != IOType::MESH) {
             throw std::runtime_error("IO type mismatch: not a MeshInstance3D");
         }
@@ -170,6 +170,30 @@ namespace GraphSystem {
         default: return false;
         }
     }
+
+    void IO::copyTo(IO* dst) const {
+        if (!dst) return;
+        if (dst->type != this->type) {
+            throw std::runtime_error("IO type mismatch on copy");
+        }
+
+        switch (type) {
+        case IOType::BOOL: dst->setData(this->getBool()); break;
+        case IOType::INT: dst->setData(this->getInt()); break;
+        case IOType::FLOAT: dst->setData(this->getFloat()); break;
+        case IOType::STRING: dst->setData(this->getString()); break;
+        case IOType::VEC2: dst->setData(this->getVec2()); break;
+        case IOType::VEC3: dst->setData(this->getVec3()); break;
+        case IOType::VEC4: dst->setData(this->getVec4()); break;
+        case IOType::MAT4: dst->setData(this->getMat4()); break;
+        case IOType::TRANSFORM: dst->setData(this->getTransform()); break;
+        case IOType::MESH: dst->setData(this->getMesh()); break;
+        case IOType::EXECUTION: /* do nothing */ break;
+        default:
+            throw std::runtime_error("Unsupported IO type in copy");
+        }
+    }
+
 
     // Input implementation
     Input::Input(const std::string& name, IOType type) : IO(name, type) {}

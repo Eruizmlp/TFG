@@ -9,6 +9,7 @@ namespace GraphSystem {
         float angle = 30.0f;
         glm::vec3 axis;
         Input* execInput = nullptr;
+        Input* transformInput = nullptr;
         Output* execOutput = nullptr;
         Input* angleInput = nullptr;
         Output* transformOutput = nullptr;

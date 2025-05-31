@@ -196,8 +196,18 @@ void RotateNodeWidget2D::toggleInspector(sInputData data) {
 void RotateNodeWidget2D::updateInspector() {
     if (!inspectPanel || !inspectorVisible) return;
     inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
-    angleSlider->set_value(static_cast<RotateNode*>(logic_node)->getRotationAngle());
+
+    auto* rotateNode = static_cast<RotateNode*>(logic_node);
+    auto* angleInput = rotateNode->getInput("Angle");
+
+    if (angleInput && angleInput->hasData()) {
+        angleSlider->set_value(angleInput->getFloat());  // Mostrar valor conectado
+    }
+    else {
+        angleSlider->set_value(rotateNode->getRotationAngle());  // Mostrar valor manual
+    }
 }
+
 
 void RotateNodeWidget2D::update(float delta_time) {
     sInputData d = get_input_data(false);
@@ -278,7 +288,10 @@ void RotateNodeWidget2D::initInspector() {
     inspectPanel->add_child(angleSlider);
 
     Node::bind(angleSlider->get_name(), FuncFloat([this](const std::string&, float v) {
-        static_cast<RotateNode*>(logic_node)->setRotationAngle(v);
+        auto* rotateNode = static_cast<RotateNode*>(logic_node);
+        rotateNode->setRotationAngle(v);
+        rotateNode->getInput("Angle")->setData<float>(v);
+
         }));
     add_child(inspectPanel);
 
@@ -395,8 +408,18 @@ void ScaleNodeWidget2D::toggleInspector(sInputData data) {
 void ScaleNodeWidget2D::updateInspector() {
     if (!inspectPanel || !inspectorVisible) return;
     inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
-    factorSlider->set_value(static_cast<ScaleNode*>(logic_node)->getScaleFactor());
+
+    auto* scaleNode = static_cast<ScaleNode*>(logic_node);
+    auto* factorInput = scaleNode->getInput("Factor");
+
+    if (factorInput && factorInput->hasData()) {
+        factorSlider->set_value(factorInput->getFloat()); // Mostrar valor conectado
+    }
+    else {
+        factorSlider->set_value(scaleNode->getScaleFactor()); // Mostrar valor manual
+    }
 }
+
 
 void ScaleNodeWidget2D::update(float delta_time) {
     sInputData d = get_input_data(false);
@@ -426,8 +449,11 @@ void ScaleNodeWidget2D::initInspector() {
     factorSlider = new FloatSlider2D("ScaleFac_" + logic_node->getName(), sd);
     inspectPanel->add_child(factorSlider);
     Node::bind(factorSlider->get_name(), FuncFloat([this](const std::string&, float v) {
-        static_cast<ScaleNode*>(logic_node)->setScaleFactor(v);
+        auto* scaleNode = static_cast<ScaleNode*>(logic_node);
+        scaleNode->setScaleFactor(v);
+        scaleNode->getInput("Factor")->setData<float>(v); 
         }));
+
 
     add_child(inspectPanel);
     inspectPanel->set_visibility(false, true);

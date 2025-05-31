@@ -9,8 +9,9 @@ namespace GraphSystem {
         execInput(addInput("Execute", IOType::EXECUTION)),
         execOutput(addOutput("Exec", IOType::EXECUTION)),
 
+        transformInput(addInput("Transform", IOType::MESH)),
         offsetInput(addInput("Offset", IOType::VEC3)),
-        transformOutput(addOutput("Transform", IOType::TRANSFORM)),
+        transformOutput(addOutput("Transform", IOType::MESH)),
 
         offset(offset)
     {
@@ -31,25 +32,32 @@ namespace GraphSystem {
     }
 
     void TranslateNode::execute() {
-        // only proceed if triggered and a target is set
-        if (!isExecutionPending() || !targetMesh)
+        if (!isExecutionPending())
             return;
 
-        
+        if (!targetMesh) {
+            if (transformInput && transformInput->hasData()) {
+                targetMesh = transformInput->getMesh();
+            }
+        }
+
+        if (!targetMesh) return;
+
         if (offsetInput && offsetInput->hasData()) {
             offset = offsetInput->getVec3();
         }
 
         targetMesh->translate(offset);
 
-        transformOutput->setData(targetMesh->get_transform());
+        transformOutput->setData(targetMesh);
 
-      
         for (auto& link : execOutput->getLinks()) {
             if (auto next = link->getTargetNode())
                 next->setExecutionPending(true);
         }
+
         setExecutionPending(false);
     }
+
 
 }

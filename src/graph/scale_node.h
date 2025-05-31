@@ -9,6 +9,7 @@ namespace GraphSystem {
         float factor = 1.0f;
 
         Input* execInput = nullptr;
+        Input* transformInput = nullptr;
         Output* execOutput = nullptr;
         Input* factorInput = nullptr;
         Output* transformOutput = nullptr;

@@ -31,8 +31,12 @@
 #include "framework/nodes/panel_2d.h"
 #include <backends/imgui_impl_glfw.h>
 #include "framework/utils/ImGuizmo.h"
+#include "graph/graph_node.h"
+#include "graph/entity_node_3d.h"
 
 #include "graph/context_menu.h"
+
+
 
 
 int SampleEngine::initialize(Renderer* renderer, const sEngineConfiguration& configuration)
@@ -197,6 +201,8 @@ void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
     addRow("TickNode", "TickNode");
     addRow("ScaleNode", "ScaleNode");
     addRow("EntityNode3D", "EntityNode3D");
+    addRow("TrigonometricNode", "TrigonometricNode");
+    addRow("TranslateNode", "TranslateNode");
 
 
     panel->use_fixed_size = false;
@@ -299,10 +305,7 @@ int SampleEngine::post_initialize()
         );
     runNode->setEntryPoint(true);
 
-    auto* sequenceNode = static_cast<GraphSystem::SequenceNode*>(
-        editor->createNode("SequenceNode", "MainSequence", { 600.0f, 600.0f, 0.0f })
-        );
-
+ 
     // red test-box in world
     MeshInstance3D* testBox = new MeshInstance3D();
     testBox->set_name("TestBox");
@@ -328,18 +331,11 @@ int SampleEngine::post_initialize()
     main_scene->add_node(testBox);
 
 
-    auto* boxNode = static_cast<GraphSystem::GraphNode3D*>(
-        editor->createNode("GraphNode3D", "BoxNode", { 300.0f, 300.0f, 0.0f })
+    
+    auto* scaleNode = static_cast<GraphSystem::ScaleNode*>(
+        editor->createNode("ScaleNode", "ScaleNode", { 150.0f, 150.0f, 0.0f })
         );
-    boxNode->setTransform(testBox->get_transform());
-
-    auto* rotator = static_cast<GraphSystem::RotateNode*>(
-        editor->createNode("RotateNode", "BoxRotator", { 150.0f, 150.0f, 0.0f })
-        );
-    rotator->setTarget(testBox);
-    rotator->setRotationAngle(30.0f);
-    rotator->setRotationAxis({ 0,1,0 });
-
+    
 
     setupGraphUI();
     setupNodeCreationUI(editor);
@@ -395,8 +391,6 @@ void SampleEngine::update(float delta_time)
     bool select_pressed = Input::was_trigger_pressed(HAND_RIGHT) || Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_LEFT);
     if (select_pressed) {
 
-        const std::vector<std::string>& notAllowedNames = { "Environment3D",  "Grid" };
-
         for(auto node : main_scene->get_nodes())
         {
             auto node3d = dynamic_cast<Node3D*>(node);
@@ -414,7 +408,31 @@ void SampleEngine::update(float delta_time)
             if (node3d->test_ray_collision(ray_origin, ray_direction, distance)) {
 
                 // If needed:
-                // const glm::vec3& intersection_point = ray_direction + ray_direction * distance;
+                const glm::vec3& intersection_point = ray_direction + ray_direction * distance;
+
+                glm::vec3 spawn = { intersection_point.x + 400.0f,intersection_point.y + 600.0,0.f };
+
+                auto* mesh = dynamic_cast<MeshInstance3D*>(node3d);
+
+            
+                GraphSystem::GraphNode* node = editor->createNode("EntityNode3D", mesh->get_name(), spawn);
+
+                auto* entityNode = dynamic_cast<GraphSystem::EntityNode3D*>(node);
+
+                entityNode->setEntity(mesh);
+
+                //std::cout << mesh->get_name() << std::endl;
+
+                notAllowedNames.push_back(mesh->get_name());
+
+
+                std::cout << notAllowedNames.back() << std::endl;
+
+
+
+                
+
+
             }
         }
 

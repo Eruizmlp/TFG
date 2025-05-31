@@ -10,7 +10,8 @@ namespace GraphSystem {
 
         angleInput(addInput("Angle", IOType::FLOAT)),
 
-        transformOutput(addOutput("Transform", IOType::TRANSFORM)),
+        transformInput(addInput("Transform", IOType::MESH)),
+        transformOutput(addOutput("Transform", IOType::MESH)),
         angle(angle),
         axis(glm::normalize(axis))
     {
@@ -34,25 +35,33 @@ namespace GraphSystem {
     }
 
     void RotateNode::execute() {
-    if (!isExecutionPending() || !targetMesh) return;
+        if (!isExecutionPending())
+            return;
 
-    if (angleInput && angleInput->hasData()) {
-        angle = angleInput->getFloat();
+        if (!targetMesh) {   
+            if (transformInput && transformInput->hasData()) {
+                targetMesh = transformInput->getMesh();
+            }
+        }
+
+        if (!targetMesh) return;  
+
+        if (angleInput && angleInput->hasData()) {
+            angle = angleInput->getFloat();
+        }
+
+        glm::quat current = targetMesh->get_rotation();
+        glm::quat delta = glm::angleAxis(glm::radians(angle), axis);
+        targetMesh->set_rotation(glm::normalize(delta * current));
+
+        transformOutput->setData(targetMesh);
+
+        for (auto& link : execOutput->getLinks()) {
+            if (auto next = link->getTargetNode())
+                next->setExecutionPending(true);
+        }
+
+        setExecutionPending(false);
     }
-
-    // apply rotation
-    glm::quat current = targetMesh->get_rotation();
-    glm::quat delta   = glm::angleAxis(glm::radians(angle), axis);
-    targetMesh->set_rotation(glm::normalize(delta * current));
-
-    transformOutput->setData(targetMesh->get_transform());
-    for (auto& link : execOutput->getLinks()) {
-        if (auto next = link->getTargetNode())
-            next->setExecutionPending(true);
-    }
-
-    setExecutionPending(false);
-}
-
 
 }

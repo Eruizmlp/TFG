@@ -1,4 +1,5 @@
 #include "scale_node.h"
+#include <iostream>
 
 namespace GraphSystem {
 
@@ -6,10 +7,11 @@ namespace GraphSystem {
         : GraphNode(name, NodeCategory::TRANSFORM),
 
         execInput(addInput("Execute", IOType::EXECUTION)),
+        transformInput(addInput("Transform", IOType::MESH)),
         execOutput(addOutput("Exec", IOType::EXECUTION)),
 
         factorInput(addInput("Factor", IOType::FLOAT)),
-        transformOutput(addOutput("Transform", IOType::TRANSFORM)),
+        transformOutput(addOutput("Transform", IOType::MESH)),
 
         factor(factor)
     {
@@ -29,9 +31,16 @@ namespace GraphSystem {
     }
 
     void ScaleNode::execute() {
-        
-        if (!isExecutionPending() || !targetMesh)
+        if (!isExecutionPending())
             return;
+
+        if (!targetMesh) {   
+            if (transformInput && transformInput->hasData()) {
+                targetMesh = transformInput->getMesh();
+            }
+        }
+
+        if (!targetMesh) return;
 
         if (factorInput && factorInput->hasData()) {
             factor = factorInput->getFloat();
@@ -39,7 +48,7 @@ namespace GraphSystem {
 
         targetMesh->scale(glm::vec3(factor));
 
-        transformOutput->setData(targetMesh->get_transform());
+        transformOutput->setData(targetMesh);
 
         for (auto& link : execOutput->getLinks()) {
             if (auto next = link->getTargetNode())
@@ -48,5 +57,6 @@ namespace GraphSystem {
 
         setExecutionPending(false);
     }
+
 
 }

@@ -4,6 +4,7 @@
 #include "graph/graph_manager.h"
 #include "graph/graph_editor.h"
 #include "framework/nodes/panel_2d.h"
+#include "graph/entity_node_3d.h"
 
 namespace ui {
     class ContextMenu; 
@@ -29,6 +30,8 @@ private:
     std::vector<ui::ContextMenu*> context_menus;
 
     ui::ContextMenu* active_context_menu = nullptr;
+
+    std::vector<std::string> notAllowedNames = { "Environment3D", "Grid" };
 
    
     Node3D* scene_root = nullptr;

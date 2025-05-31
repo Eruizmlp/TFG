@@ -15,6 +15,8 @@
 #include "math_node_widget_2d.h"
 #include "entity_node_3d.h"
 #include "entity_node_widget_2d.h"
+#include "trigonometric_node.h"
+#include "trigonometric_node_widget_2d.h"
 
 using namespace GraphSystem;
 
@@ -50,6 +52,8 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     else if (type == "TickNode")    node = new TickNode(nodeName);
     else if (type == "ScaleNode")    node = new ScaleNode(nodeName);
     else if (type == "EntityNode3D") node = new EntityNode3D();
+    else if (type == "TrigonometricNode") node = new TrigonometricNode(nodeName);
+    else if (type == "TranslateNode") node = new TranslateNode(nodeName);
 
 
 
@@ -76,8 +80,9 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     else if (auto sc = dynamic_cast<MathNode*>(node)) {
         widget = new MathNodeWidget2D(sc, this, worldPosition);
     }
-    else if (auto* en = dynamic_cast<EntityNode3D*>(node))
-        widget = new EntityNodeWidget2D(en, this, worldPosition);
+    else if (auto sc = dynamic_cast<TrigonometricNode*>(node)) {
+        widget = new TrigonometricNodeWidget2D(sc, this, worldPosition);
+    }
 
     else
         widget = new NodeWidget2D(node, this, worldPosition);
