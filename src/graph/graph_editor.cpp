@@ -55,8 +55,8 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     else if (type == "EntityNode3D") node = new EntityNode3D();
     else if (type == "TrigonometricNode") node = new TrigonometricNode(nodeName);
     else if (type == "TranslateNode") node = new TranslateNode(nodeName);
-    else if (type == "SetVariableNode") node = new SetVariableNode(nodeName, "");
-    else if (type == "VariableNode")    node = new VariableNode(nodeName);
+    else if (type == "SetVariableNode") node = new SetVariableNode(nodeName, "scale_factor");
+    else if (type == "VariableNode")    node = new VariableNode(nodeName, "scale_factor", 1.0f);
 
     //else if (type == "VariableNode") {
     //    auto* varNode = new VariableNode(nodeName);

@@ -37,6 +37,10 @@
 #include "graph/context_menu.h"
 
 #include "graph/keyboard.h"
+#include <graph/variable_node.h>
+#include <graph/math_node.h>
+#include <graph/tick_node.h>
+#include <graph/set_variable_node.h>
 
 
 
@@ -333,12 +337,36 @@ int SampleEngine::post_initialize()
     }
     main_scene->add_node(testBox);
 
-
-    
-    auto* scaleNode = static_cast<GraphSystem::ScaleNode*>(
-        editor->createNode("ScaleNode", "ScaleNode", { 150.0f, 150.0f, 0.0f })
+    // Crear VariableNode para el ángulo
+    auto* angleNode = static_cast<GraphSystem::VariableNode*>(
+        editor->createNode("VariableNode", "AngleVar", { 400.0f, 200.0f, 0.0f })
         );
-    
+    angleNode->setVariableName("angle");  // nombre fijo
+    GraphSystem::VariableNode::setStoredValue("angle", 0.0f); // valor inicial 0.0f
+
+    // Crear VariableNode para el incremento
+    auto* incrementNode = static_cast<GraphSystem::VariableNode*>(
+        editor->createNode("VariableNode", "IncrementVar", { 400.0f, 300.0f, 0.0f })
+        );
+    incrementNode->setVariableName("increment");
+    GraphSystem::VariableNode::setStoredValue("increment", 1.0f); // valor inicial 1.0f
+
+    // Crear MathNode para sumar ángulo + incremento
+    auto* mathNode = static_cast<GraphSystem::MathNode*>(
+        editor->createNode("MathNode", "Adder", { 600.0f, 250.0f, 0.0f })
+        );
+
+    // Crear TickNode
+    auto* tickNode = static_cast<GraphSystem::TickNode*>(
+        editor->createNode("TickNode", "Tick", { 100.0f, 400.0f, 0.0f })
+        );
+
+    // Crear RotateNode
+    auto* rotateNode = static_cast<GraphSystem::RotateNode*>(
+        editor->createNode("RotateNode", "Rotator", { 1000.0f, 250.0f, 0.0f })
+        );
+
+
 
     setupGraphUI();
     setupNodeCreationUI(editor);

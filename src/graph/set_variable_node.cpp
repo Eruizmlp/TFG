@@ -10,13 +10,21 @@ namespace GraphSystem {
         execOutput = addOutput("Exec", IOType::EXECUTION);
     }
 
+    void SetVariableNode::setTargetVariable(const std::string& variableName) {
+        targetVariable = variableName;
+    }
+
+    const std::string& SetVariableNode::getTargetVariable() const {
+        return targetVariable;
+    }
+
     void SetVariableNode::execute() {
         if (!isExecutionPending()) return;
         setExecutionPending(false);
 
         if (valueInput && valueInput->hasData()) {
             float value = valueInput->getFloat();
-            VariableNode::setStoredValue(targetVariable, value); 
+            VariableNode::setStoredValue(targetVariable, value);
         }
 
         for (auto& link : execOutput->getLinks()) {

@@ -6,7 +6,10 @@ namespace GraphSystem {
 
     class SetVariableNode : public GraphNode {
     public:
-        SetVariableNode(const std::string& name, const std::string& variableName);
+        SetVariableNode(const std::string& name, const std::string& variableName = ""); 
+
+        void setTargetVariable(const std::string& variableName);  
+        const std::string& getTargetVariable() const;              
 
         void execute() override;
 
