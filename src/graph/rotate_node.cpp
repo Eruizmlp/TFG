@@ -18,6 +18,7 @@ namespace GraphSystem {
         angleInput->setData<float>(angle);
     }
 
+
     void RotateNode::setTarget(MeshInstance3D* mesh) {
         targetMesh = mesh;
     }
@@ -72,6 +73,7 @@ namespace GraphSystem {
 
         setExecutionPending(false);
     }
+
 
 
 }

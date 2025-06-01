@@ -11,10 +11,10 @@ namespace GraphSystem {
         void update(float deltaTime) override;
 
     private:
-        Input* execInput;
-        Input* delayInput;
+        Input* execInput = nullptr;
+        Input* delayInput = nullptr;
 
-        Output* execOutput;
+        Output* execOutput = nullptr;
 
         float delayValue = 1.0f;
         float accumulatedTime = 0.0f;

@@ -7,7 +7,8 @@
 #include "graph/entity_node_3d.h"
 
 namespace ui {
-    class ContextMenu; 
+    class ContextMenu;
+    class Keyboard;
 }
 
 class Node3D;
@@ -26,6 +27,7 @@ private:
     std::vector<GraphSystem::NodeWidget2D*> nodeWidgets;
     ui::Panel2D* run_panel = nullptr;
     Node2D* graph_container = nullptr;
+    ui::Keyboard* keyboard = nullptr;
 
     std::vector<ui::ContextMenu*> context_menus;
 

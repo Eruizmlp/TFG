@@ -156,9 +156,16 @@ namespace GraphSystem {
     }
 
     MeshInstance3D* IO::getMesh() const {
-        if (type != IOType::MESH) {
-            throw std::runtime_error("IO type mismatch: not a MeshInstance3D");
+        if (type != IOType::MESH) throw std::runtime_error("IO type mismatch: not a MeshInstance3D");
+
+        const Output* output = dynamic_cast<const Output*>(this);
+        if (output) {
+            auto computeFunc = output->getComputeMeshFunction();
+            if (computeFunc) {
+                return computeFunc();  
+            }
         }
+
         return data.meshValue;
     }
 

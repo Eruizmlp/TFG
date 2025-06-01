@@ -9,15 +9,15 @@ namespace GraphSystem {
         execOutput = addOutput("Exec", IOType::EXECUTION);
         stateOutput = addOutput("State", IOType::BOOL);
 
-        stateOutput->setData(currentState);
+        stateOutput->setData(currentState);  
     }
 
     void ToggleNode::execute() {
         if (!isExecutionPending()) return;
         setExecutionPending(false);
 
-        currentState = !currentState;
-        stateOutput->setData(currentState);
+        currentState = !currentState;  
+        stateOutput->setData(currentState);  
 
         for (auto& link : execOutput->getLinks()) {
             if (auto* next = link->getTargetNode())

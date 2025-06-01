@@ -11,16 +11,16 @@ namespace GraphSystem {
         void update(float deltaTime) override;
 
     private:
-        Input* execInput;
-        Input* countInput;
+        Input* execInput = nullptr;
+        Input* countInput = nullptr;
 
-        Output* loopExecOutput;
-        Output* completedOutput;
-        Output* indexOutput;
+        Output* loopExecOutput = nullptr;
+        Output* completedOutput = nullptr;
+        Output* indexOutput = nullptr;
 
-        int repeatCount = 1;
-        int currentIndex = 0;
-        bool looping = false;
+        int repeatCount = 1;   
+        int currentIndex = 0;  
+        bool looping = false;  
     };
 
 }

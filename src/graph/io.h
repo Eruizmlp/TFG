@@ -106,6 +106,8 @@ namespace GraphSystem {
         std::list<Link*> links;
 
         std::function<float()> computeFloatFunction;
+        std::function<MeshInstance3D*()> computeMeshFunction;
+
 
     public:
         Output(GraphNode* owner, const std::string& name, IOType type);
@@ -128,9 +130,19 @@ namespace GraphSystem {
             computeFloatFunction = func;
         }
 
+        void setComputeFunction(std::function<MeshInstance3D* ()> func) {
+            if (this->getType() != IOType::MESH) {
+                throw std::runtime_error("[Output] Trying to set computeFunction on non-MESH type: " + std::to_string(static_cast<int>(type)));
+            }
+            computeMeshFunction = func;
+        }
 
         std::function<float()> getComputeFunction() const {
             return computeFloatFunction;
+        }
+
+        std::function<MeshInstance3D*()> getComputeMeshFunction() const {
+            return computeMeshFunction;
         }
 
         Output(const Output&) = delete;

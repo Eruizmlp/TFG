@@ -10,9 +10,9 @@ namespace GraphSystem {
         void execute() override;
 
     private:
-        Input* execInput;
-        Output* execOutput;
-        Output* stateOutput;
+        Input* execInput = nullptr;
+        Output* execOutput = nullptr;
+        Output* stateOutput = nullptr;
 
         bool currentState = false;
     };

@@ -12,20 +12,14 @@ namespace GraphSystem {
 
         resultOutput = addOutput("Result", IOType::FLOAT);
 
-        float clamped = std::clamp(defaultValue, defaultMin, defaultMax);
-        resultOutput->setData(clamped);
-    }
+        resultOutput->setComputeFunction([this]() -> float {
+            float val = valueInput->hasData() ? valueInput->getFloat() : defaultValue;
+            float min = minInput->hasData() ? minInput->getFloat() : defaultMin;
+            float max = maxInput->hasData() ? maxInput->getFloat() : defaultMax;
+            return std::clamp(val, min, max);
+            });
 
-    void ClampNode::execute() {
-        if (!isExecutionPending()) return;
-        setExecutionPending(false);
-
-        float val = valueInput->hasData() ? valueInput->getFloat() : defaultValue;
-        float min = minInput->hasData() ? minInput->getFloat() : defaultMin;
-        float max = maxInput->hasData() ? maxInput->getFloat() : defaultMax;
-
-        float clamped = std::clamp(val, min, max);
-        resultOutput->setData(clamped);
+        resultOutput->setData(std::clamp(defaultValue, defaultMin, defaultMax));
     }
 
 }

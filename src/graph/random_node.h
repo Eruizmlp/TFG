@@ -10,12 +10,12 @@ namespace GraphSystem {
         void execute() override;
 
     private:
-        Input* execInput;
-        Input* minInput;
-        Input* maxInput;
+        Input* execInput = nullptr;
+        Input* minInput = nullptr;
+        Input* maxInput = nullptr;
 
-        Output* execOutput;
-        Output* resultOutput;
+        Output* execOutput = nullptr;
+        Output* resultOutput = nullptr;
 
         float defaultMin = 0.0f;
         float defaultMax = 1.0f;

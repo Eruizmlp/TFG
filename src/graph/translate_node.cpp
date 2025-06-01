@@ -15,7 +15,7 @@ namespace GraphSystem {
 
         offset(offset)
     {
-        // seed the input socket with the default offset
+        
         offsetInput->setData<glm::vec3>(offset);
     }
 

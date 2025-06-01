@@ -4,7 +4,6 @@ using namespace GraphSystem;
 TickNode::TickNode(const std::string& name)
     : GraphNode(name, NodeCategory::FLOW)
 {
-
     startInput = addInput("Start", IOType::EXECUTION);
     stopInput = addInput("Stop", IOType::EXECUTION);
 
@@ -12,15 +11,13 @@ TickNode::TickNode(const std::string& name)
 }
 
 void TickNode::execute() {
-
     if (!isExecutionPending()) return;
     setExecutionPending(false);
 
     running = !running;
 }
 
-void TickNode::update(float dt) {
-
+void TickNode::update(float delta_time) {
     if (!running) return;
 
     for (auto* link : tickOutput->getLinks()) {
@@ -28,3 +25,4 @@ void TickNode::update(float dt) {
             tgt->setExecutionPending(true);
     }
 }
+

@@ -3,26 +3,35 @@
 namespace GraphSystem {
 
     BranchNode::BranchNode(const std::string& name)
-        : GraphNode(name, NodeCategory::LOGIC)
+        : GraphNode(name, NodeCategory::FLOW)
     {
-        execInput = addInput("Execute", IOType::EXECUTION);
-        conditionInput = addInput("Condition", IOType::BOOL);
-        trueOutput = addOutput("True", IOType::EXECUTION);
-        falseOutput = addOutput("False", IOType::EXECUTION);
+        addInput("Execute", IOType::EXECUTION);   
+        conditionInput = addInput("Condition", IOType::BOOL);  
+
+        trueOutput = addOutput("True", IOType::EXECUTION);  
+        falseOutput = addOutput("False", IOType::EXECUTION); 
     }
+
 
     void BranchNode::execute() {
         if (!isExecutionPending()) return;
         setExecutionPending(false);
 
-        bool cond = conditionInput->hasData() ? conditionInput->getBool() : false;
+        bool condition = false;
+        if (conditionInput) {
+            auto* connected = conditionInput->getConnectedOutput();
+            if (connected && connected->hasData()) {
+                condition = connected->getBool();  
+            }
+        }
 
-        // Seleccionamos la salida
-        Output* out = (cond ? trueOutput : falseOutput);
-        for (auto& link : out->getLinks()) {
+        auto& outputLinks = condition ? trueOutput->getLinks() : falseOutput->getLinks();
+
+        for (auto* link : outputLinks) {
             if (auto next = link->getTargetNode())
                 next->setExecutionPending(true);
         }
     }
+
 
 } 

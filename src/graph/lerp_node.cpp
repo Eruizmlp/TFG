@@ -8,24 +8,17 @@ namespace GraphSystem {
         aInput = addInput("A", IOType::FLOAT);
         bInput = addInput("B", IOType::FLOAT);
         tInput = addInput("T", IOType::FLOAT);
-
         resultOutput = addOutput("Result", IOType::FLOAT);
 
-        float result = defaultA + (defaultB - defaultA) * defaultT;
-        resultOutput->setData(result);
-    }
+        resultOutput->setComputeFunction([this]() -> float {
+            float a = aInput->hasData() ? aInput->getFloat() : 0.0f;
+            float b = bInput->hasData() ? bInput->getFloat() : 1.0f;
+            float t = tInput->hasData() ? tInput->getFloat() : 0.5f;
 
-    void LerpNode::execute() {
-        if (!isExecutionPending()) return;
-        setExecutionPending(false);
+            return glm::mix(a, b, glm::clamp(t, 0.0f, 1.0f));
+            });
 
-        float a = aInput->hasData() ? aInput->getFloat() : defaultA;
-        float b = bInput->hasData() ? bInput->getFloat() : defaultB;
-        float t = tInput->hasData() ? tInput->getFloat() : defaultT;
-
-        float result = a + (b - a) * t;
-
-        resultOutput->setData(result);
+        resultOutput->setData(0.0f);  
     }
 
 }

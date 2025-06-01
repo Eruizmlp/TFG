@@ -17,6 +17,7 @@ namespace GraphSystem {
         setExecutionPending(false);
 
         float delay = delayInput->hasData() ? delayInput->getFloat() : delayValue;
+        if (delay <= 0.0f) delay = 0.001f; 
 
         delayValue = delay;
         accumulatedTime = 0.0f;

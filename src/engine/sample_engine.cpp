@@ -36,6 +36,7 @@
 
 #include "graph/context_menu.h"
 
+#include "graph/keyboard.h"
 
 
 
@@ -203,7 +204,7 @@ void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
     addRow("EntityNode3D", "EntityNode3D");
     addRow("TrigonometricNode", "TrigonometricNode");
     addRow("TranslateNode", "TranslateNode");
-
+    addRow("SetVariableNode", "SetVariableNode");
 
     panel->use_fixed_size = false;
     panel->on_children_changed();
@@ -289,8 +290,10 @@ int SampleEngine::post_initialize()
         grid->set_surface_material_override(grid->get_surface(0), mat);
         main_scene->add_node(grid);
     }
+    
+    /*ui::Keyboard::get_instance().initialize();
 
-
+    graph_container->add_child(ui::Keyboard::get_instance().get_root());*/
 
 
     // create graph & editor

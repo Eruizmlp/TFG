@@ -17,8 +17,6 @@ namespace GraphSystem {
         void setOperation(CompareOp op);
         CompareOp getOperation() const;
 
-        void execute() override;
-
     private:
         Input* aInput;
         Input* bInput;

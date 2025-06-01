@@ -4,8 +4,16 @@
 
 namespace GraphSystem {
 
+  
+    namespace {
+        bool seeded = []() {
+            std::srand(static_cast<unsigned>(std::time(nullptr)));
+            return true;
+            }();
+    }
+
     RandomNode::RandomNode(const std::string& name)
-        : GraphNode(name, NodeCategory::DATA)
+        : GraphNode(name, NodeCategory::FLOW)  
     {
         execInput = addInput("Execute", IOType::EXECUTION);
         minInput = addInput("Min", IOType::FLOAT);
@@ -13,8 +21,6 @@ namespace GraphSystem {
 
         execOutput = addOutput("Exec", IOType::EXECUTION);
         resultOutput = addOutput("Result", IOType::FLOAT);
-
-        std::srand(static_cast<unsigned>(std::time(nullptr))); 
     }
 
     void RandomNode::execute() {
@@ -24,7 +30,9 @@ namespace GraphSystem {
         float minVal = minInput->hasData() ? minInput->getFloat() : defaultMin;
         float maxVal = maxInput->hasData() ? maxInput->getFloat() : defaultMax;
 
-        float r = static_cast<float>(std::rand()) / RAND_MAX; 
+        if (minVal > maxVal) std::swap(minVal, maxVal); 
+
+        float r = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
         float value = minVal + r * (maxVal - minVal);
 
         resultOutput->setData(value);

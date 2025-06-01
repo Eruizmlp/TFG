@@ -31,8 +31,9 @@ namespace GraphSystem {
             indexOutput->setData(static_cast<float>(currentIndex));
 
             for (auto& link : loopExecOutput->getLinks()) {
-                if (auto* next = link->getTargetNode())
+                if (auto* next = link->getTargetNode()) {
                     next->setExecutionPending(true);
+                }
             }
 
             ++currentIndex;
@@ -41,8 +42,9 @@ namespace GraphSystem {
             looping = false;
 
             for (auto& link : completedOutput->getLinks()) {
-                if (auto* next = link->getTargetNode())
+                if (auto* next = link->getTargetNode()) {
                     next->setExecutionPending(true);
+                }
             }
         }
     }

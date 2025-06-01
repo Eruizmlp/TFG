@@ -17,6 +17,8 @@
 #include "entity_node_widget_2d.h"
 #include "trigonometric_node.h"
 #include "trigonometric_node_widget_2d.h"
+#include "set_variable_node.h"
+#include "keyboard.h"
 
 using namespace GraphSystem;
 
@@ -48,12 +50,27 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     else if (type == "RunNode")    node = new RunNode(nodeName);
     else if (type == "MathNode")    node = new MathNode(nodeName);
     else if (type == "BranchNode")    node = new BranchNode(nodeName);
-    else if (type == "VariableNode")    node = new VariableNode(nodeName);
     else if (type == "TickNode")    node = new TickNode(nodeName);
     else if (type == "ScaleNode")    node = new ScaleNode(nodeName);
     else if (type == "EntityNode3D") node = new EntityNode3D();
     else if (type == "TrigonometricNode") node = new TrigonometricNode(nodeName);
     else if (type == "TranslateNode") node = new TranslateNode(nodeName);
+    else if (type == "SetVariableNode") node = new SetVariableNode(nodeName, "");
+    else if (type == "VariableNode")    node = new VariableNode(nodeName);
+
+    //else if (type == "VariableNode") {
+    //    auto* varNode = new VariableNode(nodeName);
+
+    //    ui::Keyboard::get_instance().request(
+    //        [varNode](const std::string& userInput) {
+    //            varNode->setVariableName(userInput);
+    //        },
+    //        "defaultVar",
+    //        32
+    //    );
+
+    //    node = varNode;
+    //}
 
 
 

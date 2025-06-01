@@ -6,6 +6,10 @@ namespace GraphSystem {
         : GraphNode("Entity3D", NodeCategory::DATA)
     {
         outputEntity = addOutput("Mesh", IOType::MESH);
+
+        outputEntity->setComputeFunction([this]() -> MeshInstance3D* {
+            return entity;
+            });
     }
 
     void EntityNode3D::setEntity(MeshInstance3D* e) {
@@ -15,17 +19,8 @@ namespace GraphSystem {
         }
     }
 
-
     MeshInstance3D* EntityNode3D::getEntity() const {
         return entity;
     }
-
-    void EntityNode3D::execute() {
-        if (!entity) return;
-
-        if (outputEntity)
-            outputEntity->setData(entity);
-
-       }
 
 }

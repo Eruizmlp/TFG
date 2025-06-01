@@ -16,7 +16,6 @@ namespace GraphSystem {
         void setEntity(MeshInstance3D* e);
         MeshInstance3D* getEntity() const;
 
-        void execute() override;
     };
 
 }

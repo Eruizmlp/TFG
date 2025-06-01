@@ -11,6 +11,8 @@ namespace GraphSystem {
         static float getStoredValue(const std::string& varName);
         static void setStoredValue(const std::string& varName, float value);
 
+        void setVariableName(const std::string& name) { variableName = name; }
+
     private:
         Input* inValue;
         Output* outValue;
