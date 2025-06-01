@@ -4,11 +4,10 @@ using namespace GraphSystem;
 TickNode::TickNode(const std::string& name)
     : GraphNode(name, NodeCategory::FLOW)
 {
-    // Two Exec inputs: Start and Stop
+
     startInput = addInput("Start", IOType::EXECUTION);
     stopInput = addInput("Stop", IOType::EXECUTION);
 
-    // One Exec output: Tick
     tickOutput = addOutput("Tick", IOType::EXECUTION);
 }
 

@@ -36,15 +36,22 @@ namespace GraphSystem {
             return;
 
         if (!targetMesh) {
-            if (transformInput && transformInput->hasData()) {
-                targetMesh = transformInput->getMesh();
+            if (transformInput) {
+                auto* connected = transformInput->getConnectedOutput();
+                if (connected && connected->hasData()) {
+                    targetMesh = connected->getMesh();
+                }
             }
         }
 
-        if (!targetMesh) return;
+        if (!targetMesh)
+            return;
 
-        if (offsetInput && offsetInput->hasData()) {
-            offset = offsetInput->getVec3();
+        if (offsetInput) {
+            auto* connected = offsetInput->getConnectedOutput();
+            if (connected && connected->hasData()) {
+                offset = connected->getVec3();
+            }
         }
 
         Transform t = targetMesh->get_transform();
@@ -57,6 +64,7 @@ namespace GraphSystem {
             if (auto next = link->getTargetNode())
                 next->setExecutionPending(true);
         }
+
         setExecutionPending(false);
     }
 

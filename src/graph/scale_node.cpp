@@ -35,21 +35,27 @@ namespace GraphSystem {
             return;
 
         if (!targetMesh) {
-            if (transformInput && transformInput->hasData()) {
-                targetMesh = transformInput->getMesh();
+            if (transformInput) {
+                auto* connected = transformInput->getConnectedOutput();
+                if (connected && connected->hasData()) {
+                    targetMesh = connected->getMesh();
+                }
             }
         }
 
-        if (!targetMesh) return;
+        if (!targetMesh)
+            return;
 
-        if (factorInput && factorInput->hasData()) {
-            factor = factorInput->getFloat();
-           
-            factor = glm::clamp(std::abs(factor), 0.01f, 10.0f); 
+        if (factorInput) {
+            auto* connected = factorInput->getConnectedOutput();
+            if (connected && connected->hasData()) {
+                factor = connected->getFloat();
+                factor = glm::clamp(std::abs(factor), 0.01f, 10.0f);
+            }
         }
 
         Transform t = targetMesh->get_transform();
-        t.set_scale(glm::vec3(factor)); 
+        t.set_scale(glm::vec3(factor));
         targetMesh->set_transform(t);
 
         transformOutput->setData(targetMesh);
@@ -58,8 +64,11 @@ namespace GraphSystem {
             if (auto next = link->getTargetNode())
                 next->setExecutionPending(true);
         }
+
         setExecutionPending(false);
     }
+
+
 
 
 

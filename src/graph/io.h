@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 #include "framework/nodes/mesh_instance_3d.h"
 #include <functional> 
+#include <iostream>
 
 namespace GraphSystem {
 
@@ -19,6 +20,19 @@ namespace GraphSystem {
         VEC2, VEC3, VEC4, MAT4,
         TRANSFORM, MESH, EXECUTION
     };
+
+    inline bool isLazyType(IOType type) {
+        switch (type) {
+        case IOType::FLOAT:
+        case IOType::INT:
+        case IOType::VEC2:
+        case IOType::VEC3:
+        case IOType::VEC4:
+            return true;
+        default:
+            return false;
+        }
+    }
 
     class IO {
     protected:
@@ -106,8 +120,14 @@ namespace GraphSystem {
         const std::list<Link*>& getLinks() const;
 
         void setComputeFunction(std::function<float()> func) {
+            if (!isLazyType(this->getType())) {
+                throw std::runtime_error("[Output] Trying to set computeFunction on non-lazy IOType: " + std::to_string(static_cast<int>(type)));
+            }
+
+            std::cout << "[Output] Setting computeFunction on " << name << " Type: " << static_cast<int>(type) << "\n";
             computeFloatFunction = func;
         }
+
 
         std::function<float()> getComputeFunction() const {
             return computeFloatFunction;

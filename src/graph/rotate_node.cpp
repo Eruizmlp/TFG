@@ -38,16 +38,23 @@ namespace GraphSystem {
         if (!isExecutionPending())
             return;
 
-        if (!targetMesh) {   
-            if (transformInput && transformInput->hasData()) {
-                targetMesh = transformInput->getMesh();
+        if (!targetMesh) {
+            if (transformInput) {
+                auto* connected = transformInput->getConnectedOutput();
+                if (connected && connected->hasData()) {
+                    targetMesh = connected->getMesh();
+                }
             }
         }
 
-        if (!targetMesh) return;  
+        if (!targetMesh)
+            return;
 
-        if (angleInput && angleInput->hasData()) {
-            angle = angleInput->getFloat();
+        if (angleInput) {
+            auto* connected = angleInput->getConnectedOutput();
+            if (connected && connected->hasData()) {
+                angle = connected->getFloat();
+            }
         }
 
         glm::quat absoluteRotation = glm::angleAxis(glm::radians(angle), glm::normalize(axis));
@@ -55,7 +62,6 @@ namespace GraphSystem {
         t.set_rotation(glm::normalize(absoluteRotation));
 
         targetMesh->set_transform(t);
-
 
         transformOutput->setData(targetMesh);
 
@@ -66,5 +72,6 @@ namespace GraphSystem {
 
         setExecutionPending(false);
     }
+
 
 }

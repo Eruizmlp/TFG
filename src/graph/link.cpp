@@ -51,6 +51,7 @@ namespace GraphSystem {
 
         if (outputRef->getType() == IOType::EXECUTION) {
             targetNode->setExecutionPending(true);
+
             return;
         }
 
@@ -60,5 +61,6 @@ namespace GraphSystem {
 
         targetInput->connectTo(outputRef);
     }
+
 
 } // namespace GraphSystem

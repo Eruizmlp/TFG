@@ -21,6 +21,7 @@ namespace GraphSystem {
     }
 
     Output* GraphNode::addOutput(const std::string& name, IOType type) {
+        std::cout << "[GraphNode] Adding output: " << name << " Type: " << static_cast<int>(type) << "\n";
         Output* output = new Output(this, name, type);
         m_outputs.push_back(output);
         return output;

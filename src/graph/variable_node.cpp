@@ -12,19 +12,21 @@ namespace GraphSystem {
         if (!variableStore.count(variableName))
             variableStore[variableName] = defaultValue;
 
-        outValue->setComputeFunction([this]() -> float {
-            float val;
-            if (inValue->getConnectedOutput()) {
-                val = inValue->getFloat();
-            }
-            else {
-                val = defaultValue;
-            }
-            variableStore[variableName] = val;
-            return val;
-            });
+        if (isLazyType(outValue->getType())) {
+            outValue->setComputeFunction([this]() -> float {
+                float val;
+                if (inValue->getConnectedOutput()) {
+                    val = inValue->getFloat();
+                }
+                else {
+                    val = defaultValue;
+                }
+                variableStore[variableName] = val;
+                return val;
+                });
+        }
 
-        outValue->setData(defaultValue); 
+        outValue->setData(defaultValue);
     }
 
 

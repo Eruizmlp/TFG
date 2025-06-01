@@ -66,7 +66,7 @@ namespace GraphSystem {
             return false;
         }
 
-        // Find target input (if given)
+        // Find target input
         Input* input = nullptr;
         if (!inputName.empty()) {
             for (auto* in : target->getInputs()) {
@@ -85,6 +85,29 @@ namespace GraphSystem {
                 return false;
             }
         }
+        else {
+            for (auto* in : target->getInputs()) {
+                if (!in) continue;
+
+                if (output->getType() == IOType::EXECUTION) {
+                    if (in->getName() == "Execute" && in->getType() == IOType::EXECUTION) {
+                        input = in;
+                        break;
+                    }
+                }
+                else {
+                    if (in->getType() == output->getType()) {
+                        input = in;
+                        break;
+                    }
+                }
+            }
+
+            if (!input) {
+                std::cerr << "[Error] No compatible input found for output '" << outputName << "'\n";
+                return false;
+            }
+        }
 
         // Check duplicates
         for (auto* link : links) {
@@ -98,23 +121,31 @@ namespace GraphSystem {
 
         // Create link
         try {
+            std::cout << "[Graph::connect] Trying to connect "
+                << source->getName() << ":" << outputName
+                << " (Type " << static_cast<int>(output->getType()) << ") to "
+                << target->getName() << ":"
+                << (input ? input->getName() : "NULL")
+                << " (Type " << (input ? static_cast<int>(input->getType()) : -1) << ")\n";
+
             Link* link = new Link(output, target, input);
 
             if (output && input) {
-                link->transferData(); 
+                link->transferData();
             }
 
             links.push_back(link);
             std::cout << "[Graph] Connected "
                 << source->getName() << ":" << outputName
-                << " to " << target->getName() << "\n";
+                << " to " << target->getName() << ":" << input->getName() << "\n";
             return true;
         }
-        catch (...) {
-            std::cerr << "[Error] Failed to create link\n";
+        catch (const std::exception& e) {
+            std::cerr << "[Error] Failed to create link: " << e.what() << "\n";
             return false;
         }
     }
+
 
 
 
