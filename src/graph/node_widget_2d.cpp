@@ -219,27 +219,27 @@ void RotateNodeWidget2D::update(float delta_time) {
         inspectPanel->update(delta_time);
     }
 }
-
 void RotateNodeWidget2D::initInspector() {
     glm::vec2 pos = get_translation() + glm::vec2(get_size().x + 10.0f, 0.0f);
-    glm::vec2 sz = { 180.0f, 100.0f };
+    glm::vec2 sz = { 180.0f, 120.0f };  
 
     inspectPanel = new XRPanel(
         "RotateInspect_" + logic_node->getName(),
         pos,
         sz,
         0u,
-        colors::GREEN
+        colors::GRAY
     );
 
     auto* rotateNode = static_cast<RotateNode*>(logic_node);
 
+    // Angle slider label
     float currentY = 20.0f;
-
     auto* label = new Text2D("Angle:", { 8, currentY });
     inspectPanel->add_child(label);
     currentY += 20.0f;
 
+    // Angle slider
     sSliderDescription sd;
     sd.mode = HORIZONTAL;
     sd.position = { 8, currentY };
@@ -252,14 +252,52 @@ void RotateNodeWidget2D::initInspector() {
     angleSlider = new FloatSlider2D("AngleSlider_" + logic_node->getName(), sd);
     inspectPanel->add_child(angleSlider);
 
+    // Value label (angle dynamic update)
     angleValueLabel = new Text2D(formatFloat(rotateNode->getRotationAngle(), 1), { 100, currentY });
     inspectPanel->add_child(angleValueLabel);
 
     Node::bind(angleSlider->get_name(), FuncFloat([this, rotateNode](const std::string&, float v) {
         rotateNode->setRotationAngle(v);
         rotateNode->getInput("Angle")->setData<float>(v);
+        if (angleValueLabel) {
+            angleValueLabel->set_text(formatFloat(v, 1));
+        }
+        }));
 
-        angleValueLabel->set_text(formatFloat(v, 1));
+    currentY += 30.0f;
+
+    // Axis buttons
+    auto* axisRow = new HContainer2D("AxisRow", { 8, currentY }, 0u, colors::GRAY);
+    axisRow->item_margin = { 4, 0 };
+    inspectPanel->add_child(axisRow);
+
+    sButtonDescription bdesc;
+    bdesc.size = { 24, 24 };
+    bdesc.color = colors::WHITE;
+
+    axisXBtn = new Button2D("RotateAxisX_" + logic_node->getName(), bdesc);
+    axisXBtn->add_child(new Text2D("X", { 0, 0 }));
+
+    axisYBtn = new Button2D("RotateAxisY_" + logic_node->getName(), bdesc);
+    axisYBtn->add_child(new Text2D("Y", { 0, 0 }));
+
+    axisZBtn = new Button2D("RotateAxisZ_" + logic_node->getName(), bdesc);
+    axisZBtn->add_child(new Text2D("Z", { 0, 0 }));
+
+    axisRow->add_child(axisXBtn);
+    axisRow->add_child(axisYBtn);
+    axisRow->add_child(axisZBtn);
+
+    Node::bind(axisXBtn->get_name(), FuncVoid([this](const std::string&, void*) {
+        static_cast<RotateNode*>(logic_node)->setRotationAxis({ 1, 0, 0 });
+        }));
+
+    Node::bind(axisYBtn->get_name(), FuncVoid([this](const std::string&, void*) {
+        static_cast<RotateNode*>(logic_node)->setRotationAxis({ 0, 1, 0 });
+        }));
+
+    Node::bind(axisZBtn->get_name(), FuncVoid([this](const std::string&, void*) {
+        static_cast<RotateNode*>(logic_node)->setRotationAxis({ 0, 0, 1 });
         }));
 
     add_child(inspectPanel);
