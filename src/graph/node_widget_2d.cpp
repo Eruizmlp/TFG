@@ -6,6 +6,7 @@
 #include <GLFW/glfw3.h>
 #include <iomanip>
 #include <sstream>
+#include <fstream>
 
 
 using namespace GraphSystem;
@@ -36,7 +37,8 @@ glm::vec2 NodeWidget2D::computeSize(GraphNode* node) {
     return { W, h };
 }
 
-NodeWidget2D::NodeWidget2D(GraphNode* node,
+NodeWidget2D::NodeWidget2D(const std::string& nodeType,
+    GraphNode* node,
     GraphEditor* editor,
     const glm::vec3& worldPos)
     : Node2D("Widget2D_" + node->getName(),
@@ -44,9 +46,9 @@ NodeWidget2D::NodeWidget2D(GraphNode* node,
         computeSize(node),
         ui::CREATE_3D),
     logic_node(node),
-    graphEditor(editor)
+    graphEditor(editor),
+    graphNodeType(nodeType)
 {
-
     background = new XRPanel(
         "bg_" + node->getName(),
         { 0, 0 },
@@ -185,12 +187,44 @@ void NodeWidget2D::update(float delta_time)
     background->update(delta_time);
 }
 
+void NodeWidget2D::serialize(std::ofstream& binary_scene_file)
+{
+    size_t node_type_size = graphNodeType.size();
+    binary_scene_file.write(reinterpret_cast<char*>(&node_type_size), sizeof(size_t));
+    binary_scene_file.write(graphNodeType.c_str(), node_type_size);
 
+    logic_node->serialize(binary_scene_file);
 
-RotateNodeWidget2D::RotateNodeWidget2D(RotateNode* node,
+    Node::serialize(binary_scene_file);
+
+    binary_scene_file.write(reinterpret_cast<char*>(&size), sizeof(glm::vec2));
+    binary_scene_file.write(reinterpret_cast<char*>(&scaling), sizeof(glm::vec2));
+    binary_scene_file.write(reinterpret_cast<char*>(&model), sizeof(glm::mat3x3));
+}
+
+void NodeWidget2D::parse(std::ifstream& binary_scene_file)
+{
+    logic_node->parse(binary_scene_file);
+
+    // parse node type outside (it's parsed in the scene parser..)
+    uint64_t node_type_size = 0;
+    std::string node_type;
+    binary_scene_file.read(reinterpret_cast<char*>(&node_type_size), sizeof(uint64_t));
+    node_type.resize(node_type_size);
+    binary_scene_file.read(&node_type[0], node_type_size);
+
+    Node::parse(binary_scene_file);
+
+    binary_scene_file.read(reinterpret_cast<char*>(&size), sizeof(glm::vec2));
+    binary_scene_file.read(reinterpret_cast<char*>(&scaling), sizeof(glm::vec2));
+    binary_scene_file.read(reinterpret_cast<char*>(&model), sizeof(glm::mat3x3));
+}
+
+RotateNodeWidget2D::RotateNodeWidget2D(const std::string& nodeType,
+    RotateNode* node,
     GraphEditor* editor,
     const glm::vec3& worldPos)
-    : NodeWidget2D(node, editor, worldPos)
+    : NodeWidget2D(nodeType, node, editor, worldPos)
 {
 
 }
@@ -266,6 +300,22 @@ void RotateNodeWidget2D::initInspector() {
     inspectPanel->set_visibility(false, true);
 }
 
+//void RotateNodeWidget2D::serialize(std::ofstream& binary_scene_file)
+//{
+//    NodeWidget2D::serialize(binary_scene_file);
+//
+//    //  export new stuff
+//    write(float)
+//}
+//
+//void RotateNodeWidget2D::parse(...)
+//{
+//    NodeWidget2D::parse(binary_scene_file);
+//
+//    //  export new stuff
+//    read(float)
+//}
+
 void RotateNodeWidget2D::updateInspector() {
     if (!inspectPanel || !inspectorVisible) return;
     inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
@@ -285,10 +335,11 @@ void RotateNodeWidget2D::updateInspector() {
 
 // -------------------------- TranslateNodeWidget2D --------------------------
 
-TranslateNodeWidget2D::TranslateNodeWidget2D(TranslateNode* node,
+TranslateNodeWidget2D::TranslateNodeWidget2D(const std::string& nodeType,
+    TranslateNode* node,
     GraphEditor* editor,
     const glm::vec3& worldPos)
-    : NodeWidget2D(node, editor, worldPos)
+    : NodeWidget2D(nodeType, node, editor, worldPos)
 {
 }
 
@@ -402,10 +453,11 @@ void TranslateNodeWidget2D::updateInspector() {
 
 // -------------------------- ScaleNodeWidget2D --------------------------
 
-ScaleNodeWidget2D::ScaleNodeWidget2D(ScaleNode* node,
+ScaleNodeWidget2D::ScaleNodeWidget2D(const std::string& nodeType,
+    ScaleNode* node,
     GraphEditor* editor,
     const glm::vec3& worldPos)
-    : NodeWidget2D(node, editor, worldPos)
+    : NodeWidget2D(nodeType, node, editor, worldPos)
 {
 }
 

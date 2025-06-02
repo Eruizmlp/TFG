@@ -25,15 +25,18 @@ namespace GraphSystem {
         ui::VContainer2D* rootContainer;
         bool              dragging = false;
         glm::vec2         dragOffset;
+        std::string       graphNodeType;
 
         static glm::vec2 computeSize(GraphNode* node);
 
     public:
-        NodeWidget2D(GraphNode* node,
+        NodeWidget2D(const std::string& nodeType,
+            GraphNode* node,
             GraphEditor* editor,
             const glm::vec3& worldPos);
 
         GraphNode* getLogicNode() const { return logic_node; }
+        const std::string& getGraphNodeType() const { return graphNodeType; }
 
         // input / render hooks
         bool       on_input(sInputData data) override;
@@ -45,6 +48,9 @@ namespace GraphSystem {
         virtual void updateInspector() {}
 
         virtual void on_right_click() {}
+
+        void serialize(std::ofstream& binary_scene_file);
+        void parse(std::ifstream& binary_scene_file);
 
     };
 
@@ -62,7 +68,8 @@ namespace GraphSystem {
         void initInspector();
 
     public:
-        RotateNodeWidget2D(RotateNode* node,
+        RotateNodeWidget2D(const std::string& nodeType,
+            RotateNode* node,
             GraphEditor* editor,
             const glm::vec3& worldPos);
 
@@ -87,7 +94,8 @@ namespace GraphSystem {
 
         void initInspector();
     public:
-        TranslateNodeWidget2D(TranslateNode* node,
+        TranslateNodeWidget2D(const std::string& nodeType,
+            TranslateNode* node,
             GraphEditor* editor,
             const glm::vec3& worldPos);
 
@@ -106,7 +114,8 @@ namespace GraphSystem {
 
         void initInspector();
     public:
-        ScaleNodeWidget2D(ScaleNode* node,
+        ScaleNodeWidget2D(const std::string& nodeType,
+            ScaleNode* node,
             GraphEditor* editor,
             const glm::vec3& worldPos);
 

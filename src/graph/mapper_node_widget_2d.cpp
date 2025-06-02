@@ -3,10 +3,11 @@
 
 namespace GraphSystem {
 
-    MapperNodeWidget2D::MapperNodeWidget2D(MapperNode* node,
+    MapperNodeWidget2D::MapperNodeWidget2D(const std::string& nodeType,
+        MapperNode* node,
         GraphEditor* editor,
         const glm::vec3& worldPos)
-        : NodeWidget2D(node, editor, worldPos), mapperNode(node)
+        : NodeWidget2D(nodeType, node, editor, worldPos), mapperNode(node)
     {
     }
 

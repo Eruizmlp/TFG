@@ -3,10 +3,11 @@
 
 namespace GraphSystem {
 
-    TrigonometricNodeWidget2D::TrigonometricNodeWidget2D(TrigonometricNode* node,
+    TrigonometricNodeWidget2D::TrigonometricNodeWidget2D(const std::string& nodeType,
+        TrigonometricNode* node,
         GraphEditor* editor,
         const glm::vec3& worldPos)
-        : NodeWidget2D(node, editor, worldPos), trigNode(node)
+        : NodeWidget2D(nodeType, node, editor, worldPos), trigNode(node)
     {
     }
 

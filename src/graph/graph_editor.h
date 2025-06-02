@@ -12,12 +12,17 @@ namespace GraphSystem {
 
     class LinkRenderer2D;
 
+    struct sGraphBinaryHeader {
+        uint64_t node_count = 0;
+        uint64_t link_count = 0;
+    };
+
     class GraphEditor {
     public:
         explicit GraphEditor(Graph* graph, Node2D* panel);
 
         GraphNode* createNode(const std::string& type,
-            const std::string& name,
+            const std::string& name = "",
             const glm::vec3& worldPosition = glm::vec3(800));
 
         // Connection workflow
@@ -28,6 +33,9 @@ namespace GraphSystem {
         const std::vector<NodeWidget2D*>& getWidgets() const { return widgets; }
 
         void update(float delta_time);
+
+        void serialize(const std::string& path);
+        void parse(const std::string& path);
 
     private:
         Graph* graph;

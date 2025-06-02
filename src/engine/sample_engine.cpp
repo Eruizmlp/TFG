@@ -5,6 +5,7 @@
 #include "framework/parsers/parse_scene.h"
 #include "framework/input.h"
 #include "framework/math/intersections.h"
+#include "framework/utils/tinyfiledialogs.h"
 #include "framework/ui/io.h"
 
 #include "graphics/sample_renderer.h"
@@ -136,7 +137,7 @@ void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
     using namespace ui;
 
     constexpr float X = 20.0f;
-    constexpr float Y = 400.0f;
+    constexpr float Y = 150.0f;
     constexpr float PANEL_W = 260.0f;
 
 
@@ -153,7 +154,6 @@ void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
 
     // Fijamos sólo el ancho;
     panel->set_fixed_size({ PANEL_W, 0.0f });
-    panel->use_fixed_size = true;
 
     // Añadimos el título
     {
@@ -301,18 +301,9 @@ int SampleEngine::post_initialize()
 
 
     // create graph & editor
-    GraphSystem::Graph* eventGraph = graphManager.createGraph("MainGraph");
-
+    eventGraph = graphManager.createGraph("MainGraph");
     editor = new GraphSystem::GraphEditor(eventGraph,graph_container);
 
-
-    // instantiate logical nodes
-    auto* runNode = static_cast<GraphSystem::RunNode*>(
-        editor->createNode("RunNode", "Begin Play", { 550.0f, 550, 0.0f })
-        );
-    runNode->setEntryPoint(true);
-
- 
     // red test-box in world
     MeshInstance3D* testBox = new MeshInstance3D();
     testBox->set_name("TestBox");
@@ -337,34 +328,40 @@ int SampleEngine::post_initialize()
     }
     main_scene->add_node(testBox);
 
+    // instantiate logical nodes
+    //auto* runNode = static_cast<GraphSystem::RunNode*>(
+    //    editor->createNode("RunNode", "Begin Play", { 550.0f, 550, 0.0f })
+    //    );
+    //runNode->setEntryPoint(true);
+
     // Crear VariableNode para el ángulo
-    auto* angleNode = static_cast<GraphSystem::VariableNode*>(
-        editor->createNode("VariableNode", "AngleVar", { 400.0f, 200.0f, 0.0f })
-        );
-    angleNode->setVariableName("angle");  // nombre fijo
-    GraphSystem::VariableNode::setStoredValue("angle", 0.0f); // valor inicial 0.0f
+    //auto* angleNode = static_cast<GraphSystem::VariableNode*>(
+    //    editor->createNode("VariableNode", "AngleVar", { 400.0f, 200.0f, 0.0f })
+    //    );
+    //angleNode->setVariableName("angle");  // nombre fijo
+    //GraphSystem::VariableNode::setStoredValue("angle", 0.0f); // valor inicial 0.0f
 
-    // Crear VariableNode para el incremento
-    auto* incrementNode = static_cast<GraphSystem::VariableNode*>(
-        editor->createNode("VariableNode", "IncrementVar", { 400.0f, 300.0f, 0.0f })
-        );
-    incrementNode->setVariableName("increment");
-    GraphSystem::VariableNode::setStoredValue("increment", 1.0f); // valor inicial 1.0f
+    //// Crear VariableNode para el incremento
+    //auto* incrementNode = static_cast<GraphSystem::VariableNode*>(
+    //    editor->createNode("VariableNode", "IncrementVar", { 400.0f, 300.0f, 0.0f })
+    //    );
+    //incrementNode->setVariableName("increment");
+    //GraphSystem::VariableNode::setStoredValue("increment", 1.0f); // valor inicial 1.0f
 
-    // Crear MathNode para sumar ángulo + incremento
-    auto* mathNode = static_cast<GraphSystem::MathNode*>(
-        editor->createNode("MathNode", "Adder", { 600.0f, 250.0f, 0.0f })
-        );
+    //// Crear MathNode para sumar ángulo + incremento
+    //auto* mathNode = static_cast<GraphSystem::MathNode*>(
+    //    editor->createNode("MathNode", "Adder", { 600.0f, 250.0f, 0.0f })
+    //    );
 
-    // Crear TickNode
-    auto* tickNode = static_cast<GraphSystem::TickNode*>(
-        editor->createNode("TickNode", "Tick", { 100.0f, 400.0f, 0.0f })
-        );
+    //// Crear TickNode
+    //auto* tickNode = static_cast<GraphSystem::TickNode*>(
+    //    editor->createNode("TickNode", "Tick", { 100.0f, 400.0f, 0.0f })
+    //    );
 
-    // Crear RotateNode
-    auto* rotateNode = static_cast<GraphSystem::RotateNode*>(
-        editor->createNode("RotateNode", "Rotator", { 1000.0f, 250.0f, 0.0f })
-        );
+    //// Crear RotateNode
+    //auto* rotateNode = static_cast<GraphSystem::RotateNode*>(
+    //    editor->createNode("RotateNode", "Rotator", { 1000.0f, 250.0f, 0.0f })
+    //    );
 
 
 
@@ -475,7 +472,7 @@ void SampleEngine::update(float delta_time)
 void SampleEngine::render()
 {
     if (show_imgui) {
-        render_default_gui();
+        render_gui();
     }
 
     main_scene->render();
@@ -498,6 +495,51 @@ void SampleEngine::render()
     Engine::render();
 }
 
+void SampleEngine::render_gui()
+{
+    render_default_gui();
+
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("Open graph (.graph)"))
+            {
+                std::vector<const char*> filter_patterns = { "*.graph" };
+                char const* open_file_name = tinyfd_openFileDialog(
+                    "Graph loader",
+                    "",
+                    filter_patterns.size(),
+                    filter_patterns.data(),
+                    "Graph format",
+                    0
+                );
+
+                if (open_file_name) {
+                    editor->parse(open_file_name);
+                }
+            }
+            if (ImGui::MenuItem("Save graph (.graph)"))
+            {
+                std::vector<const char*> filter_patterns = { "*.graph" };
+
+                char const* save_file_name = tinyfd_saveFileDialog(
+                    "Graph loader",
+                    "",
+                    filter_patterns.size(),
+                    filter_patterns.data(),
+                    "Graph format"
+                );
+
+                if (save_file_name) {
+                    editor->serialize(save_file_name);
+                }
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
+    }
+}
 
 void SampleEngine::append_glb(const std::string& filename)
 {

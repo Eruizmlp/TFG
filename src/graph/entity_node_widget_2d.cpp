@@ -9,10 +9,11 @@
 
 namespace GraphSystem {
 
-    EntityNodeWidget2D::EntityNodeWidget2D(EntityNode3D* node,
+    EntityNodeWidget2D::EntityNodeWidget2D(const std::string& nodeType,
+        EntityNode3D* node,
         GraphEditor* editor,
         const glm::vec3& worldPos)
-        : NodeWidget2D(node, editor, worldPos),
+        : NodeWidget2D(nodeType, node, editor, worldPos),
         entityNode(node) {
     }
 

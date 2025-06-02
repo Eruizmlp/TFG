@@ -1,5 +1,6 @@
 #include "graph_node.h"
 #include <iostream>
+#include <fstream>
 
 namespace GraphSystem {
 
@@ -105,5 +106,34 @@ namespace GraphSystem {
                 }
             }
         }
+    }
+
+    void GraphNode::serialize(std::ofstream& binary_scene_file) {
+
+        sGraphNodeBinaryHeader header = {
+            .input_count = m_inputs.size(),
+            .output_count = m_outputs.size(),
+        };
+
+        binary_scene_file.write(reinterpret_cast<char*>(&header), sizeof(sGraphNodeBinaryHeader));
+
+        binary_scene_file.write(reinterpret_cast<char*>(&m_category), sizeof(size_t));
+
+        size_t name_size = m_name.size();
+        binary_scene_file.write(reinterpret_cast<char*>(&name_size), sizeof(size_t));
+        binary_scene_file.write(m_name.c_str(), name_size);
+    }
+
+    void GraphNode::parse(std::ifstream& binary_scene_file) {
+
+        sGraphNodeBinaryHeader header;
+        binary_scene_file.read(reinterpret_cast<char*>(&header), sizeof(sGraphNodeBinaryHeader));
+
+        binary_scene_file.read(reinterpret_cast<char*>(&m_category), sizeof(uint64_t));
+
+        uint64_t name_size = 0;
+        binary_scene_file.read(reinterpret_cast<char*>(&name_size), sizeof(uint64_t));
+        m_name.resize(name_size);
+        binary_scene_file.read(&m_name[0], name_size);
     }
 }

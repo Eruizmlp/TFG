@@ -14,7 +14,8 @@ namespace GraphSystem {
         void initInspector();
 
     public:
-        MapperNodeWidget2D(MapperNode* node,
+        MapperNodeWidget2D(const std::string& nodeType,
+            MapperNode* node,
             GraphEditor* editor,
             const glm::vec3& worldPos);
 

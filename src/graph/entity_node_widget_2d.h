@@ -12,7 +12,8 @@ namespace GraphSystem {
         MeshInstance3D* entity = nullptr;
 
     public:
-        EntityNodeWidget2D(EntityNode3D* node,
+        EntityNodeWidget2D(const std::string& nodeType,
+            EntityNode3D* node,
             GraphEditor* editor,
             const glm::vec3& worldPos);
 

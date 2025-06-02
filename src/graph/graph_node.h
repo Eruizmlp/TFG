@@ -16,6 +16,11 @@ namespace GraphSystem {
         OTHER
     };
 
+    struct sGraphNodeBinaryHeader {
+        uint64_t input_count = 0;
+        uint64_t output_count = 0;
+    };
+
     class GraphNode {
     protected:
         std::string m_name;
@@ -64,6 +69,9 @@ namespace GraphSystem {
 
         NodeCategory getCategory() const { return m_category; }
         void setCategory(NodeCategory cat) { m_category = cat; }
+
+        virtual void serialize(std::ofstream& binary_scene_file);
+        virtual void parse(std::ifstream& binary_scene_file);
     };
 
 } // namespace GraphSystem

@@ -21,6 +21,7 @@ namespace GraphSystem {
         ~Graph();
 
         const std::string& getName() const { return m_name; }
+        void setName(const std::string& newName) { m_name = newName; }
 
         void addNode(GraphNode* node);
         void removeNode(GraphNode* node);

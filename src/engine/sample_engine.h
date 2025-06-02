@@ -22,6 +22,7 @@ class SampleEngine : public Engine {
     MeshInstance3D* sphere_pointer = nullptr;
 
 private:
+    GraphSystem::Graph* eventGraph = nullptr;
     GraphSystem::GraphManager graphManager;
     GraphSystem::GraphEditor* editor = nullptr;
     std::vector<GraphSystem::NodeWidget2D*> nodeWidgets;
@@ -55,6 +56,7 @@ public:
     void delete_context_menu(ui::ContextMenu* cm);
 
 
+    void render_gui();
 
 	void update(float delta_time) override;
 	void render() override;

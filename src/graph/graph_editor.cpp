@@ -19,6 +19,8 @@
 #include "trigonometric_node_widget_2d.h"
 #include "set_variable_node.h"
 #include "keyboard.h"
+#include <fstream>
+#include "spdlog/spdlog.h"
 
 using namespace GraphSystem;
 
@@ -87,22 +89,22 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     // choose the right widget subclass
     NodeWidget2D* widget = nullptr;
     if (auto* rn = dynamic_cast<RotateNode*>(node))
-        widget = new RotateNodeWidget2D(rn, this, worldPosition);
+        widget = new RotateNodeWidget2D(type, rn, this, worldPosition);
     else if (auto tr = dynamic_cast<TranslateNode*>(node)) {
-        widget = new TranslateNodeWidget2D(tr, this, worldPosition);
+        widget = new TranslateNodeWidget2D(type, tr, this, worldPosition);
     }
     else if (auto sc = dynamic_cast<ScaleNode*>(node)) {
-        widget = new ScaleNodeWidget2D(sc, this, worldPosition);
+        widget = new ScaleNodeWidget2D(type, sc, this, worldPosition);
     }
     else if (auto sc = dynamic_cast<MathNode*>(node)) {
-        widget = new MathNodeWidget2D(sc, this, worldPosition);
+        widget = new MathNodeWidget2D(type, sc, this, worldPosition);
     }
     else if (auto sc = dynamic_cast<TrigonometricNode*>(node)) {
-        widget = new TrigonometricNodeWidget2D(sc, this, worldPosition);
+        widget = new TrigonometricNodeWidget2D(type, sc, this, worldPosition);
     }
 
     else
-        widget = new NodeWidget2D(node, this, worldPosition);
+        widget = new NodeWidget2D(type, node, this, worldPosition);
 
 
     if (graph_container) {
@@ -158,4 +160,75 @@ void GraphEditor::update(float delta_time)
 
     if (visualLink) visualLink->update(delta_time);
 
+}
+
+void GraphEditor::serialize(const std::string& path)
+{
+    std::ofstream binary_scene_file(path, std::ios::out | std::ios::binary);
+
+    sGraphBinaryHeader header = {
+        .node_count = widgets.size(),
+        .link_count = graph->getLinks().size(),
+    };
+
+    binary_scene_file.write(reinterpret_cast<char*>(&header), sizeof(sGraphBinaryHeader));
+
+    size_t name_size = graph->getName().size();
+    binary_scene_file.write(reinterpret_cast<char*>(&name_size), sizeof(size_t));
+    binary_scene_file.write(graph->getName().c_str(), name_size);
+
+    // Export all WIDGETS
+    for (auto node_widget : widgets) {
+        node_widget->serialize(binary_scene_file);
+    }
+
+    binary_scene_file.close();
+}
+
+void GraphEditor::parse(const std::string& path)
+{
+    // debug
+    widgets.clear();
+
+    std::ifstream binary_scene_file(path, std::ios::in | std::ios::binary);
+
+    if (!binary_scene_file || binary_scene_file.fail()) {
+        spdlog::error("GraphEditor: Could not parse file {}", path);
+        return;
+    }
+
+    sGraphBinaryHeader header;
+
+    binary_scene_file.read(reinterpret_cast<char*>(&header), sizeof(sGraphBinaryHeader));
+
+    // Update name if necessary
+    uint64_t name_size = 0;
+    binary_scene_file.read(reinterpret_cast<char*>(&name_size), sizeof(uint64_t));
+    std::string graph_name;
+    graph_name.resize(name_size);
+    binary_scene_file.read(&graph_name[0], name_size);
+    graph->setName(graph_name);
+
+    std::string node_type;
+
+    for (int i = 0; i < header.node_count; ++i) {
+
+        // parse node type
+        uint64_t graph_node_type_size = 0;
+        binary_scene_file.read(reinterpret_cast<char*>(&graph_node_type_size), sizeof(uint64_t));
+        std::string graph_node_type;
+        graph_node_type.resize(graph_node_type_size);
+        binary_scene_file.read(&graph_node_type[0], graph_node_type_size);
+
+        // Create corresponding node from the widget data
+        GraphNode* graph_node = createNode(graph_node_type);
+        // Add to the graph
+        graph->addNode(graph_node);
+
+        // Parse widget info (including node data)
+        NodeWidget2D* widget = widgets.back();
+        widget->parse(binary_scene_file);
+    }
+
+    binary_scene_file.close();
 }

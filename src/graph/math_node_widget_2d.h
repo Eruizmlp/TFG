@@ -14,7 +14,8 @@ namespace GraphSystem {
         void initInspector();
 
     public:
-        MathNodeWidget2D(MathNode* node,
+        MathNodeWidget2D(const std::string& nodeType,
+            MathNode* node,
             GraphEditor* editor,
             const glm::vec3& worldPos);
 

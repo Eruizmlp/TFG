@@ -4,10 +4,11 @@
 
 namespace GraphSystem {
 
-    MathNodeWidget2D::MathNodeWidget2D(MathNode* node,
+    MathNodeWidget2D::MathNodeWidget2D(const std::string& nodeType,
+        MathNode* node,
         GraphEditor* editor,
         const glm::vec3& worldPos)
-        : NodeWidget2D(node, editor, worldPos), mathNode(node)
+        : NodeWidget2D(nodeType, node, editor, worldPos), mathNode(node)
     {
     }
 

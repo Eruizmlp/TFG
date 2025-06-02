@@ -14,7 +14,8 @@ namespace GraphSystem {
         void initInspector();
 
     public:
-        TrigonometricNodeWidget2D(TrigonometricNode* node,
+        TrigonometricNodeWidget2D(const std::string& nodeType,
+            TrigonometricNode* node,
             GraphEditor* editor,
             const glm::vec3& worldPos);
 

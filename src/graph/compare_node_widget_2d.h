@@ -14,7 +14,8 @@ namespace GraphSystem {
         void initInspector();
 
     public:
-        CompareNodeWidget2D(CompareNode* node,
+        CompareNodeWidget2D(const std::string& nodeType,
+            CompareNode* node,
             GraphEditor* editor,
             const glm::vec3& worldPos);
 

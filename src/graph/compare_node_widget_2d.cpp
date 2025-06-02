@@ -3,10 +3,11 @@
 
 namespace GraphSystem {
 
-    CompareNodeWidget2D::CompareNodeWidget2D(CompareNode* node,
+    CompareNodeWidget2D::CompareNodeWidget2D(const std::string& nodeType,
+        CompareNode* node,
         GraphEditor* editor,
         const glm::vec3& worldPos)
-        : NodeWidget2D(node, editor, worldPos), compareNode(node)
+        : NodeWidget2D(nodeType, node, editor, worldPos), compareNode(node)
     {
     }
 
