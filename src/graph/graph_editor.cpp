@@ -8,8 +8,8 @@
 #include "math_node.h"
 #include "branch_node.h"
 #include "variable_node.h"
-#include "graph_node3D.h"
 #include "tick_node.h"
+#include "tick_node_widget_2d.h"
 #include <iostream>
 #include "link_renderer_2d.h"
 #include "math_node_widget_2d.h"
@@ -47,18 +47,17 @@ GraphNode* GraphEditor::createNode(const std::string& type,
 
     if (type == "PrintNode")         node = new PrintNode(nodeName);
     else if (type == "RotateNode")   node = new RotateNode(nodeName);
-    else if (type == "GraphNode3D")  node = new GraphNode3D(nodeName, graph);
     else if (type == "SequenceNode") node = new SequenceNode(nodeName, 2);
     else if (type == "RunNode")    node = new RunNode(nodeName);
     else if (type == "MathNode")    node = new MathNode(nodeName);
     else if (type == "BranchNode")    node = new BranchNode(nodeName);
-    else if (type == "TickNode")    node = new TickNode(nodeName);
+    else if (type == "TickNode")     node = new TickNode(nodeName);
     else if (type == "ScaleNode")    node = new ScaleNode(nodeName);
     else if (type == "EntityNode3D") node = new EntityNode3D();
     else if (type == "TrigonometricNode") node = new TrigonometricNode(nodeName);
     else if (type == "TranslateNode") node = new TranslateNode(nodeName);
-    else if (type == "SetVariableNode") node = new SetVariableNode(nodeName, "scale_factor");
-    else if (type == "VariableNode")    node = new VariableNode(nodeName, "scale_factor", 1.0f);
+    else if (type == "SetVariableNode") node = new SetVariableNode(nodeName, "");
+    else if (type == "VariableNode")    node = new VariableNode(nodeName, "");
 
     //else if (type == "VariableNode") {
     //    auto* varNode = new VariableNode(nodeName);
@@ -81,10 +80,6 @@ GraphNode* GraphEditor::createNode(const std::string& type,
         return nullptr;
     }
 
-    graph->addNode(node);
-    std::cout << "[GraphEditor] Created node: " << nodeName
-        << " (" << type << ")\n";
-
 
     // choose the right widget subclass
     NodeWidget2D* widget = nullptr;
@@ -102,6 +97,8 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     else if (auto sc = dynamic_cast<TrigonometricNode*>(node)) {
         widget = new TrigonometricNodeWidget2D(type, sc, this, worldPosition);
     }
+    else if (auto* tk = dynamic_cast<TickNode*>(node))
+        widget = new TickNodeWidget2D(type, tk, this, worldPosition);
 
     else
         widget = new NodeWidget2D(type, node, this, worldPosition);

@@ -23,7 +23,6 @@ namespace GraphSystem {
         Input* getTargetInput() const { return targetInput; }
         GraphNode* getSourceNode() const;  // Added declaration
 
-        void render();
         void transferData();
     };
 

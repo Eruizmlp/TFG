@@ -15,4 +15,8 @@ namespace GraphSystem {
         outValue->setData(VariableNode::getStoredValue(variableName));
     }
 
+    void GetVariableNode::execute()
+    {
+    }
+
 }

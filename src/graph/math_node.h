@@ -16,6 +16,8 @@ namespace GraphSystem {
     public:
         MathNode(const std::string& name, char op = '+');
 
+        void execute() override;
+
         void setOperation(char op);
     };
 

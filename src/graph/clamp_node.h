@@ -7,6 +7,9 @@ namespace GraphSystem {
     public:
         ClampNode(const std::string& name);
 
+        void execute() override;
+
+
     private:
         Input* valueInput;
         Input* minInput;

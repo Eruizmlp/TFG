@@ -25,6 +25,10 @@ namespace GraphSystem {
         resultOutput->setData(aValue + bValue);  
     }
 
+    void MathNode::execute()
+    {
+    }
+
     void MathNode::setOperation(char op) {
         operation = op;
         

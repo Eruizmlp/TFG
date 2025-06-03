@@ -27,7 +27,8 @@ namespace GraphSystem {
             std::cerr << "[GraphButton2D] Error: Graph is null!\n";
             return false;
         }
-        graph->triggerEntryPoints();
+
+        graph->triggerEventNodes();
 
         return true;
     }

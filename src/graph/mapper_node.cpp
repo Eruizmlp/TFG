@@ -23,4 +23,8 @@ namespace GraphSystem {
         return buttonCode;
     }
 
+    void MapperNode::execute()
+    {
+    }
+
 }

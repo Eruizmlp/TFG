@@ -7,6 +7,7 @@
 #include "link.h"
 
 namespace GraphSystem {
+
     enum class NodeCategory {
         DATA,
         FLOW,
@@ -50,9 +51,10 @@ namespace GraphSystem {
         void removeAllLinks();
 
         // Node operations
-        virtual void execute();
-        virtual void render();
-        virtual void update(float ) {}
+        virtual void execute() = 0; 
+        virtual void update(float) {}
+
+        virtual bool isTickNode() const { return false; }
 
         // Getters
         Input* getInput(const std::string& name);

@@ -80,34 +80,7 @@ namespace GraphSystem {
         return links;
     }
 
-    void GraphNode::render() {
-        std::cout << "Node: " << m_name << " ("
-            << m_inputs.size() << " inputs, "
-            << m_outputs.size() << " outputs)\n";
-    }
-
-    void GraphNode::execute() {
-        if (!m_executionPending) return;
-
-        // Process inputs
-        for (auto input : m_inputs) {
-            if (input->hasData()) {
-                // Handle input data
-            }
-        }
-
-        // Propagate execution
-        for (auto output : m_outputs) {
-            if (output->getType() == IOType::EXECUTION) {
-                for (auto link : output->getLinks()) {
-                    if (GraphNode* target = link->getTargetNode()) {
-                        target->setExecutionPending(true);
-                    }
-                }
-            }
-        }
-    }
-
+   
     void GraphNode::serialize(std::ofstream& binary_scene_file) {
 
         sGraphNodeBinaryHeader header = {

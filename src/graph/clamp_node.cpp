@@ -22,4 +22,8 @@ namespace GraphSystem {
         resultOutput->setData(std::clamp(defaultValue, defaultMin, defaultMax));
     }
 
+    void ClampNode::execute()
+    {
+    }
+
 }

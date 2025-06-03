@@ -11,6 +11,9 @@ namespace GraphSystem {
         void setMappedButton(int button);
         int getMappedButton() const;
 
+        void execute() override;
+
+
     private:
         Output* isPressedOutput;
         Output* wasPressedOutput;

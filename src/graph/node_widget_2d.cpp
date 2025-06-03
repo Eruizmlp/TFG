@@ -262,7 +262,7 @@ void RotateNodeWidget2D::initInspector() {
         pos,
         sz,
         0u,
-        colors::GRAY
+        colors::GREEN
     );
 
     auto* rotateNode = static_cast<RotateNode*>(logic_node);

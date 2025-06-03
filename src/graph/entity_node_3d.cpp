@@ -23,4 +23,8 @@ namespace GraphSystem {
         return entity;
     }
 
+    void EntityNode3D::execute()
+    {
+    }
+
 }

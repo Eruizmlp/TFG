@@ -7,6 +7,8 @@ namespace GraphSystem {
     public:
         GetVariableNode(const std::string& name, const std::string& varName);
 
+        void execute() override;
+
     private:
         Output* outValue;
         std::string variableName;

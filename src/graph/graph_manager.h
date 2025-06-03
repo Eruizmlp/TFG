@@ -11,24 +11,20 @@ namespace GraphSystem {
         std::vector<Graph*> graphs;
 
     public:
-        // Create a new graph and return a raw pointer to it
+        GraphManager() = default;
+        ~GraphManager();
+
+        // Create and manage new graph
         Graph* createGraph(const std::string& name);
 
-        // Get the list of graphs
+        // Access to managed graphs
         const std::vector<Graph*>& getGraphs() const;
 
-        // Remove a graph from the manager
+        // Remove and delete a specific graph
         void removeGraph(Graph* graph);
 
-        // Execute a specific graph
-        void executeGraph(Graph* graph);
-
-        // Render all graphs
-        void renderGraphs();
-
-        ~GraphManager();
     };
 
-} 
+} // namespace GraphSystem
 
 #endif // GRAPH_MANAGER_H

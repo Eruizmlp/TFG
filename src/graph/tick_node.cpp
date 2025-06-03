@@ -1,4 +1,5 @@
 #include "tick_node.h"
+
 using namespace GraphSystem;
 
 TickNode::TickNode(const std::string& name)
@@ -14,7 +15,7 @@ void TickNode::execute() {
     if (!isExecutionPending()) return;
     setExecutionPending(false);
 
-    running = !running;
+    running = !running; 
 }
 
 void TickNode::update(float delta_time) {
@@ -25,4 +26,3 @@ void TickNode::update(float delta_time) {
             tgt->setExecutionPending(true);
     }
 }
-

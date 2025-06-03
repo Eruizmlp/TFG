@@ -40,4 +40,8 @@ namespace GraphSystem {
         operation = op;
     }
 
+    void TrigonometricNode::execute()
+    {
+    }
+
 }

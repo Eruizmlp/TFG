@@ -2,7 +2,7 @@
 #define GRAPH_H
 
 #include <list>
-#include <queue>
+#include <vector>
 #include <string>
 #include "graph_node.h"
 #include "link.h"
@@ -12,9 +12,11 @@ namespace GraphSystem {
     class Graph {
     private:
         std::list<GraphNode*> nodes;
-        std::list<Link*>      links;
-        bool                  m_isTickGraph;
-        std::string           m_name;
+        std::list<Link*> links;
+        std::string m_name;
+
+        std::vector<GraphNode*> eventNodes;  
+        std::vector<GraphNode*> tickNodes;   
 
     public:
         explicit Graph(const std::string& name);
@@ -31,10 +33,10 @@ namespace GraphSystem {
             const std::string& inputName = "");
 
         void render();
-        void execute();
-        void update(float dt);
+        void execute();  
+        void update(float dt);  
 
-        void triggerEntryPoints();
+        void triggerEventNodes();  
 
         const std::list<GraphNode*>& getNodes() const { return nodes; }
         const std::list<Link*>& getLinks() const { return links; }

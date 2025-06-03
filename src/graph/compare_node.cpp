@@ -35,4 +35,8 @@ namespace GraphSystem {
         return operation;
     }
 
+    void CompareNode::execute()
+    {
+    }
+
 }

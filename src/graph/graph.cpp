@@ -1,12 +1,14 @@
 #include "graph.h"
 #include "run_node.h"
 #include <iostream>
+#include <queue>
+#include "tick_node.h"
+
 
 namespace GraphSystem {
 
     Graph::Graph(const std::string& name)
-        : m_name(name)
-    {
+        : m_name(name) {
     }
 
     Graph::~Graph() {
@@ -16,20 +18,35 @@ namespace GraphSystem {
     void Graph::addNode(GraphNode* node) {
         if (!node) return;
         for (auto* n : nodes) if (n == node) return;
+
         nodes.push_back(node);
         std::cout << "[Graph] Added node: " << node->getName() << "\n";
+
+        if (auto* runNode = dynamic_cast<RunNode*>(node)) {
+            eventNodes.push_back(runNode);
+        }
+
+        if (auto* tickNode = dynamic_cast<TickNode*>(node)) {
+            tickNodes.push_back(tickNode);
+        }
     }
+
 
     void Graph::removeNode(GraphNode* node) {
         if (!node) return;
+
+        // Remove links associated with this node
         for (auto it = links.begin(); it != links.end();) {
-            if ((*it)->getSourceNode() == node ||
-                (*it)->getTargetNode() == node) {
+            if ((*it)->getSourceNode() == node || (*it)->getTargetNode() == node) {
                 delete* it;
                 it = links.erase(it);
             }
-            else ++it;
+            else {
+                ++it;
+            }
         }
+
+        // Remove node
         for (auto it = nodes.begin(); it != nodes.end(); ++it) {
             if (*it == node) {
                 delete* it;
@@ -42,8 +59,7 @@ namespace GraphSystem {
     bool Graph::connect(GraphNode* source,
         const std::string& outputName,
         GraphNode* target,
-        const std::string& inputName)
-    {
+        const std::string& inputName) {
         if (!source || !target) {
             std::cerr << "[Error] Cannot connect - null nodes\n";
             return false;
@@ -86,48 +102,36 @@ namespace GraphSystem {
             }
         }
         else {
+            // Auto-match by type
             for (auto* in : target->getInputs()) {
                 if (!in) continue;
-
                 if (output->getType() == IOType::EXECUTION) {
                     if (in->getName() == "Execute" && in->getType() == IOType::EXECUTION) {
                         input = in;
                         break;
                     }
                 }
-                else {
-                    if (in->getType() == output->getType()) {
-                        input = in;
-                        break;
-                    }
+                else if (in->getType() == output->getType()) {
+                    input = in;
+                    break;
                 }
             }
-
             if (!input) {
                 std::cerr << "[Error] No compatible input found for output '" << outputName << "'\n";
                 return false;
             }
         }
 
-        // Check duplicates
+        // Check for duplicate link
         for (auto* link : links) {
-            if (link->getOutput() == output &&
-                link->getTargetNode() == target &&
-                link->getTargetInput() == input) {
+            if (link->getOutput() == output && link->getTargetNode() == target && link->getTargetInput() == input) {
                 std::cerr << "[Warning] Duplicate connection\n";
                 return false;
             }
         }
 
-        // Create link
+        // Create and store link
         try {
-            std::cout << "[Graph::connect] Trying to connect "
-                << source->getName() << ":" << outputName
-                << " (Type " << static_cast<int>(output->getType()) << ") to "
-                << target->getName() << ":"
-                << (input ? input->getName() : "NULL")
-                << " (Type " << (input ? static_cast<int>(input->getType()) : -1) << ")\n";
-
             Link* link = new Link(output, target, input);
 
             if (output && input) {
@@ -135,8 +139,7 @@ namespace GraphSystem {
             }
 
             links.push_back(link);
-            std::cout << "[Graph] Connected "
-                << source->getName() << ":" << outputName
+            std::cout << "[Graph] Connected " << source->getName() << ":" << outputName
                 << " to " << target->getName() << ":" << input->getName() << "\n";
             return true;
         }
@@ -147,44 +150,31 @@ namespace GraphSystem {
     }
 
 
-
-
-    void Graph::render() {
-        for (auto* node : nodes) node->render();
-        for (auto* link : links) link->render();
-    }
-
-    // one-shot execution (unchanged)
     void Graph::execute() {
         std::cout << "[Graph] Starting execution\n";
         std::queue<GraphNode*> executionQueue;
 
-        // enqueue entry-points
-        for (auto* node : nodes) {
-            if (node && node->isEntryPoint()) {
-                std::cout << "[Graph] Found entry point: " << node->getName() << "\n";
+        for (auto* node : eventNodes) {
+            if (node) {
+                std::cout << "[Graph] Found event node: " << node->getName() << "\n";
                 node->setExecutionPending(true);
                 executionQueue.push(node);
             }
         }
 
-        // drain
         while (!executionQueue.empty()) {
             auto* current = executionQueue.front();
             executionQueue.pop();
             if (!current || !current->isExecutionPending()) {
-                std::cout << "[Graph] Skipping node (not pending)\n";
                 continue;
             }
-            std::cout << "[Graph] Executing: " << current->getName() << "\n";
+
             try {
                 current->execute();
-                // enqueue downstream Exec ports
                 for (auto* out : current->getOutputs()) {
                     if (out->getType() == IOType::EXECUTION) {
                         for (auto* link : out->getLinks()) {
                             if (auto* tgt = link->getTargetNode()) {
-                                std::cout << "[Graph] Adding to queue: " << tgt->getName() << "\n";
                                 tgt->setExecutionPending(true);
                                 executionQueue.push(tgt);
                             }
@@ -200,24 +190,24 @@ namespace GraphSystem {
         std::cout << "[Graph] Execution complete\n";
     }
 
-    // Trigger entry-points without executing 
-    void Graph::triggerEntryPoints() {
-        for (auto* node : nodes) {
-            if (node->isEntryPoint()) {
-                std::cout << "[Graph] Triggering entry point: " << node->getName() << "\n";
+    void Graph::triggerEventNodes() {
+        for (auto* node : eventNodes) {
+            if (node) {
+                std::cout << "[Graph] Triggering event node: " << node->getName() << "\n";
                 node->setExecutionPending(true);
             }
         }
     }
 
-
-
     void Graph::update(float dt) {
-        
-        for (auto* node : nodes) {
-            node->update(dt);
+        // First tick all TickNodes
+        for (auto* tick : tickNodes) {
+            if (tick) {
+                tick->execute();  // TickNode execution
+            }
         }
 
+        // Then regular execution
         bool didRun;
         do {
             didRun = false;
@@ -236,20 +226,20 @@ namespace GraphSystem {
                         }
                     }
                 }
-  
-                node->setExecutionPending(false);
 
+                node->setExecutionPending(false);
                 didRun = true;
             }
         } while (didRun);
     }
-
 
     void Graph::clear() {
         for (auto* link : links) delete link;
         for (auto* node : nodes) delete node;
         links.clear();
         nodes.clear();
+        eventNodes.clear();
+        tickNodes.clear();
     }
 
 } 

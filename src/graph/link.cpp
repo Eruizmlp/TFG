@@ -40,9 +40,6 @@ namespace GraphSystem {
         return owner;
     }
 
-    void Link::render() {
-       
-    }
 
     void Link::transferData() {
         if (!outputRef || !targetNode) {

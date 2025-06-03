@@ -21,4 +21,8 @@ namespace GraphSystem {
         resultOutput->setData(0.0f);  
     }
 
+    void LerpNode::execute()
+    {
+    }
+
 }
