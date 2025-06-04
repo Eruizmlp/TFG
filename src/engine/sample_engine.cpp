@@ -356,6 +356,7 @@ int SampleEngine::post_initialize()
     auto* tickNode = static_cast<GraphSystem::TickNode*>(
         editor->createNode("TickNode", "Tick", { 100.0f, 400.0f, 0.0f })
         );
+   
 
     // Crear RotateNode
     auto* rotateNode = static_cast<GraphSystem::RotateNode*>(

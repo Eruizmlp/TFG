@@ -73,7 +73,7 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     //    node = varNode;
     //}
 
-
+    graph->addNode(node);
 
     if (!node) {
         std::cerr << "[GraphEditor] Unknown node type: " << type << "\n";

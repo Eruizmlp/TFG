@@ -203,7 +203,7 @@ namespace GraphSystem {
         // First tick all TickNodes
         for (auto* tick : tickNodes) {
             if (tick) {
-                tick->execute();  // TickNode execution
+                tick->update(dt);  // TickNode execution
             }
         }
 

@@ -29,6 +29,8 @@ namespace GraphSystem {
         }
 
         graph->triggerEventNodes();
+        graph->execute();
+
 
         return true;
     }
