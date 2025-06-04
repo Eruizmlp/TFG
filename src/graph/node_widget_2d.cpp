@@ -253,9 +253,23 @@ void RotateNodeWidget2D::update(float delta_time) {
         inspectPanel->update(delta_time);
     }
 }
+
+void RotateNodeWidget2D::updateInspector() {
+    if (!inspectPanel || !inspectorVisible) return;
+    inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
+
+    auto* rotateNode = static_cast<RotateNode*>(logic_node);
+
+    float normalizedAngle = rotateNode->getRotationAngle();
+
+    // Actualizar slider y label
+    angleSlider->set_value(normalizedAngle);
+    angleValueLabel->set_text(formatFloat(normalizedAngle, 1));
+}
+
 void RotateNodeWidget2D::initInspector() {
     glm::vec2 pos = get_translation() + glm::vec2(get_size().x + 10.0f, 0.0f);
-    glm::vec2 sz = { 180.0f, 120.0f };  
+    glm::vec2 sz = { 180.0f, 120.0f };
 
     inspectPanel = new XRPanel(
         "RotateInspect_" + logic_node->getName(),
@@ -279,20 +293,24 @@ void RotateNodeWidget2D::initInspector() {
     sd.position = { 8, currentY };
     sd.size = { 80, 20 };
     sd.fvalue = rotateNode->getRotationAngle();
-    sd.fvalue_min = -180.0f;
-    sd.fvalue_max = 180.0f;
+    sd.fvalue_min = 0.0f;
+    sd.fvalue_max = 360.0f;  // Limite claro 360°
     sd.precision = 1;
 
     angleSlider = new FloatSlider2D("AngleSlider_" + logic_node->getName(), sd);
     inspectPanel->add_child(angleSlider);
 
     // Value label (angle dynamic update)
-    angleValueLabel = new Text2D(formatFloat(rotateNode->getRotationAngle(), 1), { 100, currentY });
+    angleValueLabel = new Text2D(formatFloat(rotateNode->getRotationAngle(), 1), { 140, currentY });
     inspectPanel->add_child(angleValueLabel);
 
     Node::bind(angleSlider->get_name(), FuncFloat([this, rotateNode](const std::string&, float v) {
+        
+        v = fmod(fmod(v, 360.0f) + 360.0f, 360.0f);  
+
         rotateNode->setRotationAngle(v);
         rotateNode->getInput("Angle")->setData<float>(v);
+
         if (angleValueLabel) {
             angleValueLabel->set_text(formatFloat(v, 1));
         }
@@ -354,21 +372,21 @@ void RotateNodeWidget2D::initInspector() {
 //    read(float)
 //}
 
-void RotateNodeWidget2D::updateInspector() {
-    if (!inspectPanel || !inspectorVisible) return;
-    inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
-
-    auto* rotateNode = static_cast<RotateNode*>(logic_node);
-    auto* angleInput = rotateNode->getInput("Angle");
-
-    float valueToDisplay = rotateNode->getRotationAngle();
-    if (angleInput && angleInput->hasData()) {
-        valueToDisplay = angleInput->getFloat();
-    }
-
-    angleSlider->set_value(valueToDisplay);
-    angleValueLabel->set_text(formatFloat(valueToDisplay, 1));
-}
+//void RotateNodeWidget2D::updateInspector() {
+//    if (!inspectPanel || !inspectorVisible) return;
+//    inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
+//
+//    auto* rotateNode = static_cast<RotateNode*>(logic_node);
+//    auto* angleInput = rotateNode->getInput("Angle");
+//
+//    float valueToDisplay = rotateNode->getRotationAngle();
+//    if (angleInput && angleInput->hasData()) {
+//        valueToDisplay = angleInput->getFloat();
+//    }
+//
+//    angleSlider->set_value(valueToDisplay);
+//    angleValueLabel->set_text(formatFloat(valueToDisplay, 1));
+//}
 
 
 // -------------------------- TranslateNodeWidget2D --------------------------

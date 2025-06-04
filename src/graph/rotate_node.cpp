@@ -24,7 +24,11 @@ namespace GraphSystem {
     }
 
     void RotateNode::setRotationAngle(float a) {
-        angle = a;
+        
+        angle = std::fmod(a, 360.0f);
+        if (angle < 0.0f) {
+            angle += 360.0f;
+        }
     }
 
     void RotateNode::setRotationAxis(const glm::vec3& a) {
@@ -54,7 +58,7 @@ namespace GraphSystem {
         if (angleInput) {
             auto* connected = angleInput->getConnectedOutput();
             if (connected && connected->hasData()) {
-                angle = connected->getFloat();
+                setRotationAngle(connected->getFloat()); 
             }
         }
 
@@ -73,6 +77,7 @@ namespace GraphSystem {
 
         setExecutionPending(false);
     }
+
 
 
 
