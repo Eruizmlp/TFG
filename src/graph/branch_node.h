@@ -4,7 +4,6 @@
 
 namespace GraphSystem {
 
-    // Nodo condicional: recibe un bool en "Condition" y dispara "True" o "False".
     class BranchNode : public GraphNode {
     private:
         Input* execInput = nullptr; 

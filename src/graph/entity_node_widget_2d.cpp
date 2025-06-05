@@ -51,7 +51,7 @@ namespace GraphSystem {
     }
 
     void EntityNodeWidget2D::updateInspector() {
-        // Not used
+     
     }
 
     void EntityNodeWidget2D::update(float delta_time) {

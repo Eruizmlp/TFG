@@ -5,38 +5,40 @@ namespace GraphSystem {
     CompareNode::CompareNode(const std::string& name, CompareOp op)
         : GraphNode(name, NodeCategory::LOGIC), operation(op)
     {
-        aInput = addInput("A", IOType::FLOAT);
-        bInput = addInput("B", IOType::FLOAT);
+        aInput = addInput("A", IOType::FLOAT); 
+        bInput = addInput("B", IOType::FLOAT); 
         resultOutput = addOutput("Result", IOType::BOOL);
 
-        resultOutput->setComputeFunction([this]() -> bool {
+        resultOutput->setComputeFunction([this]() -> VariableValue { 
             float a = aInput->hasData() ? aInput->getFloat() : 0.0f;
             float b = bInput->hasData() ? bInput->getFloat() : 0.0f;
-
+            bool result = false;
             switch (operation) {
-            case CompareOp::EQUAL:         return a == b;
-            case CompareOp::NOT_EQUAL:     return a != b;
-            case CompareOp::LESS:          return a < b;
-            case CompareOp::GREATER:       return a > b;
-            case CompareOp::LESS_EQUAL:    return a <= b;
-            case CompareOp::GREATER_EQUAL: return a >= b;
-            default:                       return false;
+            case CompareOp::EQUAL:         result = (a == b); break; 
+            case CompareOp::NOT_EQUAL:     result = (a != b); break; 
+            case CompareOp::LESS:          result = (a < b); break;  
+            case CompareOp::GREATER:       result = (a > b); break; 
+            case CompareOp::LESS_EQUAL:    result = (a <= b); break; 
+            case CompareOp::GREATER_EQUAL: result = (a >= b); break; 
+            default:                       result = false; break;  
             }
+            return VariableValue(result); 
             });
-
-        resultOutput->setData(false);  
+        resultOutput->setData(VariableValue(false)); 
     }
 
     void CompareNode::setOperation(CompareOp op) {
-        operation = op;
+        operation = op; 
+        
     }
 
     CompareOp CompareNode::getOperation() const {
-        return operation;
+        return operation; 
     }
 
     void CompareNode::execute()
     {
+       
     }
 
 }

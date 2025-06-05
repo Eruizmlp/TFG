@@ -1,5 +1,5 @@
 #include "get_variable_node.h"
-#include "variable_node.h"
+#include "variable_node.h" 
 
 namespace GraphSystem {
 
@@ -8,15 +8,16 @@ namespace GraphSystem {
     {
         outValue = addOutput("Value", IOType::FLOAT);
 
-        outValue->setComputeFunction([this]() -> float {
-            return VariableNode::getStoredValue(variableName);
+        outValue->setComputeFunction([this]() -> VariableValue { 
+            return VariableNode::getStoredValue(variableName); 
             });
 
-        outValue->setData(VariableNode::getStoredValue(variableName));
+        outValue->setData(VariableNode::getStoredValue(variableName)); 
     }
 
     void GetVariableNode::execute()
     {
+       
     }
 
 }

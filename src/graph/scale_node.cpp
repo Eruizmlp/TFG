@@ -1,75 +1,77 @@
 #include "scale_node.h"
-#include <iostream>
+#include <iostream>  
+#include <glm/common.hpp> 
+#include <cmath> 
 
 namespace GraphSystem {
 
-    ScaleNode::ScaleNode(const std::string& name, float factor)
-        : GraphNode(name, NodeCategory::TRANSFORM),
-
-        execInput(addInput("Execute", IOType::EXECUTION)),
-        transformInput(addInput("Transform", IOType::MESH)),
-        execOutput(addOutput("Exec", IOType::EXECUTION)),
-
-        factorInput(addInput("Factor", IOType::FLOAT)),
-        transformOutput(addOutput("Transform", IOType::MESH)),
-
-        factor(factor)
+    ScaleNode::ScaleNode(const std::string& name, float fact) 
+        : GraphNode(name, NodeCategory::TRANSFORM), 
+        factor(fact) 
     {
-        factorInput->setData<float>(factor);
+        execInput = addInput("Execute", IOType::EXECUTION); 
+        transformInput = addInput("Transform", IOType::MESH); 
+        factorInput = addInput("Factor", IOType::FLOAT); 
+
+        execOutput = addOutput("Exec", IOType::EXECUTION);  
+        transformOutput = addOutput("Transform", IOType::MESH);  
+
+        factorInput->setData(VariableValue(this->factor));  
+        transformOutput->setData(VariableValue(static_cast<MeshInstance3D*>(nullptr)));
     }
 
     void ScaleNode::setTarget(MeshInstance3D* mesh) {
-        targetMesh = mesh;
+        targetMesh = mesh; 
     }
 
     void ScaleNode::setScaleFactor(float f) {
-        factor = f;
+        factor = f;  
     }
 
-    float ScaleNode::getScaleFactor() const {
+    float ScaleNode::getScaleFactor() const { 
+        
+        if (factorInput && factorInput->getConnectedOutput() && factorInput->getConnectedOutput()->hasData()) {
+            return factorInput->getFloat();
+        }
         return factor;
     }
 
     void ScaleNode::execute() {
-        if (!isExecutionPending())
-            return;
+        if (!isExecutionPending()) return; 
 
-        if (!targetMesh) {
-            if (transformInput) {
-                auto* connected = transformInput->getConnectedOutput();
-                if (connected && connected->hasData()) {
-                    targetMesh = connected->getMesh();
-                }
+        if (!targetMesh) { 
+            if (transformInput && transformInput->getConnectedOutput() && transformInput->getConnectedOutput()->hasData()) {
+                targetMesh = transformInput->getConnectedOutput()->getMesh();
             }
         }
 
-        if (!targetMesh)
+        if (!targetMesh) { // 
+            setExecutionPending(false);
             return;
-
-        if (factorInput) {
-            auto* connected = factorInput->getConnectedOutput();
-            if (connected && connected->hasData()) {
-                factor = connected->getFloat();
-                factor = glm::clamp(std::abs(factor), 0.01f, 10.0f);
-            }
         }
 
-        Transform t = targetMesh->get_transform();
-        t.set_scale(glm::vec3(factor));
-        targetMesh->set_transform(t);
+        float currentFactor = factor; 
+        if (factorInput && factorInput->getConnectedOutput() && factorInput->getConnectedOutput()->hasData()) {
+            currentFactor = factorInput->getConnectedOutput()->getFloat();
+            currentFactor = glm::clamp(std::abs(currentFactor), 0.01f, 100.0f); 
+        }
+        else {
 
-        transformOutput->setData(targetMesh);
+            currentFactor = glm::clamp(std::abs(currentFactor), 0.01f, 100.0f);
+        }
 
-        for (auto& link : execOutput->getLinks()) {
+
+        Transform t = targetMesh->get_transform(); 
+        t.set_scale(glm::vec3(currentFactor)); 
+        targetMesh->set_transform(t); 
+
+        transformOutput->setData(VariableValue(targetMesh)); 
+
+        for (auto& link : execOutput->getLinks()) { 
             if (auto next = link->getTargetNode())
-                next->setExecutionPending(true);
+                next->setExecutionPending(true); 
         }
 
-        setExecutionPending(false);
+        setExecutionPending(false); 
     }
-
-
-
-
-
 }

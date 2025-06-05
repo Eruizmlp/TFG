@@ -1,84 +1,86 @@
 #include "rotate_node.h"
+#include <cmath> 
+#include <iostream>
 
 namespace GraphSystem {
 
-    RotateNode::RotateNode(const std::string& name, float angle, glm::vec3 axis)
-        : GraphNode(name, NodeCategory::TRANSFORM),
-
-        execInput(addInput("Execute", IOType::EXECUTION)),
-        execOutput(addOutput("Exec", IOType::EXECUTION)),
-
-        angleInput(addInput("Angle", IOType::FLOAT)),
-
-        transformInput(addInput("Transform", IOType::MESH)),
-        transformOutput(addOutput("Transform", IOType::MESH)),
-        angle(angle),
-        axis(glm::normalize(axis))
+    RotateNode::RotateNode(const std::string& name, float angle_deg, glm::vec3 ax) 
+        : GraphNode(name, NodeCategory::TRANSFORM), 
+        angle(angle_deg), 
+        axis(glm::normalize(ax)) 
     {
-        angleInput->setData<float>(angle);
+        execInput = addInput("Execute", IOType::EXECUTION); 
+        transformInput = addInput("Transform", IOType::MESH); 
+        angleInput = addInput("Angle", IOType::FLOAT); 
+
+        execOutput = addOutput("Exec", IOType::EXECUTION); 
+        transformOutput = addOutput("Transform", IOType::MESH); 
+
+        angleInput->setData(VariableValue(this->angle)); 
+        transformOutput->setData(VariableValue(static_cast<MeshInstance3D*>(nullptr))); 
     }
 
 
     void RotateNode::setTarget(MeshInstance3D* mesh) {
-        targetMesh = mesh;
+        targetMesh = mesh; 
+        
     }
 
     void RotateNode::setRotationAngle(float a) {
-        
-        angle = std::fmod(a, 360.0f);
-        if (angle < 0.0f) {
-            angle += 360.0f;
+        angle = std::fmod(a, 360.0f); 
+        if (angle < 0.0f) { 
+            angle += 360.0f; 
         }
+     
     }
 
     void RotateNode::setRotationAxis(const glm::vec3& a) {
-        axis = glm::normalize(a);
+        axis = glm::normalize(a); 
     }
 
-    float RotateNode::getRotationAngle() {
+    float RotateNode::getRotationAngle() { 
+        if (angleInput && angleInput->getConnectedOutput() && angleInput->getConnectedOutput()->hasData()) {
+            return angleInput->getFloat();
+        }
         return angle;
     }
 
     void RotateNode::execute() {
-        if (!isExecutionPending())
-            return;
 
-        if (!targetMesh) {
-            if (transformInput) {
-                auto* connected = transformInput->getConnectedOutput();
-                if (connected && connected->hasData()) {
-                    targetMesh = connected->getMesh();
-                }
-            }
+        if (!isExecutionPending()) {
+            return;
         }
 
-        if (!targetMesh)
-            return;
+        if (!targetMesh) { 
 
-        if (angleInput) {
-            auto* connected = angleInput->getConnectedOutput();
-            if (connected && connected->hasData()) {
-                setRotationAngle(connected->getFloat()); 
+
+            if (transformInput && transformInput->getConnectedOutput() && transformInput->getConnectedOutput()->hasData()) { // 
+                targetMesh = transformInput->getConnectedOutput()->getMesh(); 
             }
+
+            setExecutionPending(false); 
+            return; 
+
         }
 
-        glm::quat absoluteRotation = glm::angleAxis(glm::radians(angle), glm::normalize(axis));
-        Transform t = targetMesh->get_transform();
-        t.set_rotation(glm::normalize(absoluteRotation));
+        float currentAngle = angle; 
+        if (angleInput && angleInput->getConnectedOutput() && angleInput->getConnectedOutput()->hasData()) { 
+            currentAngle = angleInput->getConnectedOutput()->getFloat();   
+        }
 
-        targetMesh->set_transform(t);
+        glm::quat absoluteRotation = glm::angleAxis(glm::radians(currentAngle), glm::normalize(axis)); 
+        Transform t = targetMesh->get_transform(); 
+        t.set_rotation(glm::normalize(absoluteRotation)); 
 
-        transformOutput->setData(targetMesh);
+        targetMesh->set_transform(t); 
 
-        for (auto& link : execOutput->getLinks()) {
+        transformOutput->setData(VariableValue(targetMesh)); 
+
+        for (auto& link : execOutput->getLinks()) { 
             if (auto next = link->getTargetNode())
-                next->setExecutionPending(true);
+                next->setExecutionPending(true); 
         }
 
-        setExecutionPending(false);
+        setExecutionPending(false); 
     }
-
-
-
-
 }

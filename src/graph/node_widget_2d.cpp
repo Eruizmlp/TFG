@@ -294,7 +294,7 @@ void RotateNodeWidget2D::initInspector() {
     sd.size = { 80, 20 };
     sd.fvalue = rotateNode->getRotationAngle();
     sd.fvalue_min = 0.0f;
-    sd.fvalue_max = 360.0f;  // Limite claro 360°
+    sd.fvalue_max = 360.0f; 
     sd.precision = 1;
 
     angleSlider = new FloatSlider2D("AngleSlider_" + logic_node->getName(), sd);
@@ -305,14 +305,18 @@ void RotateNodeWidget2D::initInspector() {
     inspectPanel->add_child(angleValueLabel);
 
     Node::bind(angleSlider->get_name(), FuncFloat([this, rotateNode](const std::string&, float v) {
-        
-        v = fmod(fmod(v, 360.0f) + 360.0f, 360.0f);  
 
-        rotateNode->setRotationAngle(v);
-        rotateNode->getInput("Angle")->setData<float>(v);
+        v = fmod(fmod(v, 360.0f) + 360.0f, 360.0f);
+
+        rotateNode->setRotationAngle(v); 
+
+        if (rotateNode->getInput("Angle")) { 
+            rotateNode->getInput("Angle")->setData(VariableValue(v)); 
+        }
+
 
         if (angleValueLabel) {
-            angleValueLabel->set_text(formatFloat(v, 1));
+            angleValueLabel->set_text(formatFloat(v, 1)); 
         }
         }));
 
@@ -462,22 +466,34 @@ void TranslateNodeWidget2D::initInspector() {
 
     auto offset = static_cast<TranslateNode*>(logic_node)->getOffset();
 
-    xSlider = createLabelAndSlider("X:", "TransX_" + logic_node->getName(), offset.x, xValueLabel, [this](float v) {
-        auto o = static_cast<TranslateNode*>(logic_node)->getOffset();
-        o.x = v;
-        static_cast<TranslateNode*>(logic_node)->setOffset(o);
+    xSlider = createLabelAndSlider("X:", "TransX_" + logic_node->getName(), offset.x, xValueLabel, [this](float v_comp) { 
+        auto* node = static_cast<TranslateNode*>(logic_node);
+        glm::vec3 currentFullOffset = node->getOffset(); 
+        currentFullOffset.x = v_comp;
+        node->setOffset(currentFullOffset); 
+        if (node->getInput("Offset")) {
+            node->getInput("Offset")->setData(VariableValue(currentFullOffset)); 
+        }
         });
 
-    ySlider = createLabelAndSlider("Y:", "TransY_" + logic_node->getName(), offset.y, yValueLabel, [this](float v) {
-        auto o = static_cast<TranslateNode*>(logic_node)->getOffset();
-        o.y = v;
-        static_cast<TranslateNode*>(logic_node)->setOffset(o);
+    xSlider = createLabelAndSlider("Y:", "TransY_" + logic_node->getName(), offset.y, xValueLabel, [this](float v_comp) { 
+        auto* node = static_cast<TranslateNode*>(logic_node);
+        glm::vec3 currentFullOffset = node->getOffset(); 
+        currentFullOffset.y = v_comp;
+        node->setOffset(currentFullOffset); 
+        if (node->getInput("Offset")) {
+            node->getInput("Offset")->setData(VariableValue(currentFullOffset)); 
+        }
         });
 
-    zSlider = createLabelAndSlider("Z:", "TransZ_" + logic_node->getName(), offset.z, zValueLabel, [this](float v) {
-        auto o = static_cast<TranslateNode*>(logic_node)->getOffset();
-        o.z = v;
-        static_cast<TranslateNode*>(logic_node)->setOffset(o);
+    xSlider = createLabelAndSlider("Z:", "TransZ_" + logic_node->getName(), offset.z, xValueLabel, [this](float v_comp) { 
+        auto* node = static_cast<TranslateNode*>(logic_node);
+        glm::vec3 currentFullOffset = node->getOffset();
+        currentFullOffset.z = v_comp;
+        node->setOffset(currentFullOffset); 
+        if (node->getInput("Offset")) {
+            node->getInput("Offset")->setData(VariableValue(currentFullOffset)); 
+        }
         });
 
     add_child(inspectPanel);
@@ -567,10 +583,17 @@ void ScaleNodeWidget2D::initInspector() {
     inspectPanel->add_child(scaleValueLabel);
 
     Node::bind(factorSlider->get_name(), FuncFloat([this, scaleNode](const std::string&, float v) {
-        scaleNode->setScaleFactor(v);
-        scaleNode->getInput("Factor")->setData<float>(v);
+        scaleNode->setScaleFactor(v); // Actualiza el miembro interno
 
-        scaleValueLabel->set_text(formatFloat(v, 2));
+        // Actualizar el Input "Factor" del nodo
+        if (scaleNode->getInput("Factor")) { // Comprobar si el input existe
+            scaleNode->getInput("Factor")->setData(VariableValue(v)); // MODIFICADO // 
+        }
+
+
+        if (scaleValueLabel) { // Asegurarse que scaleValueLabel no es null
+            scaleValueLabel->set_text(formatFloat(v, 2)); // 
+        }
         }));
 
     add_child(inspectPanel);

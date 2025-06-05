@@ -1,248 +1,245 @@
 #include "io.h"
 #include "link.h"
+#include "graph_node.h" 
 #include <stdexcept>
 #include <iostream>
 
 namespace GraphSystem {
 
     IO::IO(const std::string& name, IOType type)
-        : name(name), type(type), is_dirty(false) {
+        : name(name), type(type), is_dirty(false), connectedOutput(nullptr) {
         switch (type) {
-        case IOType::BOOL: data.boolValue = false; break;
-        case IOType::INT: data.intValue = 0; break;
-        case IOType::FLOAT: data.floatValue = 0.0f; break;
-        case IOType::STRING: new (&data.stringValue) std::string(); break;
-        case IOType::VEC2: data.vec2Value = glm::vec2(0.0f); break;
-        case IOType::VEC3: data.vec3Value = glm::vec3(0.0f); break;
-        case IOType::VEC4: data.vec4Value = glm::vec4(0.0f); break;
-        case IOType::MAT4: data.mat4Value = glm::mat4(1.0f); break;
-        case IOType::TRANSFORM: data.transformValue = Transform(); break;
-        case IOType::MESH: data.meshValue = nullptr; break;
+        case IOType::BOOL:   value = false; break;
+        case IOType::INT:    value = 0; break;
+        case IOType::FLOAT:  value = 0.0f; break;
+        case IOType::STRING: value = std::string(); break;
+        case IOType::VEC2:   value = glm::vec2(0.0f); break;
+        case IOType::VEC3:   value = glm::vec3(0.0f); break;
+        case IOType::VEC4:   value = glm::vec4(0.0f); break;
+        case IOType::MAT4:   value = glm::mat4(1.0f); break;
+        case IOType::MESH:   value = static_cast<MeshInstance3D*>(nullptr); break;
         case IOType::EXECUTION: break;
-        default: throw std::runtime_error("Unknown IOType in IO constructor");
+        default: throw std::runtime_error("Unknown IOType in IO constructor for " + name);
         }
     }
 
-    IO::~IO() {
-        if (type == IOType::STRING) {
-            data.stringValue.~basic_string();
-        }
-    }
-
-    template<typename T>
-    void IO::setData(const T& value) {
-        throw std::runtime_error("Unsupported data type for IO");
-    }
-
-    template<> void IO::setData<bool>(const bool& value) {
-        if (type != IOType::BOOL) throw std::runtime_error("Bool data type mismatch");
-        data.boolValue = value;
+    void IO::setData(const VariableValue& v) {
+        value = v;
         is_dirty = true;
     }
-
-    template<> void IO::setData<int>(const int& value) {
-        if (type != IOType::INT) throw std::runtime_error("Int data type mismatch");
-        data.intValue = value;
-        is_dirty = true;
-    }
-
-    template<> void IO::setData<float>(const float& value) {
-        if (type != IOType::FLOAT) throw std::runtime_error("Float data type mismatch");
-        data.floatValue = value;
-        is_dirty = true;
-    }
-
-    template<> void IO::setData<std::string>(const std::string& value) {
-        if (type != IOType::STRING) throw std::runtime_error("String data type mismatch");
-        data.stringValue = value;
-        is_dirty = true;
-    }
-
-    template<> void IO::setData<glm::vec2>(const glm::vec2& value) {
-        if (type != IOType::VEC2) throw std::runtime_error("Vec2 data type mismatch");
-        data.vec2Value = value;
-        is_dirty = true;
-    }
-
-    template<> void IO::setData<glm::vec3>(const glm::vec3& value) {
-        if (type != IOType::VEC3) throw std::runtime_error("Vec3 data type mismatch");
-        data.vec3Value = value;
-        is_dirty = true;
-    }
-
-    template<> void IO::setData<glm::vec4>(const glm::vec4& value) {
-        if (type != IOType::VEC4) throw std::runtime_error("Vec4 data type mismatch");
-        data.vec4Value = value;
-        is_dirty = true;
-    }
-
-    template<> void IO::setData<glm::mat4>(const glm::mat4& value) {
-        if (type != IOType::MAT4) throw std::runtime_error("Mat4 data type mismatch");
-        data.mat4Value = value;
-        is_dirty = true;
-    }
-
-    template<> void IO::setData<Transform>(const Transform& value) {
-        if (type != IOType::TRANSFORM) throw std::runtime_error("Transform data type mismatch");
-        data.transformValue = value;
-        is_dirty = true;
-    }
-
-    void IO::setData(MeshInstance3D* ptr) {
-        if (type != IOType::MESH) {
-            throw std::runtime_error("MeshInstance3D type mismatch");
-        }
-        data.meshValue = ptr;
-        is_dirty = true;
-    }
-
-    float IO::getFloat() const {
-        if (type != IOType::FLOAT) throw std::runtime_error("Float data type mismatch");
-
-        if (connectedOutput) {
-            return connectedOutput->getFloat(); 
-        }
-
-        const Output* output = dynamic_cast<const Output*>(this);
-        if (output) {
-            auto computeFunc = output->getComputeFunction();
-            if (computeFunc) {
-                return computeFunc();
-            }
-        }
-
-        return data.floatValue;
-    }
-
 
     bool IO::getBool() const {
-        if (type != IOType::BOOL) throw std::runtime_error("Bool data type mismatch");
-        return data.boolValue;
+        if (connectedOutput) { 
+            return connectedOutput->getBool(); 
+        }
+
+
+        if (auto val = std::get_if<bool>(&value)) return *val;
+        throw std::runtime_error("IO::getBool: Type mismatch or no data for bool. Name: " + name);
     }
 
     int IO::getInt() const {
-        if (type != IOType::INT) throw std::runtime_error("Int data type mismatch");
-        return data.intValue;
+        if (connectedOutput) {
+            return connectedOutput->getInt();
+        }
+        if (auto val = std::get_if<int>(&value)) return *val;
+        throw std::runtime_error("IO::getInt: Type mismatch or no data for int. Name: " + name);
+    }
+
+    float IO::getFloat() const {
+        if (connectedOutput) {
+            return connectedOutput->getFloat();
+        }
+        if (auto val = std::get_if<float>(&value)) return *val;
+        throw std::runtime_error("IO::getFloat: Type mismatch or no data for float. Name: " + name);
     }
 
     std::string IO::getString() const {
-        if (type != IOType::STRING) throw std::runtime_error("String data type mismatch");
-        return data.stringValue;
+        if (connectedOutput) {
+            return connectedOutput->getString();
+        }
+        if (auto val = std::get_if<std::string>(&value)) return *val;
+        throw std::runtime_error("IO::getString: Type mismatch or no data for string. Name: " + name);
     }
 
     glm::vec2 IO::getVec2() const {
-        if (type != IOType::VEC2) throw std::runtime_error("Vec2 data type mismatch");
-        return data.vec2Value;
+        if (connectedOutput) {
+            return connectedOutput->getVec2();
+        }
+        if (auto val = std::get_if<glm::vec2>(&value)) return *val;
+        throw std::runtime_error("IO::getVec2: Type mismatch or no data for vec2. Name: " + name);
     }
 
     glm::vec3 IO::getVec3() const {
-        if (type != IOType::VEC3) throw std::runtime_error("Vec3 data type mismatch");
-        return data.vec3Value;
+        if (connectedOutput) {
+            return connectedOutput->getVec3();
+        }
+        if (auto val = std::get_if<glm::vec3>(&value)) return *val;
+        throw std::runtime_error("IO::getVec3: Type mismatch or no data for vec3. Name: " + name);
     }
 
     glm::vec4 IO::getVec4() const {
-        if (type != IOType::VEC4) throw std::runtime_error("Vec4 data type mismatch");
-        return data.vec4Value;
+        if (connectedOutput) {
+            return connectedOutput->getVec4();
+        }
+        if (auto val = std::get_if<glm::vec4>(&value)) return *val;
+        throw std::runtime_error("IO::getVec4: Type mismatch or no data for vec4. Name: " + name);
     }
 
     glm::mat4 IO::getMat4() const {
-        if (type != IOType::MAT4) throw std::runtime_error("Mat4 data type mismatch");
-        return data.mat4Value;
-    }
-
-    Transform IO::getTransform() const {
-        if (type != IOType::TRANSFORM) throw std::runtime_error("Transform data type mismatch");
-        return data.transformValue;
+        if (connectedOutput) {
+            return connectedOutput->getMat4();
+        }
+        if (auto val = std::get_if<glm::mat4>(&value)) return *val;
+        throw std::runtime_error("IO::getMat4: Type mismatch or no data for mat4. Name: " + name);
     }
 
     MeshInstance3D* IO::getMesh() const {
-        if (type != IOType::MESH) throw std::runtime_error("IO type mismatch: not a MeshInstance3D");
-
-        const Output* output = dynamic_cast<const Output*>(this);
-        if (output) {
-            auto computeFunc = output->getComputeMeshFunction();
-            if (computeFunc) {
-                return computeFunc();  
-            }
+        if (connectedOutput) {
+            return connectedOutput->getMesh();
         }
+        if (auto val = std::get_if<MeshInstance3D*>(&value)) return *val;
 
-        return data.meshValue;
+        return nullptr;
     }
 
     bool IO::hasData() const {
-        switch (type) {
-        case IOType::BOOL: return true;
-        case IOType::INT: return true;
-        case IOType::FLOAT: return true;
-        case IOType::STRING: return !data.stringValue.empty();
-        case IOType::VEC2: return true;
-        case IOType::VEC3: return true;
-        case IOType::VEC4: return true;
-        case IOType::MAT4: return true;
-        case IOType::TRANSFORM: return true;
-        case IOType::MESH: return true;
-        case IOType::EXECUTION: return false;
-        default: return false;
-        }
-    }
+        if (connectedOutput) return connectedOutput->hasData();
 
-    void IO::copyTo(IO* dst) const {
-        if (!dst) return;
-        if (dst->type != this->type) {
-            throw std::runtime_error("IO type mismatch on copy");
+        if (std::holds_alternative<MeshInstance3D*>(value)) {
+            return std::get<MeshInstance3D*>(value) != nullptr;
         }
-
-        switch (type) {
-        case IOType::BOOL: dst->setData(this->getBool()); break;
-        case IOType::INT: dst->setData(this->getInt()); break;
-        case IOType::FLOAT: dst->setData(this->getFloat()); break;
-        case IOType::STRING: dst->setData(this->getString()); break;
-        case IOType::VEC2: dst->setData(this->getVec2()); break;
-        case IOType::VEC3: dst->setData(this->getVec3()); break;
-        case IOType::VEC4: dst->setData(this->getVec4()); break;
-        case IOType::MAT4: dst->setData(this->getMat4()); break;
-        case IOType::TRANSFORM: dst->setData(this->getTransform()); break;
-        case IOType::MESH: dst->setData(this->getMesh()); break;
-        case IOType::EXECUTION: /* do nothing */ break;
-        default:
-            throw std::runtime_error("Unsupported IO type in copy");
-        }
+        return true; 
     }
 
     Input::Input(const std::string& name, IOType type) : IO(name, type) {}
 
     Output::Output(GraphNode* owner, const std::string& name, IOType type)
-        : IO(name, type), ownerNode(owner) {
+        : IO(name, type), ownerNode(owner), computeFunction(nullptr)
+    {
+     
     }
 
     Output::~Output() {
-        for (auto* link : links) {
-            if (link) {
-                delete link;
-            }
-        }
+
         links.clear();
     }
 
     void Output::addLink(Link* link) {
-        if (link) {
-            links.push_back(link);
-        }
+        if (link) links.push_back(link);
     }
 
     void Output::removeLink(Link* link) {
-        if (link) {
-            links.remove(link);
-            delete link;
+        if (link) links.remove(link);
+    }
+
+    std::list<Link*>& Output::getLinks() { return links; }
+    const std::list<Link*>& Output::getLinks() const { return links; }
+
+    bool Output::getBool() const {
+        if (computeFunction) {
+            GraphSystem::VariableValue cv = computeFunction();
+            if (auto vp = std::get_if<bool>(&cv)) return *vp;
+            throw std::runtime_error("Output::getBool: Type mismatch from computeFunction. Name: " + getName());
         }
+        if (auto vp = std::get_if<bool>(&value)) return *vp; 
+        throw std::runtime_error("Output::getBool: Type mismatch or no data. Name: " + getName());
     }
 
-    std::list<Link*>& Output::getLinks() {
-        return links;
+    int Output::getInt() const {
+        if (computeFunction) {
+            GraphSystem::VariableValue cv = computeFunction();
+            if (auto vp = std::get_if<int>(&cv)) return *vp;
+            throw std::runtime_error("Output::getInt: Type mismatch from computeFunction. Name: " + getName());
+        }
+        if (auto vp = std::get_if<int>(&value)) return *vp;
+        throw std::runtime_error("Output::getInt: Type mismatch or no data. Name: " + getName());
     }
 
-    const std::list<Link*>& Output::getLinks() const {
-        return links;
+    float Output::getFloat() const {
+        if (computeFunction) {
+            GraphSystem::VariableValue cv = computeFunction();
+            if (auto vp = std::get_if<float>(&cv)) return *vp;
+            throw std::runtime_error("Output::getFloat: Type mismatch from computeFunction. Name: " + getName());
+        }
+        if (auto vp = std::get_if<float>(&value)) return *vp;
+        throw std::runtime_error("Output::getFloat: Type mismatch or no data. Name: " + getName());
     }
 
-} // namespace GraphSystem
+    std::string Output::getString() const {
+        if (computeFunction) {
+            GraphSystem::VariableValue cv = computeFunction();
+            if (auto vp = std::get_if<std::string>(&cv)) return *vp;
+            throw std::runtime_error("Output::getString: Type mismatch from computeFunction. Name: " + getName());
+        }
+        if (auto vp = std::get_if<std::string>(&value)) return *vp;
+        throw std::runtime_error("Output::getString: Type mismatch or no data. Name: " + getName());
+    }
+
+    glm::vec2 Output::getVec2() const {
+        if (computeFunction) {
+            GraphSystem::VariableValue cv = computeFunction();
+            if (auto vp = std::get_if<glm::vec2>(&cv)) return *vp;
+            throw std::runtime_error("Output::getVec2: Type mismatch from computeFunction. Name: " + getName());
+        }
+        if (auto vp = std::get_if<glm::vec2>(&value)) return *vp;
+        throw std::runtime_error("Output::getVec2: Type mismatch or no data. Name: " + getName());
+    }
+
+    glm::vec3 Output::getVec3() const {
+        if (computeFunction) {
+            GraphSystem::VariableValue cv = computeFunction();
+            if (auto vp = std::get_if<glm::vec3>(&cv)) return *vp;
+            throw std::runtime_error("Output::getVec3: Type mismatch from computeFunction. Name: " + getName());
+        }
+        if (auto vp = std::get_if<glm::vec3>(&value)) return *vp;
+        throw std::runtime_error("Output::getVec3: Type mismatch or no data. Name: " + getName());
+    }
+
+    glm::vec4 Output::getVec4() const {
+        if (computeFunction) {
+            GraphSystem::VariableValue cv = computeFunction();
+            if (auto vp = std::get_if<glm::vec4>(&cv)) return *vp;
+            throw std::runtime_error("Output::getVec4: Type mismatch from computeFunction. Name: " + getName());
+        }
+        if (auto vp = std::get_if<glm::vec4>(&value)) return *vp;
+        throw std::runtime_error("Output::getVec4: Type mismatch or no data. Name: " + getName());
+    }
+
+    glm::mat4 Output::getMat4() const {
+        if (computeFunction) {
+            GraphSystem::VariableValue cv = computeFunction();
+            if (auto vp = std::get_if<glm::mat4>(&cv)) return *vp;
+            throw std::runtime_error("Output::getMat4: Type mismatch from computeFunction. Name: " + getName());
+        }
+        if (auto vp = std::get_if<glm::mat4>(&value)) return *vp;
+        throw std::runtime_error("Output::getMat4: Type mismatch or no data. Name: " + getName());
+    }
+
+    MeshInstance3D* Output::getMesh() const {
+        if (computeFunction) {
+            GraphSystem::VariableValue cv = computeFunction();
+            if (auto vp = std::get_if<MeshInstance3D*>(&cv)) return *vp; 
+            
+            return nullptr; 
+        }
+        if (auto vp = std::get_if<MeshInstance3D*>(&value)) return *vp;
+        return nullptr; 
+    }
+
+    void Output::setData(const GraphSystem::VariableValue& v) {
+        
+        IO::setData(v);
+        
+    }
+
+    bool Output::hasData() const {
+        if (computeFunction) return true; 
+        
+        if (std::holds_alternative<MeshInstance3D*>(value)) {
+            return std::get<MeshInstance3D*>(value) != nullptr;
+        }
+        return true;
+    }
+
+} 
