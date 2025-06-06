@@ -1,6 +1,7 @@
 #pragma once
 #include "graph_node.h"
 #include <string>
+#include <queue>
 
 namespace GraphSystem {
 
@@ -17,7 +18,8 @@ namespace GraphSystem {
         void setOperation(CompareOp op);
         CompareOp getOperation() const;
 
-        void execute() override;
+        void execute(std::queue<GraphNode*>& executionQueue) override;
+
 
     private:
         Input* aInput;

@@ -1,77 +1,76 @@
 #include "scale_node.h"
-#include <iostream>  
-#include <glm/common.hpp> 
-#include <cmath> 
+#include <iostream>
+#include <glm/common.hpp>
+#include <cmath>
+#include <queue>
 
 namespace GraphSystem {
 
-    ScaleNode::ScaleNode(const std::string& name, float fact) 
-        : GraphNode(name, NodeCategory::TRANSFORM), 
-        factor(fact) 
+    // El constructor y los helpers que tenías están perfectos.
+    ScaleNode::ScaleNode(const std::string& name, float fact)
+        : GraphNode(name, NodeCategory::TRANSFORM),
+        factor(fact)
     {
-        execInput = addInput("Execute", IOType::EXECUTION); 
-        transformInput = addInput("Transform", IOType::MESH); 
-        factorInput = addInput("Factor", IOType::FLOAT); 
+        execInput = addInput("Execute", IOType::EXECUTION);
+        transformInput = addInput("Transform", IOType::MESH);
+        factorInput = addInput("Factor", IOType::FLOAT);
 
-        execOutput = addOutput("Exec", IOType::EXECUTION);  
-        transformOutput = addOutput("Transform", IOType::MESH);  
+        execOutput = addOutput("Exec", IOType::EXECUTION);
+        transformOutput = addOutput("Transform", IOType::MESH);
 
-        factorInput->setData(VariableValue(this->factor));  
+        factorInput->setData(VariableValue(this->factor));
         transformOutput->setData(VariableValue(static_cast<MeshInstance3D*>(nullptr)));
     }
 
-    void ScaleNode::setTarget(MeshInstance3D* mesh) {
-        targetMesh = mesh; 
-    }
-
     void ScaleNode::setScaleFactor(float f) {
-        factor = f;  
+        factor = f;
     }
 
-    float ScaleNode::getScaleFactor() const { 
-        
-        if (factorInput && factorInput->getConnectedOutput() && factorInput->getConnectedOutput()->hasData()) {
-            return factorInput->getFloat();
+    float ScaleNode::getScaleFactor() const {
+        if (factorInput && factorInput->hasData()) {
+            VariableValue v = factorInput->getValue();
+            if (const float* pval = std::get_if<float>(&v)) {
+                return *pval;
+            }
         }
         return factor;
     }
 
-    void ScaleNode::execute() {
-        if (!isExecutionPending()) return; 
+    // --- MÉTODO EXECUTE CORREGIDO ---
+    void ScaleNode::execute(std::queue<GraphNode*>& executionQueue) {
 
-        if (!targetMesh) { 
-            if (transformInput && transformInput->getConnectedOutput() && transformInput->getConnectedOutput()->hasData()) {
-                targetMesh = transformInput->getConnectedOutput()->getMesh();
+        MeshInstance3D* currentMesh = nullptr;
+        if (transformInput && transformInput->hasData()) {
+            VariableValue v = transformInput->getValue();
+            if (auto pval = std::get_if<MeshInstance3D*>(&v)) {
+                currentMesh = *pval;
+            }
+            else {
+                std::cerr << "[ScaleNode] (" << getName() << ") Type mismatch en Transform. Se esperaba MESH.\n";
             }
         }
 
-        if (!targetMesh) { // 
-            setExecutionPending(false);
-            return;
-        }
+        // 2. Realizar la acción de escalar si es posible.
+        if (currentMesh) {
+            float currentFactor = getScaleFactor();
+            currentFactor = glm::clamp(std::abs(currentFactor), 0.01f, 100.0f);
 
-        float currentFactor = factor; 
-        if (factorInput && factorInput->getConnectedOutput() && factorInput->getConnectedOutput()->hasData()) {
-            currentFactor = factorInput->getConnectedOutput()->getFloat();
-            currentFactor = glm::clamp(std::abs(currentFactor), 0.01f, 100.0f); 
+            Transform t = currentMesh->get_transform();
+            t.set_scale(glm::vec3(currentFactor));
+            currentMesh->set_transform(t);
+
+            transformOutput->setData(VariableValue(currentMesh));
         }
         else {
-
-            currentFactor = glm::clamp(std::abs(currentFactor), 0.01f, 100.0f);
+            std::cerr << "[ScaleNode] (" << getName() << ") No hay malla de destino para escalar.\n";
         }
 
-
-        Transform t = targetMesh->get_transform(); 
-        t.set_scale(glm::vec3(currentFactor)); 
-        targetMesh->set_transform(t); 
-
-        transformOutput->setData(VariableValue(targetMesh)); 
-
-        for (auto& link : execOutput->getLinks()) { 
-            if (auto next = link->getTargetNode())
-                next->setExecutionPending(true); 
+        if (execOutput) {
+            for (auto* link : execOutput->getLinks()) {
+                if (auto* nextNode = link->getTargetNode()) {
+                    executionQueue.push(nextNode);
+                }
+            }
         }
-
-        setExecutionPending(false); 
     }
 }

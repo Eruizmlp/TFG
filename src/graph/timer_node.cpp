@@ -1,5 +1,6 @@
 #include "timer_node.h"
-#include "engine/engine.h"
+#include <iostream>
+#include <queue>
 
 namespace GraphSystem {
 
@@ -8,20 +9,30 @@ namespace GraphSystem {
     {
         execInput = addInput("Execute", IOType::EXECUTION);
         delayInput = addInput("Delay", IOType::FLOAT);
-
         execOutput = addOutput("Exec", IOType::EXECUTION);
     }
 
-    void TimerNode::execute() {
-        if (!isExecutionPending()) return;
-        setExecutionPending(false);
+    void TimerNode::execute(std::queue<GraphNode*>& executionQueue) {
+        delayValue = 1.0f; 
+        if (delayInput && delayInput->hasData()) {
+            VariableValue v = delayInput->getValue();
+            if (const float* pval = std::get_if<float>(&v)) {
+                delayValue = *pval;
+            }
+        }
 
-        float delay = delayInput->hasData() ? delayInput->getFloat() : delayValue;
-        if (delay <= 0.0f) delay = 0.001f; 
+        if (delayValue > 0.0f) {
+            accumulatedTime = 0.0f;
+            waiting = true;
+        }
 
-        delayValue = delay;
-        accumulatedTime = 0.0f;
-        waiting = true;
+        else {
+           for (auto* link : execOutput->getLinks()) {
+                if (auto* nextNode = link->getTargetNode()) {
+                    executionQueue.push(nextNode);
+                }
+            }
+        }
     }
 
     void TimerNode::update(float deltaTime) {
@@ -29,14 +40,11 @@ namespace GraphSystem {
 
         accumulatedTime += deltaTime;
         if (accumulatedTime >= delayValue) {
-            waiting = false;
-
-            for (auto& link : execOutput->getLinks()) {
-                if (auto* next = link->getTargetNode()) {
-                    next->setExecutionPending(true);
-                }
-            }
+            waiting = false; 
         }
     }
 
+    bool TimerNode::isWaiting() const {
+        return waiting;
+    }
 }

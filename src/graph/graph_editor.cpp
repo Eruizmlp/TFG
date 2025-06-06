@@ -3,7 +3,7 @@
 #include "engine/engine.h"
 #include "engine/scene.h"
 #include "print_node.h"
-#include "sequence_node.h"
+//#include "sequence_node.h"
 #include "run_node.h"
 #include "math_node.h"
 #include "branch_node.h"
@@ -17,7 +17,7 @@
 #include "entity_node_widget_2d.h"
 #include "trigonometric_node.h"
 #include "trigonometric_node_widget_2d.h"
-#include "set_variable_node.h"
+//#include "set_variable_node.h"
 #include "keyboard.h"
 #include <fstream>
 #include "spdlog/spdlog.h"
@@ -47,7 +47,7 @@ GraphNode* GraphEditor::createNode(const std::string& type,
 
     if (type == "PrintNode")         node = new PrintNode(nodeName);
     else if (type == "RotateNode")   node = new RotateNode(nodeName);
-    else if (type == "SequenceNode") node = new SequenceNode(nodeName, 2);
+   // else if (type == "SequenceNode") node = new SequenceNode(nodeName, 2);
     else if (type == "RunNode")    node = new RunNode(nodeName);
     else if (type == "MathNode")    node = new MathNode(nodeName);
     else if (type == "BranchNode")    node = new BranchNode(nodeName);
@@ -56,7 +56,7 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     else if (type == "EntityNode3D") node = new EntityNode3D();
     else if (type == "TrigonometricNode") node = new TrigonometricNode(nodeName);
     else if (type == "TranslateNode") node = new TranslateNode(nodeName);
-    else if (type == "SetVariableNode") node = new SetVariableNode(nodeName, "");
+   // else if (type == "SetVariableNode") node = new SetVariableNode(nodeName, "");
     else if (type == "VariableNode")    node = new VariableNode(nodeName, "");
 
     //else if (type == "VariableNode") {

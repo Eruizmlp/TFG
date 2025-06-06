@@ -1,9 +1,8 @@
 #pragma once
-
 #include "graph_node.h"
+#include <queue>
 
 namespace GraphSystem {
-
 
     class TickNode : public GraphNode {
     private:
@@ -15,12 +14,12 @@ namespace GraphSystem {
     public:
         explicit TickNode(const std::string& name);
 
-        void execute() override;
+        void execute(std::queue<GraphNode*>& executionQueue) override;
         void update(float dt) override;
-        bool isTickNode() const override { return true; }
 
-        bool isRunning() const { return running; }
-        void setRunning(bool r) { running = r; }
+
+        void start();
+        void stop();
+        bool isRunning() const;
     };
-
-} 
+}

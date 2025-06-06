@@ -47,7 +47,9 @@ namespace GraphSystem {
         void connectTo(Output* output) { connectedOutput = output; }
         Output* getConnectedOutput() const { return connectedOutput; }
 
-        virtual void setData(const GraphSystem::VariableValue& v); 
+        virtual void setData(const GraphSystem::VariableValue& v);
+
+        const VariableValue& getRawValue() const { return value; }
 
         // Getters ahora virtuales
         virtual bool getBool() const;
@@ -72,6 +74,8 @@ namespace GraphSystem {
     class Input : public IO {
     public:
         Input(const std::string& name, IOType type);
+
+        VariableValue getValue() const;
 
     };
 

@@ -70,6 +70,28 @@ namespace GraphSystem {
         return nullptr;
     }
 
+    Output* GraphNode::getOutput(const std::string& name) {
+        for (auto* output : m_outputs) {
+            if (output && output->getName() == name) {
+                return output;
+            }
+        }
+        return nullptr;
+    }
+
+    void GraphNode::execute(std::queue<GraphNode*>& executionQueue) {
+
+    }
+
+    const Output* GraphNode::getOutput(const std::string& name) const {
+        for (const auto* output : m_outputs) {
+            if (output && output->getName() == name) {
+                return output;
+            }
+        }
+        return nullptr; 
+    }
+
     std::list<Link*> GraphNode::getLinks() const {
         std::list<Link*> links;
         for (auto output : m_outputs) {

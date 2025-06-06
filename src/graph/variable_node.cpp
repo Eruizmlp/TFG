@@ -1,5 +1,8 @@
+
 #include "variable_node.h"
 #include <iostream>
+#include <queue>
+#include <optional>
 
 namespace GraphSystem {
 
@@ -9,8 +12,6 @@ namespace GraphSystem {
         : GraphNode(name, NodeCategory::DATA), variableName(varName), defaultValue(initialValue)
     {
         IOType ioType = IOType::FLOAT;
-
-        // Detect initial value type
         if (std::holds_alternative<float>(initialValue)) ioType = IOType::FLOAT;
         else if (std::holds_alternative<int>(initialValue)) ioType = IOType::INT;
         else if (std::holds_alternative<bool>(initialValue)) ioType = IOType::BOOL;
@@ -23,92 +24,57 @@ namespace GraphSystem {
 
         setupIO(ioType);
 
-        if (!variableStore.count(variableName))
+        if (variableStore.find(variableName) == variableStore.end() && !variableName.empty()) {
             variableStore[variableName] = defaultValue;
+        }
 
-        outValue->setComputeFunction([this]() -> VariableValue {
-            auto it = variableStore.find(variableName);
-            if (it != variableStore.end()) {
-                return it->second;
-            }
-            return 0.0f; 
+
+        outValue->setComputeFunction([varName = this->variableName, defVal = this->defaultValue]() -> VariableValue {
+            return VariableNode::getStoredValue(varName, defVal);
             });
-
-        outValue->setData(defaultValue);
     }
 
     void VariableNode::setupIO(IOType type) {
         execInput = addInput("Execute", IOType::EXECUTION);
-        valueInput = addInput("Value", type);     
+        valueInput = addInput("Value", type);
         execOutput = addOutput("Exec", IOType::EXECUTION);
-        outValue = addOutput("Value", type);      
+        outValue = addOutput("Value", type);
     }
 
     void VariableNode::setVariableName(const std::string& varName) {
         variableName = varName;
+        
+        outValue->setComputeFunction([varName = this->variableName, defVal = this->defaultValue]() -> VariableValue {
+            return VariableNode::getStoredValue(varName, defVal);
+            });
     }
 
     const std::string& VariableNode::getVariableName() const {
         return variableName;
     }
 
-    void VariableNode::execute() {
-        if (!isExecutionPending()) return;
-        setExecutionPending(false);
+    void VariableNode::execute(std::queue<GraphNode*>& executionQueue) {
 
         if (valueInput && valueInput->hasData()) {
-            VariableValue value;
-
-            switch (valueInput->getType()) {
-            case IOType::FLOAT:
-                value = valueInput->getFloat();
-                break;
-            case IOType::INT:
-                value = valueInput->getInt();
-                break;
-            case IOType::BOOL:
-                value = valueInput->getBool();
-                break;
-            case IOType::STRING:
-                value = valueInput->getString();
-                break;
-            case IOType::VEC2:
-                value = valueInput->getVec2();
-                break;
-            case IOType::VEC3:
-                value = valueInput->getVec3();
-                break;
-            case IOType::VEC4:
-                value = valueInput->getVec4();
-                break;
-            case IOType::MAT4:
-                value = valueInput->getMat4();
-                break;
-            case IOType::MESH:
-                value = valueInput->getMesh();
-                break;
-            default:
-                std::cerr << "[VariableNode] Unsupported type in execute()\n";
-                break;
-            }
-
-            variableStore[variableName] = value;
+            variableStore[variableName] = valueInput->getValue();
         }
 
-        for (auto& link : execOutput->getLinks()) {
-            if (auto* next = link->getTargetNode()) {
-                next->setExecutionPending(true);
+        if (execOutput) {
+            for (auto* link : execOutput->getLinks()) {
+                if (auto* nextNode = link->getTargetNode()) {
+                    executionQueue.push(nextNode);
+                }
             }
         }
     }
 
-    VariableValue VariableNode::getStoredValue(const std::string& varName) {
+    VariableValue VariableNode::getStoredValue(const std::string& varName, const VariableValue& defaultValue) {
+        if (varName.empty()) return defaultValue;
         auto it = variableStore.find(varName);
-        return (it != variableStore.end()) ? it->second : 0.0f;
+        return (it != variableStore.end()) ? it->second : defaultValue;
     }
 
     void VariableNode::setStoredValue(const std::string& varName, const VariableValue& value) {
         variableStore[varName] = value;
     }
-
-} // namespace GraphSystem
+}

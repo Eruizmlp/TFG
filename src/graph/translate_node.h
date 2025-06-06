@@ -1,6 +1,7 @@
 #pragma once
 #include "graph_node.h"
 #include "framework/nodes/mesh_instance_3d.h"
+#include <queue>
 
 namespace GraphSystem {
     class TranslateNode : public GraphNode {
@@ -19,10 +20,10 @@ namespace GraphSystem {
         explicit TranslateNode(const std::string& name,
             const glm::vec3& offset = glm::vec3(0.0f));
 
-        void setTarget(MeshInstance3D* mesh);
         void setOffset(const glm::vec3& offset);
         glm::vec3 getOffset() const;
 
-        void execute() override;
+        void execute(std::queue<GraphNode*>& executionQueue) override;
+
     };
 }

@@ -114,6 +114,23 @@ namespace GraphSystem {
 
     Input::Input(const std::string& name, IOType type) : IO(name, type) {}
 
+    VariableValue Input::getValue() const {
+        if (connectedOutput) {
+
+            auto compute_func = connectedOutput->getComputeFunction();
+            if (compute_func) {
+                return compute_func();
+            }
+            // Si no, devuelve el valor que ya está almacenado en el pin 
+            else {
+                return connectedOutput->getRawValue();
+            }
+        }
+
+        return value;
+    }
+
+
     Output::Output(GraphNode* owner, const std::string& name, IOType type)
         : IO(name, type), ownerNode(owner), computeFunction(nullptr)
     {

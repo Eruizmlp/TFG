@@ -1,13 +1,13 @@
 #pragma once
 #include "graph_node.h"
+#include <queue>
 
 namespace GraphSystem {
 
     class RandomNode : public GraphNode {
     public:
         RandomNode(const std::string& name);
-
-        void execute() override;
+        void execute(std::queue<GraphNode*>& executionQueue) override;
 
     private:
         Input* execInput = nullptr;
@@ -20,5 +20,4 @@ namespace GraphSystem {
         float defaultMin = 0.0f;
         float defaultMax = 1.0f;
     };
-
 }

@@ -1,17 +1,21 @@
-#ifndef PRINTNODE_H
-#define PRINTNODE_H
-
+#pragma once
 #include "graph_node.h"
-#include <iostream>
+#include <queue>
 
 namespace GraphSystem {
 
-    class PrintNode : public GraphSystem::GraphNode {
+    class PrintNode : public GraphNode {
+    private:
+        Input* execInput = nullptr;
+        Output* execOutput = nullptr;
+
+        Input* messageInput = nullptr;
+
     public:
         explicit PrintNode(const std::string& name);
-        void execute() override;
+        void execute(std::queue<GraphNode*>& executionQueue) override;
+
+
     };
-}
 
-
-#endif // PRINTNODE_H
+} // namespace GraphSystem

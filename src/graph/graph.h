@@ -1,5 +1,4 @@
-#ifndef GRAPH_H
-#define GRAPH_H
+#pragma once
 
 #include <list>
 #include <vector>
@@ -15,8 +14,10 @@ namespace GraphSystem {
         std::list<Link*> links;
         std::string m_name;
 
-        std::vector<GraphNode*> eventNodes;  
-        std::vector<GraphNode*> tickNodes;   
+        std::vector<GraphNode*> eventNodes;
+        std::vector<GraphNode*> tickNodes;
+        std::vector<GraphNode*> timerNodes;
+
 
     public:
         explicit Graph(const std::string& name);
@@ -32,18 +33,15 @@ namespace GraphSystem {
             GraphNode* target,
             const std::string& inputName = "");
 
-        void render();
-        void execute();  
-        void update(float dt);  
 
-        void triggerEventNodes();  
+        void update(float dt);
+        void executeFrom(GraphNode* startNode);
+
+        const std::vector<GraphNode*>& getEventNodes() const { return eventNodes; }
 
         const std::list<GraphNode*>& getNodes() const { return nodes; }
         const std::list<Link*>& getLinks() const { return links; }
 
         void clear();
     };
-
-} 
-
-#endif 
+}

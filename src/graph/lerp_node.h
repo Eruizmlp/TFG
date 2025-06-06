@@ -7,7 +7,8 @@ namespace GraphSystem {
     public:
         LerpNode(const std::string& name);
 
-        void execute() override;
+        void execute(std::queue<GraphNode*>& executionQueue) override;
+
 
     private:
         Input* aInput;

@@ -1,5 +1,6 @@
 #pragma once
 #include "graph_node.h"
+#include <queue>
 
 namespace GraphSystem {
 
@@ -7,7 +8,8 @@ namespace GraphSystem {
     public:
         ToggleNode(const std::string& name);
 
-        void execute() override;
+        void execute(std::queue<GraphNode*>& executionQueue) override;
+
 
     private:
         Input* execInput = nullptr;

@@ -2,6 +2,7 @@
 
 #include "graph_node.h"
 #include "io.h"
+#include <queue>
 
 namespace GraphSystem {
 
@@ -10,7 +11,10 @@ namespace GraphSystem {
         explicit RunNode(const std::string& name);
         virtual ~RunNode() override;  
 
-        void execute() override;
+
+        void execute(std::queue<GraphNode*>& executionQueue) override;
+
+
         const std::string& getEventName() const { return eventName; }
 
     private:

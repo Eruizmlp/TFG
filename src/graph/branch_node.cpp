@@ -1,37 +1,38 @@
 #include "branch_node.h"
+#include <iostream>
 
 namespace GraphSystem {
 
     BranchNode::BranchNode(const std::string& name)
         : GraphNode(name, NodeCategory::FLOW)
     {
-        addInput("Execute", IOType::EXECUTION);   
-        conditionInput = addInput("Condition", IOType::BOOL);  
-
-        trueOutput = addOutput("True", IOType::EXECUTION);  
-        falseOutput = addOutput("False", IOType::EXECUTION); 
+        addInput("Execute", IOType::EXECUTION);
+        conditionInput = addInput("Condition", IOType::BOOL);
+        trueOutput = addOutput("True", IOType::EXECUTION);
+        falseOutput = addOutput("False", IOType::EXECUTION);
     }
 
-
-    void BranchNode::execute() {
-        if (!isExecutionPending()) return;
-        setExecutionPending(false);
+    void BranchNode::execute(std::queue<GraphNode*>& executionQueue) {
 
         bool condition = false;
-        if (conditionInput) {
-            auto* connected = conditionInput->getConnectedOutput();
-            if (connected && connected->hasData()) {
-                condition = connected->getBool();  
+        if (conditionInput && conditionInput->hasData()) {
+            VariableValue val = conditionInput->getValue();
+            if (const bool* p_val = std::get_if<bool>(&val)) {
+                condition = *p_val;
+            }
+            else {
+                std::cerr << "[BranchNode] (" << getName() << ") Type mismatch for Condition input. Expected BOOL.\n";
             }
         }
 
-        auto& outputLinks = condition ? trueOutput->getLinks() : falseOutput->getLinks();
+        Output* pinToFollow = condition ? trueOutput : falseOutput;
 
-        for (auto* link : outputLinks) {
-            if (auto next = link->getTargetNode())
-                next->setExecutionPending(true);
+        if (pinToFollow) {
+            for (auto* link : pinToFollow->getLinks()) {
+                if (auto* nextNode = link->getTargetNode()) {
+                    executionQueue.push(nextNode);
+                }
+            }
         }
     }
-
-
-} 
+}

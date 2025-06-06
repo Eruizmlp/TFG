@@ -25,9 +25,9 @@ namespace GraphSystem {
         return entity; 
     }
 
-    void EntityNode3D::execute()
+    void EntityNode3D::execute(std::queue<GraphNode*>& executionQueue)
     {
-   
     }
+
 
 }

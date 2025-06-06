@@ -5,6 +5,7 @@
 #include <string>
 #include "io.h"
 #include "link.h"
+#include <queue>
 
 namespace GraphSystem {
 
@@ -51,14 +52,21 @@ namespace GraphSystem {
         void removeAllLinks();
 
         // Node operations
-        virtual void execute() = 0; 
+        virtual void execute(std::queue<GraphNode*>& executionQueue);
+
         virtual void update(float) {}
+
 
         virtual bool isTickNode() const { return false; }
 
         // Getters
         Input* getInput(const std::string& name);
         const Input* getInput(const std::string& name) const;
+
+        Output* getOutput(const std::string& name);
+        const Output* getOutput(const std::string& name) const;
+
+
         const std::list<Input*>& getInputs() const { return m_inputs; }
         const std::list<Output*>& getOutputs() const { return m_outputs; }
         std::list<Link*> getLinks() const;

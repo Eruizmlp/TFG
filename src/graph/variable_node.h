@@ -1,17 +1,12 @@
 #pragma once
 
 #include "graph_node.h"
-#include <glm/glm.hpp>
+#include "io.h" 
+#include <queue>
 #include <unordered_map>
-#include <variant>
 
 namespace GraphSystem {
 
-    using VariableValue = std::variant<
-        bool, int, float, std::string,
-        glm::vec2, glm::vec3, glm::vec4, glm::mat4,
-        MeshInstance3D*
-    >;
 
     class VariableNode : public GraphNode {
     public:
@@ -20,14 +15,13 @@ namespace GraphSystem {
         void setVariableName(const std::string& varName);
         const std::string& getVariableName() const;
 
-        void execute() override;
+        void execute(std::queue<GraphNode*>& executionQueue) override;
 
-        static VariableValue getStoredValue(const std::string& varName);
+        static VariableValue getStoredValue(const std::string& varName, const VariableValue& defaultValue);
         static void setStoredValue(const std::string& varName, const VariableValue& value);
 
     private:
         static std::unordered_map<std::string, VariableValue> variableStore;
-
         std::string variableName;
         VariableValue defaultValue;
 
@@ -38,5 +32,4 @@ namespace GraphSystem {
 
         void setupIO(IOType type);
     };
-
-} // namespace GraphSystem
+}

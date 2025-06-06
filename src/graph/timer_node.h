@@ -1,13 +1,16 @@
 #pragma once
 #include "graph_node.h"
+#include <queue>
 
 namespace GraphSystem {
 
     class TimerNode : public GraphNode {
     public:
         TimerNode(const std::string& name);
+        void execute(std::queue<GraphNode*>& executionQueue) override;
 
-        void execute() override;
+        bool isWaiting() const;
+
         void update(float deltaTime) override;
 
     private:

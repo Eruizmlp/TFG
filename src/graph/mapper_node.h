@@ -1,5 +1,7 @@
 #pragma once
 #include "graph_node.h"
+#include <queue>
+
 
 namespace GraphSystem {
 
@@ -11,7 +13,7 @@ namespace GraphSystem {
         void setMappedButton(int button);
         int getMappedButton() const;
 
-        void execute() override;
+        void execute(std::queue<GraphNode*>& executionQueue) override;
 
 
     private:

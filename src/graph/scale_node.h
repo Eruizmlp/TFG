@@ -19,10 +19,10 @@ namespace GraphSystem {
         explicit ScaleNode(const std::string& name,
             float factor = 1.0f);
 
-        void setTarget(MeshInstance3D* mesh);
         void setScaleFactor(float f);
         float getScaleFactor() const;
 
-        void execute() override;
+        void execute(std::queue<GraphNode*>& executionQueue) override;
+
     };
 }

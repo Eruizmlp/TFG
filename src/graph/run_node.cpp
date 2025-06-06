@@ -1,50 +1,40 @@
 #include "run_node.h"
 #include <iostream>
+#include <queue>
 
 namespace GraphSystem {
 
     RunNode::RunNode(const std::string& name)
         : GraphNode(name, NodeCategory::FLOW),
         eventName("DefaultEvent"),
-        execOutput(addOutput("Execution", IOType::EXECUTION))  
+        execOutput(addOutput("Execution", IOType::EXECUTION))
     {
         setEntryPoint(true);
-        setExecutionPending(false);  
     }
 
     RunNode::~RunNode() {
-        std::cout << "[EventNode] Destroying event: " << eventName << "\n";
+        std::cout << "[RunNode] Destruyendo evento: " << eventName << "\n";
     }
 
-    void RunNode::execute() {
-        if (!isExecutionPending()) {
-            std::cout << "[RunNode] Not pending, skipping execution.\n";
-            return;
-        }
+    
+    void RunNode::execute(std::queue<GraphNode*>& executionQueue) {
 
-        setExecutionPending(false);  // Reset execution flag
+        // 1. Lógica del nodo
+        std::cout << "[RunNode] Evento '" << eventName << "' disparado.\n";
 
-        std::cout << "[RunNode] Executing event: " << eventName << "\n";
-
-        // Access links through execution output
-        const auto& links = execOutput->getLinks();
-
-        if (links.empty()) {
-            std::cerr << "[RunNode] No linked nodes! Execution stopping here.\n";
-            return;
-        }
-
-        std::cout << "[RunNode] Found " << links.size() << " links to trigger.\n";
-
-        for (const auto& link : links) {
-            if (auto targetNode = link->getTargetNode()) {
-                std::cout << "[RunNode] Triggering: " << targetNode->getName() << "\n";
-                targetNode->setExecutionPending(true);
+        // 2. Propagación
+        if (execOutput) {
+            std::cout << "[RunNode] Buscando nodos conectados para propagar...\n"; 
+            for (auto* link : execOutput->getLinks()) {
+                if (auto* nextNode = link->getTargetNode()) {
+                    // --- MENSAJE DE DEPURACIÓN CLAVE ---
+                    std::cout << "[RunNode] AÑADIENDO A LA COLA: " << nextNode->getName() << "\n";
+                    executionQueue.push(nextNode);
+                }
             }
-            else {
-                std::cerr << "[RunNode] Link with null target node!\n";
-            }
+        }
+        else {
+            std::cout << "[RunNode] El pin de salida 'Execution' es nulo.\n"; 
         }
     }
-
-} // namespace GraphSystem
+}

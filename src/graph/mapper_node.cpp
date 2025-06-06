@@ -27,9 +27,9 @@ namespace GraphSystem {
         return buttonCode;  
     }
 
-    void MapperNode::execute()
+    void MapperNode::execute(std::queue<GraphNode*>& executionQueue)
     {
-       
     }
 
+  
 }

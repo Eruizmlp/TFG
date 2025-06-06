@@ -2,6 +2,7 @@
 #include "graph_node.h"
 #include "io.h"
 #include "framework/nodes/mesh_instance_3d.h"
+#include <queue>
 
 namespace GraphSystem {
 
@@ -16,7 +17,8 @@ namespace GraphSystem {
         void setEntity(MeshInstance3D* e);
         MeshInstance3D* getEntity() const;
 
-        void execute() override;
+
+        void execute(std::queue<GraphNode*>& executionQueue) override;
 
     };
 

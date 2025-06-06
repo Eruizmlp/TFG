@@ -8,16 +8,18 @@ namespace GraphSystem {
     {
         outValue = addOutput("Value", IOType::FLOAT);
 
-        outValue->setComputeFunction([this]() -> VariableValue { 
-            return VariableNode::getStoredValue(variableName); 
+        outValue->setComputeFunction([varName = this->variableName]() -> VariableValue {
+            return VariableNode::getStoredValue(varName, 0.0f);
             });
 
-        outValue->setData(VariableNode::getStoredValue(variableName)); 
+        outValue->setData(VariableNode::getStoredValue(variableName, 0.0f));
     }
 
-    void GetVariableNode::execute()
+    void GetVariableNode::execute(std::queue<GraphNode*>& executionQueue)
     {
-       
     }
+
+
+
 
 }
