@@ -11,9 +11,14 @@ namespace GraphSystem {
         tickOutput = addOutput("Tick", IOType::EXECUTION);
     }
 
-    void TickNode::execute(std::queue<GraphNode*>& executionQueue) {
-        
-        running = !running;
+    void TickNode::execute(std::queue<GraphNode*>& executionQueue) {        
+        if (tickOutput) {
+            for (auto* link : tickOutput->getLinks()) {
+                if (auto* nextNode = link->getTargetNode()) {
+                    executionQueue.push(nextNode);
+                }
+            }
+        }
     }
 
     void TickNode::update(float delta_time) {

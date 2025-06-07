@@ -349,35 +349,36 @@ int SampleEngine::post_initialize()
     //GraphSystem::VariableNode::setStoredValue("increment", 1.0f); 
 
     
-    //// Crear TickNode
-    //auto* tickNode = static_cast<GraphSystem::TickNode*>(
-    //    editor->createNode("TickNode", "Tick", { 100.0f, 400.0f, 0.0f })
-    //    );
-   
+    // Crear TickNode
+    auto* tickNode = static_cast<GraphSystem::TickNode*>(
+        editor->createNode("TickNode", "Tick", { 100.0f, 400.0f, 0.0f })
+        );
 
-    //// Crear RotateNode
-    //auto* rotateNode = static_cast<GraphSystem::RotateNode*>(
-    //    editor->createNode("RotateNode", "Rotator", { 1000.0f, 250.0f, 0.0f })
-    //    );
+    tickNode->start();
 
-    //// Crear MathNode para sumar ángulo + incremento
-    //auto* mathNode = static_cast<GraphSystem::MathNode*>(
-    //    editor->createNode("MathNode", "Adder", { 600.0f, 250.0f, 0.0f })
-    //    );
+    // Crear RotateNode
+    auto* rotateNode = static_cast<GraphSystem::RotateNode*>(
+        editor->createNode("RotateNode", "Rotator", { 1000.0f, 250.0f, 0.0f })
+        );
 
-    ////Crear VariableNode para el ángulo
-    //auto* angleNode = static_cast<GraphSystem::VariableNode*>(
-    //    editor->createNode("VariableNode", "AngleVar", { 400.0f, 200.0f, 0.0f })
-    //    );
-    //angleNode->setVariableName("angle");  // nombre fijo
-    //GraphSystem::VariableNode::setStoredValue("angle", glm::vec3(3.0f)); // valor inicial 0.0f
+    // Crear MathNode para sumar ángulo + incremento
+    auto* mathNode = static_cast<GraphSystem::MathNode*>(
+        editor->createNode("MathNode", "Adder", { 600.0f, 250.0f, 0.0f })
+        );
 
-    // // Crear VariableNode para el incremento
-    //auto* incrementNode = static_cast<GraphSystem::VariableNode*>(
-    //    editor->createNode("VariableNode", "IncrementVar", { 400.0f, 300.0f, 0.0f })
-    //    );
-    //incrementNode->setVariableName("increment");
-    //GraphSystem::VariableNode::setStoredValue("increment", glm::vec3(1.0f));
+    //Crear VariableNode para el ángulo
+    auto* angleNode = static_cast<GraphSystem::VariableNode*>(
+        editor->createNode("VariableNode", "AngleVar", { 400.0f, 200.0f, 0.0f })
+        );
+    angleNode->setVariableName("angle");  // nombre fijo
+    GraphSystem::VariableNode::setStoredValue("angle", 0.0f); // valor inicial 0.0f
+
+     // Crear VariableNode para el incremento
+    auto* incrementNode = static_cast<GraphSystem::VariableNode*>(
+        editor->createNode("VariableNode", "IncrementVar", { 400.0f, 300.0f, 0.0f })
+        );
+    incrementNode->setVariableName("increment");
+    GraphSystem::VariableNode::setStoredValue("increment", 1.0f);
 
 
 

@@ -256,15 +256,22 @@ void RotateNodeWidget2D::update(float delta_time) {
 
 void RotateNodeWidget2D::updateInspector() {
     if (!inspectPanel || !inspectorVisible) return;
+    
     inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
 
     auto* rotateNode = static_cast<RotateNode*>(logic_node);
 
-    float normalizedAngle = rotateNode->getRotationAngle();
+    float rawAngle = rotateNode->getRotationAngle();
 
-    // Actualizar slider y label
-    angleSlider->set_value(normalizedAngle);
-    angleValueLabel->set_text(formatFloat(normalizedAngle, 1));
+    float displayAngle = std::fmod(rawAngle, 360.0f);
+    if (displayAngle < 0) {
+        displayAngle += 360.0f;
+    }
+
+    angleSlider->set_value(displayAngle);
+    
+    
+    angleValueLabel->set_text(formatFloat(displayAngle, 1));
 }
 
 void RotateNodeWidget2D::initInspector() {

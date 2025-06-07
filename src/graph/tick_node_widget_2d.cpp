@@ -49,7 +49,7 @@ void TickNodeWidget2D::initInspector() {
     inspectPanel->add_child(toggleRow);
 
     ui::sButtonDescription bdesc;
-    bdesc.size = { 48, 24 };
+    bdesc.size = { 24, 24 };
     bdesc.color = colors::WHITE;
 
     auto* onButton = new ui::Button2D("TickOn_" + logic_node->getName(), bdesc);
