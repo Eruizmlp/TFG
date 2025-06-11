@@ -77,32 +77,26 @@ void SampleEngine::delete_context_menu(ui::ContextMenu* cm) {
 
 
 void SampleEngine::setupGraphUI() {
-    if (!main_scene) {
-        std::cerr << "Cannot create UI - no main scene\n";
-        return;
-    }
 
-    // Create UI panel
-    run_panel = new ui::Panel2D("RunPanel", glm::vec2(20, 20), glm::vec2(250, 120), ui::CREATE_3D, colors::GRAY);
+    run_panel = new ui::Panel2D("RunPanel", glm::vec2(20, 20), glm::vec2(84, 84), ui::CREATE_3D);
+    run_panel->render_background = false; 
     main_scene->add_node(run_panel);
 
-    // Setup execute button
-    ui::sButtonDescription buttonDesc;
-    buttonDesc.label = "Run Graph";
-    buttonDesc.size = glm::vec2(200, 50);
-    buttonDesc.color = colors::WHITE;
-    buttonDesc.position = glm::vec2(25, 35);
-
-    // Find event graph
     GraphSystem::Graph* eventGraph = nullptr;
+    if (graphManager.getGraphs().empty()) {
+        return;
+    }
     eventGraph = graphManager.getGraphs()[0];
 
-    if (eventGraph) {
-        GraphSystem::GraphButton2D* executeBtn = new GraphSystem::GraphButton2D("ExecuteBtn", buttonDesc, eventGraph);
-        run_panel->add_child(executeBtn);
-    }
+    ui::sButtonDescription buttonDesc;
+    buttonDesc.position = { 10.0f, 10.0f };   
+    buttonDesc.size = { 64.0f, 64.0f };       
+    buttonDesc.label = "";                    
 
+    buttonDesc.path = "data/textures/play_icon.png";
+    auto* executeBtn = new GraphSystem::GraphButton2D("Run", buttonDesc, eventGraph, nullptr, "");
 
+    run_panel->add_child(executeBtn);
 }
 
 void buildPipeline(GraphSystem::Graph& graph) {
@@ -466,17 +460,7 @@ void SampleEngine::update(float delta_time)
 
                 entityNode->setEntity(mesh);
 
-                //std::cout << mesh->get_name() << std::endl;
-
                 notAllowedNames.push_back(mesh->get_name());
-
-
-                std::cout << notAllowedNames.back() << std::endl;
-
-
-
-                
-
 
             }
         }
