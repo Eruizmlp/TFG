@@ -41,6 +41,7 @@
 #include <graph/math_node.h>
 #include <graph/tick_node.h>
 #include <graph/set_variable_node.h>
+#include "graph/create_node_button.h"
 
 
 
@@ -94,7 +95,7 @@ void SampleEngine::setupGraphUI() {
     buttonDesc.label = "";                    
 
     buttonDesc.path = "data/textures/play_icon.png";
-    auto* executeBtn = new GraphSystem::GraphButton2D("Run", buttonDesc, eventGraph, nullptr, "");
+    auto* executeBtn = new GraphSystem::GraphButton2D("Run", buttonDesc, eventGraph);
 
     run_panel->add_child(executeBtn);
 }
@@ -129,85 +130,102 @@ void buildPipeline(GraphSystem::Graph& graph) {
 
 void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
     using namespace ui;
-
-    constexpr float X = 20.0f;
-    constexpr float Y = 150.0f;
+    using namespace GraphSystem;
+    
+    constexpr float X = 0.0f;
+    constexpr float Y = 84.0f;
     constexpr float PANEL_W = 260.0f;
-
 
     VContainer2D* panel = new VContainer2D(
         "NodeCreationPanel",
-        { X, Y },
+        { X, Y }, 
         0u,
-        colors::GREEN
+        Color(0.0f, 0.0f, 0.0f, 0.0f)
     );
-
-    // Padding interior y separación entre filas
-    panel->padding = { 12.0f, 12.0f };
-    panel->item_margin = { 8.0f, 8.0f };
-
-    // Fijamos sólo el ancho;
+    
+    panel->padding = { 8.0f, 8.0f };
+    panel->item_margin = { 4.0f, 4.0f };
     panel->set_fixed_size({ PANEL_W, 0.0f });
+    run_panel->add_child(panel);
 
-    // Añadimos el título
-    {
-        Text2D* title = new Text2D("Create Node", { 0, 0 }, 20.0f, TEXT_CENTERED);
-        title->set_color(colors::BLACK);
-        panel->add_child(title);
-    }
+    auto addCategoryTitle = [&](const std::string& title, NodeCategory category) {
+        auto* title_panel = new XRPanel(
+            "TitlePanel_" + title,
+            { 0, 0 },
+            { PANEL_W, 26.0f },
+            0u,
+            GraphSystem::NodeWidget2D::getColorForCategory(category)
+        );
 
-    // Fila (label + botón)
+        auto* title_text = new Text2D(title, { 0, 0 }, 18.0f, TEXT_CENTERED | SKIP_TEXT_RECT);
+        title_text->set_color(colors::WHITE);
+        title_panel->add_child(title_text);
+
+        panel->add_child(title_panel);
+        };
+
     auto addRow = [&](const std::string& name, const std::string& type) {
-        HContainer2D* row = new HContainer2D(
+        auto* row = new HContainer2D(
             "Row_" + name,
             { 0, 0 },
             0u,
-            colors::GREEN
+            Color(0.2f, 0.2f, 0.2f, 0.5f)
         );
-        row->padding = { 4.0f, 2.0f };
-        row->item_margin = { 8.0f, 0.0f };
+        
+        row->padding = { 4.0f, 1.0f };
+        row->item_margin = { 6.0f, 0.0f };
         panel->add_child(row);
 
-        // etiqueta
-        Text2D* lbl = new Text2D(name, { 0, 0 }, 16.0f, TEXT_CENTERED);
-        lbl->set_color(colors::WHITE);
+        
+        auto* lbl = new Text2D(name, { 0, 0 }, 16.0f, TEXT_CENTERED);
+        lbl->set_color(colors::BLACK);
         row->add_child(lbl);
 
-        // botón
         sButtonDescription desc;
         desc.label = "";
-        desc.size = { 24.0f, 24.0f };
-        desc.color = colors::WHITE;
-        auto* btn = new GraphSystem::GraphButton2D(
-            name + "Btn",
+       
+        desc.size = { 22.0f, 22.0f };
+        desc.path = "data/textures/submenu_mark.png";
+        auto* btn = new GraphSystem::CreateNodeButton(
+            "Create",
             desc,
-            nullptr,
             editor,
             type
         );
         row->add_child(btn);
         };
 
-    // Creamos las filas
-    addRow("PrintNode", "PrintNode");
-    addRow("RotateNode", "RotateNode");
-    addRow("SequenceNode", "SequenceNode");
+    addCategoryTitle("Flow Control", NodeCategory::FLOW);
     addRow("RunNode", "RunNode");
-    addRow("GraphNode3D", "GraphNode3D");
-    addRow("MathNode", "MathNode");
-    addRow("VariableNode", "VariableNode");
     addRow("BranchNode", "BranchNode");
     addRow("TickNode", "TickNode");
-    addRow("ScaleNode", "ScaleNode");
-    addRow("EntityNode3D", "EntityNode3D");
+    addRow("LoopNode", "LoopNode");
+    addRow("TimerNode", "TimerNode");
+
+    addCategoryTitle("Data", NodeCategory::DATA);
+    addRow("MathNode", "MathNode");
+    addRow("VariableNode", "VariableNode");
     addRow("TrigonometricNode", "TrigonometricNode");
+    addRow("LerpNode", "LerpNode");
+    addRow("ClampNode", "ClampNode");
+    addRow("GetVariableNode", "GetVariableNode");
+    addRow("RandomNode", "RandomNode");
+
+    addCategoryTitle("Transform", NodeCategory::TRANSFORM);
+    addRow("RotateNode", "RotateNode");
+    addRow("ScaleNode", "ScaleNode");
     addRow("TranslateNode", "TranslateNode");
-    addRow("SetVariableNode", "SetVariableNode");
+
+    addCategoryTitle("Logic", NodeCategory::LOGIC);
+    addRow("PrintNode", "PrintNode");
+    addRow("CompareNode", "CompareNode");
+    addRow("ToggleNode", "ToggleNode");
+
+    addCategoryTitle("Interaction", NodeCategory::INTERACTION);
+    addRow("MapperNode", "MapperNode");
 
     panel->use_fixed_size = false;
     panel->on_children_changed();
-
-    main_scene->add_node(panel);
 }
 
 
@@ -343,36 +361,36 @@ int SampleEngine::post_initialize()
     //GraphSystem::VariableNode::setStoredValue("increment", 1.0f); 
 
     
-    // Crear TickNode
-    auto* tickNode = static_cast<GraphSystem::TickNode*>(
-        editor->createNode("TickNode", "Tick", { 100.0f, 400.0f, 0.0f })
-        );
+    //// Crear TickNode
+    //auto* tickNode = static_cast<GraphSystem::TickNode*>(
+    //    editor->createNode("TickNode", "Tick", { 100.0f, 400.0f, 0.0f })
+    //    );
 
-    tickNode->start();
+    //tickNode->start();
 
-    // Crear RotateNode
-    auto* rotateNode = static_cast<GraphSystem::RotateNode*>(
-        editor->createNode("RotateNode", "Rotator", { 1000.0f, 250.0f, 0.0f })
-        );
+    //// Crear RotateNode
+    //auto* rotateNode = static_cast<GraphSystem::RotateNode*>(
+    //    editor->createNode("RotateNode", "Rotator", { 1000.0f, 250.0f, 0.0f })
+    //    );
 
-    // Crear MathNode para sumar ángulo + incremento
-    auto* mathNode = static_cast<GraphSystem::MathNode*>(
-        editor->createNode("MathNode", "Adder", { 600.0f, 250.0f, 0.0f })
-        );
+    //// Crear MathNode para sumar ángulo + incremento
+    //auto* mathNode = static_cast<GraphSystem::MathNode*>(
+    //    editor->createNode("MathNode", "Adder", { 600.0f, 250.0f, 0.0f })
+    //    );
 
-    //Crear VariableNode para el ángulo
-    auto* angleNode = static_cast<GraphSystem::VariableNode*>(
-        editor->createNode("VariableNode", "AngleVar", { 400.0f, 200.0f, 0.0f })
-        );
-    angleNode->setVariableName("angle");  // nombre fijo
-    GraphSystem::VariableNode::setStoredValue("angle", 0.0f); // valor inicial 0.0f
+    ////Crear VariableNode para el ángulo
+    //auto* angleNode = static_cast<GraphSystem::VariableNode*>(
+    //    editor->createNode("VariableNode", "AngleVar", { 400.0f, 200.0f, 0.0f })
+    //    );
+    //angleNode->setVariableName("angle");  // nombre fijo
+    //GraphSystem::VariableNode::setStoredValue("angle", 0.0f); // valor inicial 0.0f
 
-     // Crear VariableNode para el incremento
-    auto* incrementNode = static_cast<GraphSystem::VariableNode*>(
-        editor->createNode("VariableNode", "IncrementVar", { 400.0f, 300.0f, 0.0f })
-        );
-    incrementNode->setVariableName("increment");
-    GraphSystem::VariableNode::setStoredValue("increment", 1.0f);
+    // // Crear VariableNode para el incremento
+    //auto* incrementNode = static_cast<GraphSystem::VariableNode*>(
+    //    editor->createNode("VariableNode", "IncrementVar", { 400.0f, 300.0f, 0.0f })
+    //    );
+    //incrementNode->setVariableName("increment");
+    //GraphSystem::VariableNode::setStoredValue("increment", 1.0f);
 
 
 

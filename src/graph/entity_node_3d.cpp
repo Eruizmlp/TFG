@@ -3,8 +3,8 @@
 
 namespace GraphSystem {
 
-    EntityNode3D::EntityNode3D()
-        : GraphNode("Entity3D", NodeCategory::DATA)
+    EntityNode3D::EntityNode3D(const std::string& name)
+        : GraphNode(name, NodeCategory::DATA)
     {
         outputEntity = addOutput("Mesh", IOType::MESH); 
         outputEntity->setComputeFunction([this]() -> VariableValue { 

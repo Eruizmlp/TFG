@@ -12,7 +12,7 @@ namespace GraphSystem {
         Output* outputEntity = nullptr;
         
     public:
-        EntityNode3D();
+        explicit EntityNode3D(const std::string& name);
 
         void setEntity(MeshInstance3D* e);
         MeshInstance3D* getEntity() const;

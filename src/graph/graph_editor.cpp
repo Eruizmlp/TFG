@@ -4,6 +4,17 @@
 #include "engine/scene.h"
 #include "print_node.h"
 //#include "sequence_node.h"
+#include "clamp_node.h"
+#include "compare_node.h"
+#include "get_variable_node.h"
+#include "lerp_node.h"
+#include "loop_node.h"
+#include "mapper_node.h"
+#include "random_node.h"
+#include "timer_node.h"
+#include "toggle_node.h"
+#include "mapper_node_widget_2d.h"
+#include "compare_node_widget_2d.h"
 #include "run_node.h"
 #include "math_node.h"
 #include "branch_node.h"
@@ -53,11 +64,20 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     else if (type == "BranchNode")    node = new BranchNode(nodeName);
     else if (type == "TickNode")     node = new TickNode(nodeName);
     else if (type == "ScaleNode")    node = new ScaleNode(nodeName);
-    else if (type == "EntityNode3D") node = new EntityNode3D();
+    else if (type == "EntityNode3D") node = new EntityNode3D(nodeName);
     else if (type == "TrigonometricNode") node = new TrigonometricNode(nodeName);
     else if (type == "TranslateNode") node = new TranslateNode(nodeName);
    // else if (type == "SetVariableNode") node = new SetVariableNode(nodeName, "");
     else if (type == "VariableNode")    node = new VariableNode(nodeName, "");
+    else if (type == "ClampNode")       node = new ClampNode(nodeName);
+    else if (type == "CompareNode")     node = new CompareNode(nodeName);
+    else if (type == "GetVariableNode") node = new GetVariableNode(nodeName, ""); // Assumes default empty var name
+    else if (type == "LerpNode")        node = new LerpNode(nodeName);
+    else if (type == "LoopNode")        node = new LoopNode(nodeName);
+    else if (type == "MapperNode")      node = new MapperNode(nodeName);
+    else if (type == "RandomNode")      node = new RandomNode(nodeName);
+    else if (type == "TimerNode")       node = new TimerNode(nodeName);
+    else if (type == "ToggleNode")      node = new ToggleNode(nodeName);
 
     //else if (type == "VariableNode") {
     //    auto* varNode = new VariableNode(nodeName);
@@ -99,6 +119,13 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     }
     else if (auto* tk = dynamic_cast<TickNode*>(node))
         widget = new TickNodeWidget2D(type, tk, this, worldPosition);
+
+    else if (auto* cn = dynamic_cast<CompareNode*>(node)) {
+        widget = new CompareNodeWidget2D(type, cn, this, worldPosition);
+    }
+    else if (auto* mn = dynamic_cast<MapperNode*>(node)) {
+        widget = new MapperNodeWidget2D(type, mn, this, worldPosition);
+    }
 
     else
         widget = new NodeWidget2D(type, node, this, worldPosition);

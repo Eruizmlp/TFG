@@ -38,6 +38,8 @@ namespace GraphSystem {
         GraphNode* getLogicNode() const { return logic_node; }
         const std::string& getGraphNodeType() const { return graphNodeType; }
 
+        static glm::vec4 getColorForCategory(GraphSystem::NodeCategory cat);
+
         // input / render hooks
         bool       on_input(sInputData data) override;
         void       update(float delta_time) override;

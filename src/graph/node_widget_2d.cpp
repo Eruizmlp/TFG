@@ -12,7 +12,7 @@
 using namespace GraphSystem;
 using namespace ui;
 
-glm::vec4 getColorForCategory(GraphSystem::NodeCategory cat) {
+glm::vec4 NodeWidget2D::getColorForCategory(GraphSystem::NodeCategory cat) {
     switch (cat) {
     case NodeCategory::DATA:        return colors::CYAN;
     case NodeCategory::FLOW:        return colors::YELLOW;
