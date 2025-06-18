@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <sstream>
 #include <fstream>
+#include "graphics/renderer.h"
 
 
 using namespace GraphSystem;
@@ -29,6 +30,7 @@ inline std::string formatFloat(float value, int precision = 2) {
     stream << std::fixed << std::setprecision(precision) << value;
     return stream.str();
 }
+
 
 glm::vec2 NodeWidget2D::computeSize(GraphNode* node) {
     constexpr float W = 200.0f, ROW = 20.0f, M = 6.0f;
@@ -159,11 +161,11 @@ sInputData NodeWidget2D::get_input_data(bool ignore_focus)
 }
 
 bool NodeWidget2D::on_input(sInputData data) {
-    if (data.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
-        toggleInspector(data);     
-        return true;
+    if (data.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
+        toggleInspector(data);
+        return true; 
     }
-    return background->on_input(data);
+    return background->on_input(data); 
 }
 
 
@@ -231,7 +233,7 @@ RotateNodeWidget2D::RotateNodeWidget2D(const std::string& nodeType,
 
 void RotateNodeWidget2D::toggleInspector(sInputData data) {
     
-    if (data.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+    if (data.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
         if (!inspectPanel) initInspector();
         inspectorVisible = !inspectorVisible;
         inspectPanel->set_visibility(inspectorVisible, true);
@@ -240,7 +242,7 @@ void RotateNodeWidget2D::toggleInspector(sInputData data) {
 
 void RotateNodeWidget2D::update(float delta_time) {
     sInputData d = get_input_data(false);
-    if (d.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+    if (d.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
         if (!inspectPanel) initInspector();
         inspectorVisible = !inspectorVisible;
         inspectPanel->set_visibility(inspectorVisible, true);
@@ -411,7 +413,7 @@ TranslateNodeWidget2D::TranslateNodeWidget2D(const std::string& nodeType,
 }
 
 void TranslateNodeWidget2D::toggleInspector(sInputData data) {
-    if (data.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+    if (data.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
         if (!inspectPanel) initInspector();
         inspectorVisible = !inspectorVisible;
         inspectPanel->set_visibility(inspectorVisible, true);
@@ -420,7 +422,7 @@ void TranslateNodeWidget2D::toggleInspector(sInputData data) {
 
 void TranslateNodeWidget2D::update(float delta_time) {
     sInputData d = get_input_data(false);
-    if (d.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+    if (d.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
         if (!inspectPanel) initInspector();
         inspectorVisible = !inspectorVisible;
         inspectPanel->set_visibility(inspectorVisible, true);
@@ -541,7 +543,7 @@ ScaleNodeWidget2D::ScaleNodeWidget2D(const std::string& nodeType,
 }
 
 void ScaleNodeWidget2D::toggleInspector(sInputData data) {
-    if (data.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+    if (data.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
         if (!inspectPanel) initInspector();
         inspectorVisible = !inspectorVisible;
         inspectPanel->set_visibility(inspectorVisible, true);
@@ -551,7 +553,7 @@ void ScaleNodeWidget2D::toggleInspector(sInputData data) {
 
 void ScaleNodeWidget2D::update(float delta_time) {
     sInputData d = get_input_data(false);
-    if (d.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+    if (d.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
         if (!inspectPanel) initInspector();
         inspectorVisible = !inspectorVisible;
         inspectPanel->set_visibility(inspectorVisible, true);

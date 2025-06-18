@@ -39,6 +39,14 @@ private:
    
     Node3D* scene_root = nullptr;
 
+    
+    bool m_is_graph_container_placed = false;
+    bool m_is_grabbing_graph_container = false;
+
+    glm::mat4 m_grab_offset_transform;
+
+
+
 public:
 
 	int initialize(Renderer* renderer, const sEngineConfiguration& configuration = {}) override;

@@ -42,6 +42,7 @@
 #include <graph/tick_node.h>
 #include <graph/set_variable_node.h>
 #include "graph/create_node_button.h"
+#include <iostream>
 
 
 
@@ -120,8 +121,8 @@ void buildPipeline(GraphSystem::Graph& graph) {
 
     // Connect nodes
     //graph.connect(eventNode, "Execution", sequenceNode, "Execute");
-  //  graph.connect(sequenceNode, "Step1", printA, "Execute");
-//    graph.connect(sequenceNode, "Step2", printB, "Execute");
+   //  graph.connect(sequenceNode, "Step1", printA, "Execute");
+   //    graph.connect(sequenceNode, "Step2", printB, "Execute");
 
     // Mark as entry point
     eventNode->setEntryPoint(true);
@@ -319,7 +320,7 @@ int SampleEngine::post_initialize()
     // red test-box in world
     MeshInstance3D* testBox = new MeshInstance3D();
     testBox->set_name("TestBox");
-    testBox->set_position({ 0,1,0 });
+    testBox->set_position({ 0,1, -10 });
     testBox->scale({ 1,1,1 });
     testBox->add_surface(RendererStorage::get_surface("box"));
     testBox->update_aabb();
@@ -361,10 +362,10 @@ int SampleEngine::post_initialize()
     //GraphSystem::VariableNode::setStoredValue("increment", 1.0f); 
 
     
-    //// Crear TickNode
-    //auto* tickNode = static_cast<GraphSystem::TickNode*>(
-    //    editor->createNode("TickNode", "Tick", { 100.0f, 400.0f, 0.0f })
-    //    );
+    // Crear TickNode
+    auto* tickNode = static_cast<GraphSystem::TickNode*>(
+        editor->createNode("TickNode", "Tick", { 0.0f, -2.0f, 0.0f })
+        );
 
     //tickNode->start();
 
@@ -432,9 +433,60 @@ void SampleEngine::update(float delta_time)
         poseR = glm::translate(poseR, glm::vec3(0.0f, 0.05f, -0.04f));
         poseR = glm::rotate(poseR, glm::radians(120.f), glm::vec3(1, 0, 0));
 
+
+
         if (graph_container) {
-            graph_container->set_xr_transform(Transform::mat4_to_transform(poseR));
-            graph_container->update(delta_time);
+            if (!m_is_graph_container_placed) {
+
+                auto* main_camera = get_renderer()->get_camera();
+                glm::vec3 eye = main_camera->get_eye();
+
+                glm::vec3 front = -get_renderer()->get_camera_front();
+
+                float distance = 0.5f;
+
+                glm::vec3 target_pos = eye + front * distance;
+
+                glm::mat4 model_transform = glm::mat4(1.0f);
+                model_transform = glm::translate(model_transform, target_pos);
+                model_transform = model_transform * glm::toMat4(get_rotation_to_face(target_pos, eye, { 0.0f, 1.0f, 0.0f }));
+                model_transform = model_transform * glm::rotate(model_transform, glm::radians(180.f), { 1.0f, 0.0f, 0.0f });
+
+                graph_container->set_xr_transform(Transform::mat4_to_transform(model_transform));
+                m_is_graph_container_placed = true;
+            }
+
+        
+
+            // 2. Grab and Move Logic (using the right controller's grip button)
+            if (Input::is_grab_pressed(HAND_RIGHT)) {
+               
+                    if (!m_is_grabbing_graph_container) {
+                        // Start grabbing
+                        m_is_grabbing_graph_container = true;
+
+                        // Calculate and store the offset between the controller and the container
+                        glm::mat4 controller_transform = Input::get_controller_pose(HAND_RIGHT);
+                        glm::mat4 container_transform;
+
+                        container_transform = graph_container->get_global_viewport_model();
+
+
+                        m_grab_offset_transform = glm::inverse(controller_transform) * container_transform;
+                    }
+
+                // While grabbing, update the container's transform based on the controller's movement
+                glm::mat4 controller_transform = Input::get_controller_pose(HAND_RIGHT);
+                glm::mat4 new_container_transform = controller_transform * m_grab_offset_transform;
+                graph_container->set_xr_transform(Transform::mat4_to_transform(new_container_transform));
+
+            }
+            else {
+                // Stop grabbing when the button is released
+                m_is_grabbing_graph_container = false;
+            }
+
+            graph_container->update(delta_time); 
         }
 
         if (run_panel) {
@@ -467,7 +519,7 @@ void SampleEngine::update(float delta_time)
                 // If needed:
                 const glm::vec3& intersection_point = ray_direction + ray_direction * distance;
 
-                glm::vec3 spawn = { intersection_point.x + 400.0f,intersection_point.y + 600.0,0.f };
+                glm::vec3 spawn = { intersection_point.x + 300.0f,intersection_point.y + 300.0f, 0.f };
 
                 auto* mesh = dynamic_cast<MeshInstance3D*>(node3d);
 

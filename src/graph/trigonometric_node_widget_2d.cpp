@@ -12,7 +12,7 @@ namespace GraphSystem {
     }
 
     void TrigonometricNodeWidget2D::toggleInspector(sInputData data) {
-        if (data.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+        if (data.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
             if (!inspectPanel) initInspector();
             inspectorVisible = !inspectorVisible;
             inspectPanel->set_visibility(inspectorVisible, true);

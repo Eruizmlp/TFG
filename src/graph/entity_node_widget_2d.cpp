@@ -18,7 +18,7 @@ namespace GraphSystem {
     }
 
     void EntityNodeWidget2D::toggleInspector(sInputData data) {
-        if (!data.is_hovered || !::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT))
+        if (!data.is_hovered || (!(::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) || !(::Input::was_trigger_pressed(HAND_LEFT))))
             return;
 
         auto* eng = SampleEngine::get_sample_instance();
@@ -57,7 +57,7 @@ namespace GraphSystem {
     void EntityNodeWidget2D::update(float delta_time) {
         NodeWidget2D::update(delta_time);
         sInputData d = get_input_data(false);
-        if (d.is_hovered && ::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT)) {
+        if (d.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
             toggleInspector(d);
         }
     }

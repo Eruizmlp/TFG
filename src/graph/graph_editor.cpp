@@ -100,6 +100,13 @@ GraphNode* GraphEditor::createNode(const std::string& type,
         return nullptr;
     }
 
+    glm::vec3 localPosition = worldPosition;
+
+    glm::vec2 containerPos = graph_container->get_translation();
+    localPosition.x -= containerPos.x;
+    localPosition.y -= containerPos.y;
+        
+
 
     // choose the right widget subclass
     NodeWidget2D* widget = nullptr;
