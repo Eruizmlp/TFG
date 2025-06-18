@@ -10,7 +10,7 @@ namespace GraphSystem {
 
     class VariableNode : public GraphNode {
     public:
-        explicit VariableNode(const std::string& name, const std::string& varName = "", const VariableValue& initialValue = 0.0f);
+        explicit VariableNode(const std::string& name, const std::string& varName = "", const VariableValue& initialValue = 0.1f);
 
         void setVariableName(const std::string& varName);
         const std::string& getVariableName() const;

@@ -25,7 +25,7 @@ namespace GraphSystem {
             tickNodes.push_back(tickNode);
         }
         if (auto* timerNode = dynamic_cast<TimerNode*>(node)) {
-            tickNodes.push_back(timerNode);
+            timerNodes.push_back(timerNode);
         }
     }
 
@@ -114,23 +114,28 @@ namespace GraphSystem {
         for (auto* node : tickNodes) {
             if (auto* tickNode = dynamic_cast<TickNode*>(node)) {
                 tickNode->update(dt);
-
                 if (tickNode->isRunning()) {
+                    // Tick nodes execute every frame they are running.
+                    // This is where their continuous execution logic should be.
                     this->executeFrom(tickNode);
                 }
             }
         }
 
+        // Crucial part for TimerNode
         for (auto* node : timerNodes) {
             if (auto* timerNode = dynamic_cast<TimerNode*>(node)) {
-                if (timerNode->isWaiting()) {
+                if (timerNode->isWaiting()) { // Only update if still waiting
                     timerNode->update(dt);
-                    if (!timerNode->isWaiting()) {
+                    if (!timerNode->isWaiting()) { // Check if it just finished waiting
+                        // If the timer just completed, then and only then,
+                        // propagate execution to connected nodes.
+                        std::cout << "[Graph] TimerNode '" << timerNode->getName() << "' completed. Propagating execution.\n";
                         for (auto* outputPin : timerNode->getOutputs()) {
                             if (outputPin->getType() == IOType::EXECUTION) {
                                 for (auto* link : outputPin->getLinks()) {
                                     if (auto* nextNode = link->getTargetNode()) {
-                                        this->executeFrom(nextNode);
+                                        this->executeFrom(nextNode); // Trigger the next part of the graph
                                     }
                                 }
                             }
