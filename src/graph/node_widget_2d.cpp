@@ -15,12 +15,12 @@ using namespace ui;
 
 glm::vec4 NodeWidget2D::getColorForCategory(GraphSystem::NodeCategory cat) {
     switch (cat) {
-    case NodeCategory::DATA:        return colors::CYAN;
-    case NodeCategory::FLOW:        return colors::YELLOW;
-    case NodeCategory::TRANSFORM:   return colors::GREEN;
-    case NodeCategory::LOGIC:       return colors::PURPLE;
-    case NodeCategory::INTERACTION: return colors::RUST;
-    default:                        return colors::GRAY;
+    case NodeCategory::DATA:        return colors::CYAN * 0.5f;
+    case NodeCategory::FLOW:        return colors::YELLOW * 0.5f;
+    case NodeCategory::TRANSFORM:   return colors::GREEN * 0.5f;
+    case NodeCategory::LOGIC:       return colors::PURPLE * 0.5f;
+    case NodeCategory::INTERACTION: return colors::RUST * 0.5f;
+    default:                        return colors::GRAY * 0.5f;
     }
 }
 
@@ -188,38 +188,59 @@ void NodeWidget2D::update(float delta_time)
 
     background->update(delta_time);
 }
-
 void NodeWidget2D::serialize(std::ofstream& binary_scene_file)
 {
-    size_t node_type_size = graphNodeType.size();
-    binary_scene_file.write(reinterpret_cast<char*>(&node_type_size), sizeof(size_t));
+    
+    uint64_t node_type_size = graphNodeType.size();
+    binary_scene_file.write(reinterpret_cast<char*>(&node_type_size), sizeof(uint64_t));
     binary_scene_file.write(graphNodeType.c_str(), node_type_size);
 
     logic_node->serialize(binary_scene_file);
 
-    Node::serialize(binary_scene_file);
-
-    binary_scene_file.write(reinterpret_cast<char*>(&size), sizeof(glm::vec2));
-    binary_scene_file.write(reinterpret_cast<char*>(&scaling), sizeof(glm::vec2));
-    binary_scene_file.write(reinterpret_cast<char*>(&model), sizeof(glm::mat3x3));
+    glm::vec2 current_pos = get_translation();
+    binary_scene_file.write(reinterpret_cast<char*>(&current_pos), sizeof(glm::vec2));
 }
 
+
+// [in node_widget_2d.cpp]
 void NodeWidget2D::parse(std::ifstream& binary_scene_file)
 {
+    // This function's job is to parse the data for its corresponding logic_node,
+    // and then to parse its own data (like position).
     logic_node->parse(binary_scene_file);
 
-    // parse node type outside (it's parsed in the scene parser..)
-    uint64_t node_type_size = 0;
-    std::string node_type;
-    binary_scene_file.read(reinterpret_cast<char*>(&node_type_size), sizeof(uint64_t));
-    node_type.resize(node_type_size);
-    binary_scene_file.read(&node_type[0], node_type_size);
+    glm::vec2 current_pos;
+    binary_scene_file.read(reinterpret_cast<char*>(&current_pos), sizeof(glm::vec2));
+    set_position(current_pos);
+}
 
-    Node::parse(binary_scene_file);
+void RotateNodeWidget2D::serialize(std::ofstream& binary_scene_file)
+{
+    
+    NodeWidget2D::serialize(binary_scene_file);
 
-    binary_scene_file.read(reinterpret_cast<char*>(&size), sizeof(glm::vec2));
-    binary_scene_file.read(reinterpret_cast<char*>(&scaling), sizeof(glm::vec2));
-    binary_scene_file.read(reinterpret_cast<char*>(&model), sizeof(glm::mat3x3));
+    auto* rotateNode = static_cast<RotateNode*>(logic_node);
+    float angle = rotateNode->getRotationAngle();
+    const glm::vec3& axis = rotateNode->getRotationAxis();
+
+    binary_scene_file.write(reinterpret_cast<const char*>(&angle), sizeof(float));
+    binary_scene_file.write(reinterpret_cast<const char*>(&axis), sizeof(glm::vec3));
+}
+
+void RotateNodeWidget2D::parse(std::ifstream& binary_scene_file)
+{
+
+    NodeWidget2D::parse(binary_scene_file);
+
+    auto* rotateNode = static_cast<RotateNode*>(logic_node);
+    float angle;
+    glm::vec3 axis;
+
+    binary_scene_file.read(reinterpret_cast<char*>(&angle), sizeof(float));
+    binary_scene_file.read(reinterpret_cast<char*>(&axis), sizeof(glm::vec3));
+
+    rotateNode->setRotationAngle(angle);
+    rotateNode->setRotationAxis(axis);
 }
 
 RotateNodeWidget2D::RotateNodeWidget2D(const std::string& nodeType,
@@ -230,6 +251,8 @@ RotateNodeWidget2D::RotateNodeWidget2D(const std::string& nodeType,
 {
 
 }
+
+
 
 void RotateNodeWidget2D::toggleInspector(sInputData data) {
     
@@ -369,37 +392,7 @@ void RotateNodeWidget2D::initInspector() {
     inspectPanel->set_visibility(false, true);
 }
 
-//void RotateNodeWidget2D::serialize(std::ofstream& binary_scene_file)
-//{
-//    NodeWidget2D::serialize(binary_scene_file);
-//
-//    //  export new stuff
-//    write(float)
-//}
-//
-//void RotateNodeWidget2D::parse(...)
-//{
-//    NodeWidget2D::parse(binary_scene_file);
-//
-//    //  export new stuff
-//    read(float)
-//}
 
-//void RotateNodeWidget2D::updateInspector() {
-//    if (!inspectPanel || !inspectorVisible) return;
-//    inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
-//
-//    auto* rotateNode = static_cast<RotateNode*>(logic_node);
-//    auto* angleInput = rotateNode->getInput("Angle");
-//
-//    float valueToDisplay = rotateNode->getRotationAngle();
-//    if (angleInput && angleInput->hasData()) {
-//        valueToDisplay = angleInput->getFloat();
-//    }
-//
-//    angleSlider->set_value(valueToDisplay);
-//    angleValueLabel->set_text(formatFloat(valueToDisplay, 1));
-//}
 
 
 // -------------------------- TranslateNodeWidget2D --------------------------
@@ -595,8 +588,8 @@ void ScaleNodeWidget2D::initInspector() {
         scaleNode->setScaleFactor(v); // Actualiza el miembro interno
 
         // Actualizar el Input "Factor" del nodo
-        if (scaleNode->getInput("Factor")) { // Comprobar si el input existe
-            scaleNode->getInput("Factor")->setData(VariableValue(v)); // MODIFICADO // 
+        if (scaleNode->getInput("Factor")) { 
+            scaleNode->getInput("Factor")->setData(VariableValue(v));
         }
 
 

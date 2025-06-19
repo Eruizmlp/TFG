@@ -21,5 +21,7 @@ namespace GraphSystem {
         void start();
         void stop();
         bool isRunning() const;
+
+        void rebindPins() override;
     };
 }

@@ -23,6 +23,7 @@ namespace GraphSystem {
         void setRotationAngle(float angle);
         void setRotationAxis(const glm::vec3& axis);
         float getRotationAngle();
+        const glm::vec3& getRotationAxis() const;
 
         void execute(std::queue<GraphNode*>& executionQueue) override;
 

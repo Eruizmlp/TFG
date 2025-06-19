@@ -23,10 +23,7 @@ namespace GraphSystem {
     }
 
     Link::~Link() {
-        // Unregister this link from the output
-        if (outputRef) {
-            outputRef->removeLink(this);
-        }
+        
     }
 
     GraphNode* Link::getSourceNode() const {

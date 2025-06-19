@@ -39,6 +39,7 @@ namespace GraphSystem {
 
         const std::vector<GraphNode*>& getEventNodes() const { return eventNodes; }
 
+        GraphNode* getNodeByName(const std::string& name);
         const std::list<GraphNode*>& getNodes() const { return nodes; }
         const std::list<Link*>& getLinks() const { return links; }
 

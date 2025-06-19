@@ -26,6 +26,11 @@ namespace GraphSystem {
         void toggleInspector(sInputData data) override;
         void update(float delta_time) override;
 
+        void serialize(std::ofstream& binary_scene_file) override;
+        void parse(std::ifstream& binary_scene_file) override;
+
+
+
     private:
         void initInspector();
         void updateInspector();

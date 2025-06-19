@@ -35,4 +35,11 @@ namespace GraphSystem {
     bool TickNode::isRunning() const {
         return running;
     }
+
+    void TickNode::rebindPins() {
+        startInput = getInput("Start");
+        stopInput = getInput("Stop");
+        tickOutput = getOutput("Tick");
+    }
+
 }

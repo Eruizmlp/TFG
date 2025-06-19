@@ -43,6 +43,10 @@ namespace GraphSystem {
         return angle;
     }
 
+    const glm::vec3& RotateNode::getRotationAxis() const {
+        return axis;
+    }
+
     void RotateNode::execute(std::queue<GraphNode*>& executionQueue) {
 
         MeshInstance3D* currentMesh = nullptr;

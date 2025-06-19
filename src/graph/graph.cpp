@@ -13,6 +13,16 @@ namespace GraphSystem {
         clear();
     }
 
+    GraphNode* Graph::getNodeByName(const std::string& name) {
+        for (auto* node : nodes) {
+            if (node->getName() == name) {
+                return node;
+            }
+        }
+        return nullptr;
+    }
+
+
     void Graph::addNode(GraphNode* node) {
         if (!node) return;
         for (auto* n : nodes) if (n == node) return;
@@ -147,11 +157,27 @@ namespace GraphSystem {
     }
 
     void Graph::clear() {
-        for (auto* link : links) delete link;
-        for (auto* node : nodes) delete node;
+        
+        for (auto* node : nodes) {
+            for (auto* output : node->getOutputs()) {
+                output->getLinks().clear();
+            }
+        }
+
+    
+        for (auto* link : links) {
+            delete link;
+        }
         links.clear();
+
+ 
+        for (auto* node : nodes) {
+            delete node;
+        }
         nodes.clear();
+
         eventNodes.clear();
         tickNodes.clear();
+        timerNodes.clear();
     }
 }

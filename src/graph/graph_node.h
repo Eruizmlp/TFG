@@ -82,6 +82,8 @@ namespace GraphSystem {
 
         virtual void serialize(std::ofstream& binary_scene_file);
         virtual void parse(std::ifstream& binary_scene_file);
+
+        virtual void rebindPins() {}
     };
 
 } // namespace GraphSystem
