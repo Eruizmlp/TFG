@@ -26,6 +26,9 @@ namespace GraphSystem {
         MeshInstance3D*
     >;
 
+    void serializeVariableValue(std::ofstream& file, const VariableValue& val);
+    VariableValue parseVariableValue(std::ifstream& file);
+
     class Output; 
 
     class IO {

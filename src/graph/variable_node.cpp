@@ -87,6 +87,8 @@ namespace GraphSystem {
         file.write(reinterpret_cast<const char*>(&var_name_size), sizeof(var_name_size));
         file.write(variableName.c_str(), var_name_size);
 
+        serializeVariableValue(file, defaultValue);
+
 
     }
 
@@ -98,6 +100,8 @@ namespace GraphSystem {
         if (var_name_size > 0) {
             file.read(&variableName[0], var_name_size);
         }
+
+        defaultValue = parseVariableValue(file);
     }
 
     void VariableNode::rebindPins() {

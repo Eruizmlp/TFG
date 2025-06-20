@@ -3,6 +3,8 @@
 #include "graph_node.h" 
 #include <stdexcept>
 #include <iostream>
+#include <sstream>
+#include <fstream>
 
 namespace GraphSystem {
 
@@ -259,4 +261,56 @@ namespace GraphSystem {
         return true;
     }
 
-} 
+    void serializeVariableValue(std::ofstream& file, const VariableValue& val) {
+        uint8_t type_index = static_cast<uint8_t>(val.index());
+        file.write(reinterpret_cast<const char*>(&type_index), sizeof(type_index));
+
+        std::visit([&file](auto&& arg) {
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (std::is_same_v<T, std::string>) {
+                uint64_t size = arg.size();
+                file.write(reinterpret_cast<const char*>(&size), sizeof(size));
+                file.write(arg.c_str(), size);
+            }
+            else if constexpr (std::is_same_v<T, bool> ||
+                std::is_same_v<T, int> ||
+                std::is_same_v<T, float> ||
+                std::is_same_v<T, glm::vec2> ||
+                std::is_same_v<T, glm::vec3> ||
+                std::is_same_v<T, glm::vec4> ||
+                std::is_same_v<T, glm::mat4>) {
+                file.write(reinterpret_cast<const char*>(&arg), sizeof(T));
+            }
+            // No se hace nada para MeshInstance3D*, ya que se maneja por referencia.
+            // No se hace nada para EXECUTION, ya que no tiene valor.
+            }, val);
+    }
+
+    VariableValue parseVariableValue(std::ifstream& file) {
+        uint8_t type_index;
+        file.read(reinterpret_cast<char*>(&type_index), sizeof(type_index));
+        IOType type = static_cast<IOType>(type_index);
+
+        switch (type) {
+        case IOType::BOOL: { bool v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+        case IOType::INT: { int v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+        case IOType::FLOAT: { float v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+        case IOType::STRING: {
+            uint64_t size;
+            file.read(reinterpret_cast<char*>(&size), sizeof(size));
+            std::string v(size, '\0');
+            if (size > 0) file.read(&v[0], size);
+            return v;
+        }
+        case IOType::VEC2: { glm::vec2 v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+        case IOType::VEC3: { glm::vec3 v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+        case IOType::VEC4: { glm::vec4 v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+        case IOType::MAT4: { glm::mat4 v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+        case IOType::MESH:
+        case IOType::EXECUTION:
+        default:
+            return {};
+        }
+    }
+
+}
