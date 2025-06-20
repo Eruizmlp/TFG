@@ -74,84 +74,16 @@ NodeWidget2D::NodeWidget2D(const std::string& nodeType,
     background->add_child(rootContainer);
 
     float titleSize = 20.0f;
-    auto* title = new Text2D(
+    titleLabel = new Text2D(
         node->getName(),
         { 8, 8 },
         titleSize,
         SKIP_TEXT_RECT
     );
-    title->set_color(colors::WHITE);
-    rootContainer->add_child(title);
+    titleLabel->set_color(colors::WHITE);
+    rootContainer->add_child(titleLabel);
 
-    // — OUTPUT ports —
-    for (auto* outP : logic_node->getOutputs()) {
-        auto* row = new HContainer2D(
-            "RowOut_" + outP->getName(),
-            { 0, 0 },
-            0u,
-            colors::GRAY
-        );
-        row->padding = { 4, 2 };
-        row->item_margin = { 8, 0 };
-        rootContainer->add_child(row);
-
-        auto* lbl = new Text2D(
-            outP->getName(),
-            { 0, 0 },
-            18.0f,
-            SKIP_TEXT_RECT
-        );
-        lbl->set_color(colors::GREEN);
-        row->add_child(lbl);
-
-        sButtonDescription desc;
-        desc.size = { 16, 16 };
-        desc.color = colors::GREEN;
-        auto* btn = new PortButton2D(
-            "outBtn_" + node->getName() + "_" + outP->getName(),
-            desc,
-            logic_node,
-            graphEditor,
-            outP->getName(),
-            true
-        );
-        row->add_child(btn);
-    }
-
-    // — INPUT ports —
-    for (auto* inP : logic_node->getInputs()) {
-        auto* row = new HContainer2D(
-            "RowIn_" + inP->getName(),
-            { 0, 0 },
-            0u,
-            colors::GRAY
-        );
-        row->padding = { 4, 2 };
-        row->item_margin = { 8, 0 };
-        rootContainer->add_child(row);
-
-        sButtonDescription desc;
-        desc.size = { 16, 16 };
-        desc.color = colors::RED;
-        auto* btn = new PortButton2D(
-            "inBtn_" + node->getName() + "_" + inP->getName(),
-            desc,
-            logic_node,
-            graphEditor,
-            inP->getName(),
-            false
-        );
-        row->add_child(btn);
-
-        auto* lbl = new Text2D(
-            inP->getName(),
-            { 0, 0 },
-            18.0f,
-            SKIP_TEXT_RECT
-        );
-        lbl->set_color(colors::RED);
-        row->add_child(lbl);
-    }
+    rebuildWidgetUI();
 }
 
 
@@ -188,60 +120,106 @@ void NodeWidget2D::update(float delta_time)
 
     background->update(delta_time);
 }
-void NodeWidget2D::serialize(std::ofstream& binary_scene_file)
-{
-    
-    uint64_t node_type_size = graphNodeType.size();
-    binary_scene_file.write(reinterpret_cast<char*>(&node_type_size), sizeof(uint64_t));
-    binary_scene_file.write(graphNodeType.c_str(), node_type_size);
 
-    logic_node->serialize(binary_scene_file);
 
-    glm::vec2 current_pos = get_translation();
-    binary_scene_file.write(reinterpret_cast<char*>(&current_pos), sizeof(glm::vec2));
+void NodeWidget2D::updateTitleFromLogicNode() {
+    if (logic_node && titleLabel) {
+        titleLabel->set_text(logic_node->getName());
+    }
+}
+void NodeWidget2D::rebuildWidgetUI() {
+    if (!rootContainer || !logic_node) return;
+
+    // 1. Crear una lista de hijos a borrar para evitar problemas al modificar la lista mientras se itera.
+    //    No incluimos el titleLabel en esta lista para preservarlo.
+    std::vector<Node*> children_to_delete;
+    for (auto* child : rootContainer->get_children()) {
+        if (child != titleLabel) {
+            children_to_delete.push_back(child);
+        }
+    }
+
+    // 2. Borrar los hijos seleccionados usando el método correcto del padre.
+    for (auto* child_node : children_to_delete) {
+        // FIX: Realizar un dynamic_cast a Node2D* para llamar a la sobrecarga correcta de remove_child,
+        // que es vital para que los contenedores de UI actualicen su layout.
+        if (Node2D* node2d_child = dynamic_cast<Node2D*>(child_node)) {
+            rootContainer->remove_child(node2d_child);
+        }
+        delete child_node; // Liberar la memoria del nodo hijo.
+    }
+
+    // 3. Vuelve a crear la UI para los pines con los punteros ahora válidos.
+    for (auto* outP : logic_node->getOutputs()) {
+        auto* row = new ui::HContainer2D("RowOut_" + logic_node->getName() + "_" + outP->getName(), { 0, 0 });
+        row->padding = { 4, 2 }; row->item_margin = { 8, 0 };
+        rootContainer->add_child(row);
+
+        auto* lbl = new ui::Text2D(outP->getName(), { 0, 0 }, 18.0f, SKIP_TEXT_RECT);
+        lbl->set_color(colors::GREEN);
+        row->add_child(lbl);
+
+        ui::sButtonDescription desc; desc.size = { 16, 16 }; desc.color = colors::GREEN;
+        auto* btn = new PortButton2D("outBtn_" + logic_node->getName() + "_" + outP->getName(), desc, logic_node, graphEditor, outP->getName(), true);
+        row->add_child(btn);
+    }
+
+    for (auto* inP : logic_node->getInputs()) {
+        auto* row = new ui::HContainer2D("RowIn_" + logic_node->getName() + "_" + inP->getName(), { 0, 0 });
+        row->padding = { 4, 2 }; row->item_margin = { 8, 0 };
+        rootContainer->add_child(row);
+
+        ui::sButtonDescription desc; desc.size = { 16, 16 }; desc.color = colors::RED;
+        auto* btn = new PortButton2D("inBtn_" + logic_node->getName() + "_" + inP->getName(), desc, logic_node, graphEditor, inP->getName(), false);
+        row->add_child(btn);
+
+        auto* lbl = new ui::Text2D(inP->getName(), { 0, 0 }, 18.0f, SKIP_TEXT_RECT);
+        lbl->set_color(colors::RED);
+        row->add_child(lbl);
+    }
 }
 
+void NodeWidget2D::serialize(std::ofstream& binary_scene_file)
+{
+    uint64_t node_type_size = graphNodeType.size();
+    binary_scene_file.write(reinterpret_cast<const char*>(&node_type_size), sizeof(uint64_t));
+    binary_scene_file.write(graphNodeType.c_str(), node_type_size);
+    logic_node->serialize(binary_scene_file);
+    glm::vec2 current_pos = get_translation();
+    binary_scene_file.write(reinterpret_cast<const char*>(&current_pos), sizeof(glm::vec2));
+}
 
-// [in node_widget_2d.cpp]
 void NodeWidget2D::parse(std::ifstream& binary_scene_file)
 {
-    // This function's job is to parse the data for its corresponding logic_node,
-    // and then to parse its own data (like position).
     logic_node->parse(binary_scene_file);
-
     glm::vec2 current_pos;
     binary_scene_file.read(reinterpret_cast<char*>(&current_pos), sizeof(glm::vec2));
     set_position(current_pos);
 }
 
+
 void RotateNodeWidget2D::serialize(std::ofstream& binary_scene_file)
 {
-    
     NodeWidget2D::serialize(binary_scene_file);
-
     auto* rotateNode = static_cast<RotateNode*>(logic_node);
     float angle = rotateNode->getRotationAngle();
     const glm::vec3& axis = rotateNode->getRotationAxis();
-
     binary_scene_file.write(reinterpret_cast<const char*>(&angle), sizeof(float));
     binary_scene_file.write(reinterpret_cast<const char*>(&axis), sizeof(glm::vec3));
 }
 
 void RotateNodeWidget2D::parse(std::ifstream& binary_scene_file)
 {
-
     NodeWidget2D::parse(binary_scene_file);
-
     auto* rotateNode = static_cast<RotateNode*>(logic_node);
     float angle;
     glm::vec3 axis;
-
     binary_scene_file.read(reinterpret_cast<char*>(&angle), sizeof(float));
     binary_scene_file.read(reinterpret_cast<char*>(&axis), sizeof(glm::vec3));
-
     rotateNode->setRotationAngle(angle);
     rotateNode->setRotationAxis(axis);
 }
+
 
 RotateNodeWidget2D::RotateNodeWidget2D(const std::string& nodeType,
     RotateNode* node,

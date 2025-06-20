@@ -3,6 +3,10 @@
 #include <variant>
 #include <iostream>
 
+
+#include <sstream>
+#include <fstream>
+
 namespace GraphSystem {
 
     MathNode::MathNode(const std::string& name, char op)
@@ -55,5 +59,24 @@ namespace GraphSystem {
 
     void MathNode::setOperation(char op) {
         operation = op;
+    }
+    void MathNode::serialize(std::ofstream& file)
+    {
+        GraphNode::serialize(file);
+        file.write(reinterpret_cast<const char*>(&operation), sizeof(operation));
+
+    }
+    void MathNode::parse(std::ifstream& file)
+    {
+        GraphNode::parse(file);
+        file.read(reinterpret_cast<char*>(&operation), sizeof(operation));
+    }
+
+    void MathNode::rebindPins()
+    {
+        aInput = getInput("A");
+        bInput = getInput("B");
+        resultOutput = getOutput("Result");
+
     }
 }

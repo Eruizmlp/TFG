@@ -157,24 +157,16 @@ namespace GraphSystem {
     }
 
     void Graph::clear() {
-        
-        for (auto* node : nodes) {
-            for (auto* output : node->getOutputs()) {
-                output->getLinks().clear();
-            }
+
+        while (!links.empty()) {
+            delete links.front();
+            links.pop_front();
         }
 
-    
-        for (auto* link : links) {
-            delete link;
+        while (!nodes.empty()) {
+            delete nodes.front();
+            nodes.pop_front();
         }
-        links.clear();
-
- 
-        for (auto* node : nodes) {
-            delete node;
-        }
-        nodes.clear();
 
         eventNodes.clear();
         tickNodes.clear();

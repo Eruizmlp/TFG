@@ -22,7 +22,8 @@ namespace GraphSystem {
         const std::string& getEntityNameOnLoad() const { return entity_name_on_load; } 
 
         void serialize(std::ofstream& binary_scene_file) override; 
-        void parse(std::ifstream& binary_scene_file) override;   
+        void parse(std::ifstream& binary_scene_file) override;
+        void rebindPins() override;
         void execute(std::queue<GraphNode*>& executionQueue) override;
 
     };

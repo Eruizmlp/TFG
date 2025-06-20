@@ -98,62 +98,63 @@ namespace GraphSystem {
         }
         return links;
     }
+    void GraphNode::serialize(std::ofstream& file) {
+        sGraphNodeBinaryHeader header = { (uint64_t)m_inputs.size(), (uint64_t)m_outputs.size() };
+        file.write(reinterpret_cast<const char*>(&header), sizeof(header));
+        file.write(reinterpret_cast<const char*>(&m_category), sizeof(m_category));
+
+        uint64_t name_size = m_name.size();
+        file.write(reinterpret_cast<const char*>(&name_size), sizeof(name_size));
+        file.write(m_name.c_str(), name_size);
+
+        for (const auto* pin : m_inputs) {
+            uint64_t pin_name_size = pin->getName().size();
+            file.write(reinterpret_cast<const char*>(&pin_name_size), sizeof(pin_name_size));
+            file.write(pin->getName().c_str(), pin_name_size);
+            IOType pin_type = pin->getType();
+            file.write(reinterpret_cast<const char*>(&pin_type), sizeof(pin_type));
+        }
+        for (const auto* pin : m_outputs) {
+            uint64_t pin_name_size = pin->getName().size();
+            file.write(reinterpret_cast<const char*>(&pin_name_size), sizeof(pin_name_size));
+            file.write(pin->getName().c_str(), pin_name_size);
+            IOType pin_type = pin->getType();
+            file.write(reinterpret_cast<const char*>(&pin_type), sizeof(pin_type));
+        }
+    }
 
 
-    void GraphNode::serialize(std::ofstream& binary_scene_file) {
-    // We ONLY serialize the node's name and category.
-    binary_scene_file.write(reinterpret_cast<char*>(&m_category), sizeof(NodeCategory));
-    
-    // --- THIS IS THE FINAL FIX ---
-    // The type for the size MUST be uint64_t to match what parse() expects.
-    uint64_t name_size = m_name.size();
-    binary_scene_file.write(reinterpret_cast<char*>(&name_size), sizeof(uint64_t));
-    binary_scene_file.write(m_name.c_str(), name_size);
-}
-
-    // [in graph_node.cpp]
-   // [in graph_node.cpp]
-    void GraphNode::parse(std::ifstream& binary_scene_file) {
-        // 1. Read the header to know how many pins to expect.
+    void GraphNode::parse(std::ifstream& file) {
         sGraphNodeBinaryHeader header;
-        binary_scene_file.read(reinterpret_cast<char*>(&header), sizeof(sGraphNodeBinaryHeader));
+        file.read(reinterpret_cast<char*>(&header), sizeof(header));
+        file.read(reinterpret_cast<char*>(&m_category), sizeof(m_category));
 
-        // 2. Read the node's category and name.
-        binary_scene_file.read(reinterpret_cast<char*>(&m_category), sizeof(NodeCategory));
         uint64_t name_size = 0;
-        binary_scene_file.read(reinterpret_cast<char*>(&name_size), sizeof(uint64_t));
+        file.read(reinterpret_cast<char*>(&name_size), sizeof(name_size));
         m_name.resize(name_size);
-        binary_scene_file.read(&m_name[0], name_size);
+        file.read(&m_name[0], name_size);
 
-        // 3. IMPORTANT: Clear any default pins created by the node's constructor.
         for (auto* pin : m_inputs) delete pin;
         m_inputs.clear();
         for (auto* pin : m_outputs) delete pin;
         m_outputs.clear();
 
-        // 4. Rebuild all Input pins exactly as they were saved.
         for (uint64_t i = 0; i < header.input_count; ++i) {
             uint64_t pin_name_size = 0;
-            binary_scene_file.read(reinterpret_cast<char*>(&pin_name_size), sizeof(uint64_t));
+            file.read(reinterpret_cast<char*>(&pin_name_size), sizeof(pin_name_size));
             std::string pin_name(pin_name_size, '\0');
-            binary_scene_file.read(&pin_name[0], pin_name_size);
-
+            file.read(&pin_name[0], pin_name_size);
             IOType pin_type;
-            binary_scene_file.read(reinterpret_cast<char*>(&pin_type), sizeof(IOType));
-
+            file.read(reinterpret_cast<char*>(&pin_type), sizeof(pin_type));
             addInput(pin_name, pin_type);
         }
-
-        // 5. Rebuild all Output pins exactly as they were saved.
         for (uint64_t i = 0; i < header.output_count; ++i) {
             uint64_t pin_name_size = 0;
-            binary_scene_file.read(reinterpret_cast<char*>(&pin_name_size), sizeof(uint64_t));
+            file.read(reinterpret_cast<char*>(&pin_name_size), sizeof(pin_name_size));
             std::string pin_name(pin_name_size, '\0');
-            binary_scene_file.read(&pin_name[0], pin_name_size);
-
+            file.read(&pin_name[0], pin_name_size);
             IOType pin_type;
-            binary_scene_file.read(reinterpret_cast<char*>(&pin_type), sizeof(IOType));
-
+            file.read(reinterpret_cast<char*>(&pin_type), sizeof(pin_type));
             addOutput(pin_name, pin_type);
         }
     }

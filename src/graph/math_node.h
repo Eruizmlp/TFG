@@ -19,5 +19,12 @@ namespace GraphSystem {
 
 
         void setOperation(char op);
+
+
+        void serialize(std::ofstream& file) override;
+        void parse(std::ifstream& file) override;
+
+        void rebindPins() override;
+
     };
 }

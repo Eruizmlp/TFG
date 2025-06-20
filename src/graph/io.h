@@ -51,7 +51,6 @@ namespace GraphSystem {
 
         const VariableValue& getRawValue() const { return value; }
 
-        // Getters ahora virtuales
         virtual bool getBool() const;
         virtual int getInt() const;
         virtual float getFloat() const;

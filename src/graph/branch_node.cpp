@@ -35,4 +35,9 @@ namespace GraphSystem {
             }
         }
     }
+    void BranchNode::rebindPins() {
+        conditionInput = getInput("Condition");
+        trueOutput = getOutput("True");
+        falseOutput = getOutput("False");
+    }
 }

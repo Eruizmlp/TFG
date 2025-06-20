@@ -27,6 +27,9 @@ namespace GraphSystem {
         glm::vec2         dragOffset;
         std::string       graphNodeType;
 
+        ui::Text2D* titleLabel = nullptr;
+
+
         static glm::vec2 computeSize(GraphNode* node);
 
     public:
@@ -43,6 +46,7 @@ namespace GraphSystem {
         // input / render hooks
         bool       on_input(sInputData data) override;
         void       update(float delta_time) override;
+        
         sInputData get_input_data(bool ignore_focus = false) override;
 
         // inspector hooks
@@ -51,8 +55,12 @@ namespace GraphSystem {
 
         virtual void on_right_click() {}
 
-       virtual void serialize(std::ofstream& binary_scene_file);
-       virtual void parse(std::ifstream& binary_scene_file);
+        void updateTitleFromLogicNode();
+        void rebuildWidgetUI();
+        virtual void serialize(std::ofstream& binary_scene_file);
+        virtual void parse(std::ifstream& binary_scene_file);
+
+
 
     };
 

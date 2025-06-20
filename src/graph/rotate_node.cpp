@@ -3,6 +3,9 @@
 #include <iostream>
 #include <queue>
 
+#include <sstream>
+#include <fstream>
+
 namespace GraphSystem {
 
     // El constructor y los setters/getters que tenías están perfectos.
@@ -84,5 +87,26 @@ namespace GraphSystem {
                 }
             }
         }
+    }
+
+    void RotateNode::rebindPins() {
+        execInput = getInput("Execute");
+        transformInput = getInput("Transform");
+        
+        angleInput = getInput("Angle");
+        execOutput = getOutput("Exec");
+        transformOutput = getOutput("Transform");
+        
+    }
+
+    void RotateNode::serialize(std::ofstream& file) {
+        GraphNode::serialize(file);
+        file.write(reinterpret_cast<const char*>(&angle), sizeof(angle));
+        file.write(reinterpret_cast<const char*>(&axis), sizeof(axis));
+    }
+    void RotateNode::parse(std::ifstream& file) {
+        GraphNode::parse(file);
+        file.read(reinterpret_cast<char*>(&angle), sizeof(angle));
+        file.read(reinterpret_cast<char*>(&axis), sizeof(axis));
     }
 }

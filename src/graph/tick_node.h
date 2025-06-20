@@ -23,5 +23,8 @@ namespace GraphSystem {
         bool isRunning() const;
 
         void rebindPins() override;
+
+        void serialize(std::ofstream& file) override;
+        void parse(std::ifstream& file) override;
     };
 }

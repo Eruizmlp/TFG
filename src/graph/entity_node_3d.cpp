@@ -1,6 +1,7 @@
 #include "entity_node_3d.h"
 #include <sstream>
 #include <fstream>
+#include <spdlog/spdlog.h>
 
 namespace GraphSystem {
 
@@ -30,25 +31,29 @@ namespace GraphSystem {
     {
     }
 
-    void EntityNode3D::serialize(std::ofstream& binary_scene_file) {
-        GraphNode::serialize(binary_scene_file);
-
+    void EntityNode3D::serialize(std::ofstream& file) {
+        GraphNode::serialize(file);
         std::string linked_entity_name = (entity) ? entity->get_name() : "";
         uint64_t name_size = linked_entity_name.size();
-        binary_scene_file.write(reinterpret_cast<char*>(&name_size), sizeof(uint64_t));
-        binary_scene_file.write(linked_entity_name.c_str(), name_size);
+        file.write(reinterpret_cast<const char*>(&name_size), sizeof(name_size));
+        file.write(linked_entity_name.c_str(), name_size);
     }
 
-    void EntityNode3D::parse(std::ifstream& binary_scene_file) {
-     
-        GraphNode::parse(binary_scene_file);
-
-        
+    void EntityNode3D::parse(std::ifstream& file) {
+        GraphNode::parse(file);
         uint64_t name_size = 0;
-        binary_scene_file.read(reinterpret_cast<char*>(&name_size), sizeof(uint64_t));
+        file.read(reinterpret_cast<char*>(&name_size), sizeof(name_size));
         entity_name_on_load.resize(name_size);
-        binary_scene_file.read(&entity_name_on_load[0], name_size);
+        if (name_size > 0) {
+            file.read(&entity_name_on_load[0], name_size);
+        }
     }
 
+    void EntityNode3D::rebindPins() {
+        outputEntity = getOutput("Mesh");
+        if (!outputEntity) {
+            spdlog::error("EntityNode3D '{}': Could not rebind 'Mesh' output pin.", getName());
+        }
+    }
 
 }

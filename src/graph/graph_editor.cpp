@@ -35,6 +35,59 @@
 
 using namespace GraphSystem;
 
+
+void serializeVariableValue(std::ofstream& file, const VariableValue& val) {
+    uint8_t type_index = static_cast<uint8_t>(val.index());
+    file.write(reinterpret_cast<const char*>(&type_index), sizeof(type_index));
+
+    std::visit([&file](auto&& arg) {
+        using T = std::decay_t<decltype(arg)>;
+        if constexpr (std::is_same_v<T, std::string>) {
+            uint64_t size = arg.size();
+            file.write(reinterpret_cast<const char*>(&size), sizeof(size));
+            file.write(arg.c_str(), size);
+        }
+        else if constexpr (std::is_same_v<T, bool> ||
+            std::is_same_v<T, int> ||
+            std::is_same_v<T, float> ||
+            std::is_same_v<T, glm::vec2> ||
+            std::is_same_v<T, glm::vec3> ||
+            std::is_same_v<T, glm::vec4> ||
+            std::is_same_v<T, glm::mat4>) {
+            file.write(reinterpret_cast<const char*>(&arg), sizeof(T));
+        }
+        // No se hace nada para MeshInstance3D*, ya que se maneja por referencia.
+        // No se hace nada para EXECUTION, ya que no tiene valor.
+        }, val);
+}
+
+VariableValue parseVariableValue(std::ifstream& file) {
+    uint8_t type_index;
+    file.read(reinterpret_cast<char*>(&type_index), sizeof(type_index));
+    IOType type = static_cast<IOType>(type_index);
+
+    switch (type) {
+    case IOType::BOOL: { bool v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+    case IOType::INT: { int v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+    case IOType::FLOAT: { float v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+    case IOType::STRING: {
+        uint64_t size;
+        file.read(reinterpret_cast<char*>(&size), sizeof(size));
+        std::string v(size, '\0');
+        if (size > 0) file.read(&v[0], size);
+        return v;
+    }
+    case IOType::VEC2: { glm::vec2 v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+    case IOType::VEC3: { glm::vec3 v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+    case IOType::VEC4: { glm::vec4 v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+    case IOType::MAT4: { glm::mat4 v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+    case IOType::MESH:
+    case IOType::EXECUTION:
+    default:
+        return {};
+    }
+}
+
 GraphEditor::GraphEditor(Graph* graph, Node2D* panel)
     : graph(graph), graph_container(panel)
 {
@@ -193,65 +246,69 @@ void GraphEditor::update(float delta_time)
 
 }
 
-void GraphEditor::serialize(const std::string& path)
-{
-    std::ofstream binary_scene_file(path, std::ios::out | std::ios::binary);
-    if (!binary_scene_file) {
+void GraphEditor::serialize(const std::string& path) {
+    std::ofstream file(path, std::ios::out | std::ios::binary);
+    if (!file) {
         spdlog::error("GraphEditor: Could not open file for writing {}", path);
         return;
     }
 
-    // --- Header ---
-    sGraphBinaryHeader header = {
-        .node_count = widgets.size(),
-        .link_count = graph->getLinks().size(),
-    };
-    binary_scene_file.write(reinterpret_cast<char*>(&header), sizeof(sGraphBinaryHeader));
+    // 1. Cabecera del grafo
+    sGraphBinaryHeader header = { (uint64_t)getWidgets().size(), (uint64_t)graph->getLinks().size() };
+    file.write(reinterpret_cast<const char*>(&header), sizeof(header));
 
-    // --- Graph Name ---
     uint64_t graph_name_size = graph->getName().size();
-    binary_scene_file.write(reinterpret_cast<char*>(&graph_name_size), sizeof(uint64_t));
-    binary_scene_file.write(graph->getName().c_str(), graph_name_size);
+    file.write(reinterpret_cast<const char*>(&graph_name_size), sizeof(uint64_t));
+    file.write(graph->getName().c_str(), graph_name_size);
 
-    // --- 1. Serialize All Widgets/Nodes ---
-    for (auto* node_widget : widgets) {
-        node_widget->serialize(binary_scene_file);
+    // 2. Serializar el almacén de variables
+    const auto& varStore = VariableNode::getStore();
+    uint64_t var_count = varStore.size();
+    file.write(reinterpret_cast<const char*>(&var_count), sizeof(var_count));
+    for (const auto& pair : varStore) {
+        uint64_t name_size = pair.first.size();
+        file.write(reinterpret_cast<const char*>(&name_size), sizeof(name_size));
+        file.write(pair.first.c_str(), name_size);
+        serializeVariableValue(file, pair.second);
     }
 
-    // --- 2. Serialize All Links ---
+    // 3. Serializar todos los nodos
+    for (auto* node_widget : getWidgets()) {
+        node_widget->serialize(file);
+    }
+
+    // 4. Serializar todos los links
     for (const auto* link : graph->getLinks()) {
-        // Source Node Name
-        std::string source_node_name = link->getSourceNode()->getName();
-        uint64_t source_name_size = source_node_name.size(); 
-        binary_scene_file.write(reinterpret_cast<const char*>(&source_name_size), sizeof(uint64_t)); // <--- CHANGE HERE
-        binary_scene_file.write(source_node_name.c_str(), source_name_size);
+        GraphNode* source_node = link->getSourceNode();
+        Output* output_pin = link->getOutput();
+        GraphNode* target_node = link->getTargetNode();
+        Input* input_pin = link->getTargetInput();
+        if (!source_node || !output_pin || !target_node || !input_pin) {
+            spdlog::warn("Skipping serialization of an invalid link.");
+            continue;
+        }
+        uint64_t source_name_size = source_node->getName().size();
+        file.write(reinterpret_cast<const char*>(&source_name_size), sizeof(uint64_t));
+        file.write(source_node->getName().c_str(), source_name_size);
 
-        // Output Port Name
-        std::string output_port_name = link->getOutput()->getName();
-        uint64_t output_port_size = output_port_name.size(); 
-        binary_scene_file.write(reinterpret_cast<const char*>(&output_port_size), sizeof(uint64_t)); // <--- CHANGE HERE
-        binary_scene_file.write(output_port_name.c_str(), output_port_size);
+        uint64_t output_port_size = output_pin->getName().size();
+        file.write(reinterpret_cast<const char*>(&output_port_size), sizeof(uint64_t));
+        file.write(output_pin->getName().c_str(), output_port_size);
 
-        // Target Node Name
-        std::string target_node_name = link->getTargetNode()->getName();
-        uint64_t target_name_size = target_node_name.size(); 
-        binary_scene_file.write(reinterpret_cast<const char*>(&target_name_size), sizeof(uint64_t)); // <--- CHANGE HERE
-        binary_scene_file.write(target_node_name.c_str(), target_name_size);
+        uint64_t target_name_size = target_node->getName().size();
+        file.write(reinterpret_cast<const char*>(&target_name_size), sizeof(uint64_t));
+        file.write(target_node->getName().c_str(), target_name_size);
 
-        // Input Port Name
-        std::string input_port_name = link->getTargetInput()->getName();
-        uint64_t input_port_size = input_port_name.size(); 
-        binary_scene_file.write(reinterpret_cast<const char*>(&input_port_size), sizeof(uint64_t)); 
-        binary_scene_file.write(input_port_name.c_str(), input_port_size);
+        uint64_t input_port_size = input_pin->getName().size();
+        file.write(reinterpret_cast<const char*>(&input_port_size), sizeof(uint64_t));
+        file.write(input_pin->getName().c_str(), input_port_size);
     }
-
-    binary_scene_file.close();
+    file.close();
 }
 
-void GraphEditor::parse(const std::string& path)
-{
-    std::ifstream binary_scene_file(path, std::ios::in | std::ios::binary);
-    if (!binary_scene_file) {
+void GraphEditor::parse(const std::string& path) {
+    std::ifstream file(path, std::ios::in | std::ios::binary);
+    if (!file) {
         spdlog::error("GraphEditor: Could not parse file {}", path);
         return;
     }
@@ -259,54 +316,69 @@ void GraphEditor::parse(const std::string& path)
     graph->clear();
     for (auto* w : widgets) { delete w; }
     widgets.clear();
+    VariableNode::clearStore();
 
     sGraphBinaryHeader header;
-    binary_scene_file.read(reinterpret_cast<char*>(&header), sizeof(sGraphBinaryHeader));
+    file.read(reinterpret_cast<char*>(&header), sizeof(header));
 
     uint64_t graph_name_size = 0;
-    binary_scene_file.read(reinterpret_cast<char*>(&graph_name_size), sizeof(uint64_t));
-    std::string graph_name;
-    graph_name.resize(graph_name_size);
-    binary_scene_file.read(&graph_name[0], graph_name_size);
+    file.read(reinterpret_cast<char*>(&graph_name_size), sizeof(uint64_t));
+    std::string graph_name(graph_name_size, '\0');
+    if (graph_name_size > 0) file.read(&graph_name[0], graph_name_size);
     graph->setName(graph_name);
 
-    // Pass 1: Create, Parse, and Rebind all nodes
-    for (uint64_t i = 0; i < header.node_count; ++i) {
-        uint64_t node_type_size = 0;
-        binary_scene_file.read(reinterpret_cast<char*>(&node_type_size), sizeof(uint64_t));
-        std::string graph_node_type;
-        graph_node_type.resize(node_type_size);
-        binary_scene_file.read(&graph_node_type[0], node_type_size);
+    // PASO 0: Leer y repoblar el almacén de variables
+    uint64_t var_count = 0;
+    file.read(reinterpret_cast<char*>(&var_count), sizeof(var_count));
+    for (uint64_t i = 0; i < var_count; ++i) {
+        uint64_t name_size = 0;
+        file.read(reinterpret_cast<char*>(&name_size), sizeof(name_size));
+        std::string var_name(name_size, '\0');
+        if (name_size > 0) file.read(&var_name[0], name_size);
 
-        GraphNode* new_node = createNode(graph_node_type, "TEMP");
-        if (!new_node) continue;
-        NodeWidget2D* new_widget = widgets.back();
-
-        new_widget->parse(binary_scene_file);
-
-        new_node->rebindPins();
+        VariableValue var_value = parseVariableValue(file);
+        VariableNode::setStoredValue(var_name, var_value);
     }
 
-    // --- Pass 2: Connect all links ---
+    // PASO 1: Cargar todos los nodos
+    for (uint64_t i = 0; i < header.node_count; ++i) {
+        uint64_t type_size = 0;
+        file.read(reinterpret_cast<char*>(&type_size), sizeof(type_size));
+        std::string node_type(type_size, '\0');
+        if (type_size > 0) file.read(&node_type[0], type_size);
+
+        GraphNode* new_node = createNode(node_type, "TEMP_LOADING");
+        if (!new_node) continue;
+
+        NodeWidget2D* new_widget = widgets.back();
+
+        new_widget->parse(file);
+        new_node->rebindPins();
+        new_widget->updateTitleFromLogicNode();
+        new_widget->rebuildWidgetUI();
+        new_widget->updateInspector();
+    }
+
+    // PASO 2: Reconectar todos los links
     for (uint64_t i = 0; i < header.link_count; ++i) {
-        // THIS IS THE CRITICAL FIX FOR THE FREEZE
         uint64_t source_name_size, output_port_size, target_name_size, input_port_size;
+        std::string source_node_name, output_port_name, target_node_name, input_port_name;
 
-        binary_scene_file.read(reinterpret_cast<char*>(&source_name_size), sizeof(uint64_t));
-        std::string source_node_name(source_name_size, '\0');
-        binary_scene_file.read(&source_node_name[0], source_name_size);
+        file.read(reinterpret_cast<char*>(&source_name_size), sizeof(uint64_t));
+        source_node_name.resize(source_name_size);
+        file.read(&source_node_name[0], source_name_size);
 
-        binary_scene_file.read(reinterpret_cast<char*>(&output_port_size), sizeof(uint64_t));
-        std::string output_port_name(output_port_size, '\0');
-        binary_scene_file.read(&output_port_name[0], output_port_size);
+        file.read(reinterpret_cast<char*>(&output_port_size), sizeof(uint64_t));
+        output_port_name.resize(output_port_size);
+        file.read(&output_port_name[0], output_port_size);
 
-        binary_scene_file.read(reinterpret_cast<char*>(&target_name_size), sizeof(uint64_t));
-        std::string target_node_name(target_name_size, '\0');
-        binary_scene_file.read(&target_node_name[0], target_name_size);
+        file.read(reinterpret_cast<char*>(&target_name_size), sizeof(uint64_t));
+        target_node_name.resize(target_name_size);
+        file.read(&target_node_name[0], target_name_size);
 
-        binary_scene_file.read(reinterpret_cast<char*>(&input_port_size), sizeof(uint64_t));
-        std::string input_port_name(input_port_size, '\0');
-        binary_scene_file.read(&input_port_name[0], input_port_size);
+        file.read(reinterpret_cast<char*>(&input_port_size), sizeof(uint64_t));
+        input_port_name.resize(input_port_size);
+        file.read(&input_port_name[0], input_port_size);
 
         GraphNode* source_node = graph->getNodeByName(source_node_name);
         GraphNode* target_node = graph->getNodeByName(target_node_name);
@@ -315,30 +387,37 @@ void GraphEditor::parse(const std::string& path)
             graph->connect(source_node, output_port_name, target_node, input_port_name);
         }
         else {
-            spdlog::error("Could not find nodes for link: {} -> {}", source_node_name, target_node_name);
+            spdlog::error("Link parse error: Node not found. {} -> {}", source_node_name, target_node_name);
         }
     }
 
-    // --- Pass 3: Post-Processing for Scene Entities ---
+    // PASO 3: Post-Procesamiento para enlazar entidades de la escena
     Scene* scene = Engine::get_instance()->get_main_scene();
     if (scene) {
-        const auto& all_scene_nodes = scene->get_nodes();
         for (auto* widget : widgets) {
             if (auto* entityNode = dynamic_cast<EntityNode3D*>(widget->getLogicNode())) {
                 const std::string& entity_name_to_find = entityNode->getEntityNameOnLoad();
                 if (!entity_name_to_find.empty()) {
-                    for (Node* current_scene_node : all_scene_nodes) {
-                        if (current_scene_node->get_name() == entity_name_to_find) {
-                            if (auto* meshInstance = dynamic_cast<MeshInstance3D*>(current_scene_node)) {
-                                entityNode->setEntity(meshInstance);
-                            }
+
+                    // FIX: Iterar sobre la lista de nodos de la escena para encontrar por nombre
+                    Node* found_node = nullptr;
+                    for (Node* scene_node : scene->get_nodes()) {
+                        if (scene_node->get_name() == entity_name_to_find) {
+                            found_node = scene_node;
                             break;
                         }
+                    }
+
+                    if (auto* meshInstance = dynamic_cast<MeshInstance3D*>(found_node)) {
+                        entityNode->setEntity(meshInstance);
+                    }
+                    else {
+                        spdlog::warn("Could not find or cast scene entity '{}' for node '{}'", entity_name_to_find, entityNode->getName());
                     }
                 }
             }
         }
     }
-
-    binary_scene_file.close();
+    file.close();
 }
+

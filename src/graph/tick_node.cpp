@@ -1,6 +1,10 @@
 #include "tick_node.h"
 #include <queue>
 
+
+#include <sstream>
+#include <fstream>
+
 namespace GraphSystem {
 
     TickNode::TickNode(const std::string& name)
@@ -40,6 +44,18 @@ namespace GraphSystem {
         startInput = getInput("Start");
         stopInput = getInput("Stop");
         tickOutput = getOutput("Tick");
+    }
+
+    void TickNode::serialize(std::ofstream& file)
+    {
+        GraphNode::serialize(file);
+        file.write(reinterpret_cast<const char*>(&running), sizeof(running));
+
+    }
+    void TickNode::parse(std::ifstream& file)
+    {
+        GraphNode::parse(file);
+        file.read(reinterpret_cast<char*>(&running), sizeof(running));
     }
 
 }

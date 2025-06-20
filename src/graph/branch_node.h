@@ -15,5 +15,7 @@ namespace GraphSystem {
         explicit BranchNode(const std::string& name);
 
         void execute(std::queue<GraphNode*>& executionQueue) override;
+
+        void rebindPins() override;
     };
 }

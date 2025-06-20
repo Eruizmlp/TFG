@@ -4,6 +4,9 @@
 #include <queue>
 #include <optional>
 
+#include <sstream>
+#include <fstream>
+
 namespace GraphSystem {
 
     std::unordered_map<std::string, VariableValue> VariableNode::variableStore;
@@ -76,5 +79,39 @@ namespace GraphSystem {
 
     void VariableNode::setStoredValue(const std::string& varName, const VariableValue& value) {
         variableStore[varName] = value;
+    }
+
+    void VariableNode::serialize(std::ofstream& file) {
+        GraphNode::serialize(file);
+        uint64_t var_name_size = variableName.size();
+        file.write(reinterpret_cast<const char*>(&var_name_size), sizeof(var_name_size));
+        file.write(variableName.c_str(), var_name_size);
+
+
+    }
+
+    void VariableNode::parse(std::ifstream& file) {
+        GraphNode::parse(file);
+        uint64_t var_name_size = 0;
+        file.read(reinterpret_cast<char*>(&var_name_size), sizeof(var_name_size));
+        variableName.resize(var_name_size);
+        if (var_name_size > 0) {
+            file.read(&variableName[0], var_name_size);
+        }
+    }
+
+    void VariableNode::rebindPins() {
+
+
+        execInput = getInput("Execute");
+        valueInput = getInput("Value");
+        execOutput = getOutput("Exec");
+        outValue = getOutput("Value");
+
+        if (outValue) {
+            outValue->setComputeFunction([varName = this->variableName, defVal = this->defaultValue]() -> VariableValue {
+                return VariableNode::getStoredValue(varName, defVal);
+                });
+        }
     }
 }

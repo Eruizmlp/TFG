@@ -23,7 +23,9 @@ namespace GraphSystem {
     }
 
     Link::~Link() {
-        
+        if (outputRef) {
+            outputRef->removeLink(this);
+        }
     }
 
     GraphNode* Link::getSourceNode() const {

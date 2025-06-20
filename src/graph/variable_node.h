@@ -17,8 +17,15 @@ namespace GraphSystem {
 
         void execute(std::queue<GraphNode*>& executionQueue) override;
 
-        static VariableValue getStoredValue(const std::string& varName, const VariableValue& defaultValue);
         static void setStoredValue(const std::string& varName, const VariableValue& value);
+        static VariableValue getStoredValue(const std::string& varName, const VariableValue& defaultValue);
+        static const auto& getStore() { return variableStore; }
+        static void clearStore() { variableStore.clear(); }
+
+        void rebindPins() override;
+        void serialize(std::ofstream& file) override;
+        void parse(std::ifstream& file) override;
+
 
     private:
         static std::unordered_map<std::string, VariableValue> variableStore;
