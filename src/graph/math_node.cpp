@@ -72,11 +72,53 @@ namespace GraphSystem {
         file.read(reinterpret_cast<char*>(&operation), sizeof(operation));
     }
 
-    void MathNode::rebindPins()
-    {
+    void MathNode::rebindPins() {
+       
         aInput = getInput("A");
         bInput = getInput("B");
         resultOutput = getOutput("Result");
 
+        
+        if (resultOutput) {
+            resultOutput->setComputeFunction([this]() -> VariableValue {
+                
+                if (!aInput || !bInput) {
+                    return 0.0f; 
+                }
+
+                auto aVal = aInput->getValue();
+                auto bVal = bInput->getValue();
+
+    
+                if (std::holds_alternative<float>(aVal) && std::holds_alternative<float>(bVal)) {
+                    float a = std::get<float>(aVal);
+                    float b = std::get<float>(bVal);
+                    switch (operation) {
+                    case '+': return a + b;
+                    case '-': return a - b;
+                    case '*': return a * b;
+                    case '/': return (b != 0.0f) ? a / b : 0.0f;
+                    default: return 0.0f;
+                    }
+                }
+              
+                else if (std::holds_alternative<glm::vec3>(aVal) && std::holds_alternative<glm::vec3>(bVal)) {
+                    glm::vec3 a = std::get<glm::vec3>(aVal);
+                    glm::vec3 b = std::get<glm::vec3>(bVal);
+                    switch (operation) {
+                    case '+': return a + b;
+                    case '-': return a - b;
+                    case '*': return a * b;
+                    case '/': return a / glm::max(b, glm::vec3(0.0001f));
+                    default: return glm::vec3(0.0f);
+                    }
+                }
+           
+                else {
+                    std::cerr << "[MathNode] (" << getName() << ") Type mismatch or unsupported types.\n";
+                    return 0.0f;
+                }
+                });
+        }
     }
 }

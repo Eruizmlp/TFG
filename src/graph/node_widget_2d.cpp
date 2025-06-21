@@ -218,6 +218,10 @@ void RotateNodeWidget2D::parse(std::ifstream& binary_scene_file)
     binary_scene_file.read(reinterpret_cast<char*>(&axis), sizeof(glm::vec3));
     rotateNode->setRotationAngle(angle);
     rotateNode->setRotationAxis(axis);
+
+    if (Input* angleInput = rotateNode->getInput("Angle")) {
+        angleInput->setData(VariableValue(angle));
+    }
 }
 
 

@@ -291,6 +291,8 @@ namespace GraphSystem {
         file.read(reinterpret_cast<char*>(&type_index), sizeof(type_index));
         IOType type = static_cast<IOType>(type_index);
 
+        std::cout << "[DEBUG] parseVariableValue read type_index: " << static_cast<int>(type_index) << std::endl;
+
         switch (type) {
         case IOType::BOOL: { bool v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
         case IOType::INT: { int v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }

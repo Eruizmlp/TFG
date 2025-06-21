@@ -1,0 +1,3337 @@
+//Repository base directory: "C:\TFG\src\graph" 
+
+//$$FILE$$: "C:\TFG\src\graph\graph.cpp" 
+#include "graph.h"
+#include "run_node.h"
+#include "tick_node.h"
+#include "timer_node.h"
+#include <iostream>
+#include <queue>
+
+namespace GraphSystem {
+
+    Graph::Graph(const std::string& name) : m_name(name) {}
+
+    Graph::~Graph() {
+        clear();
+    }
+
+    GraphNode* Graph::getNodeByName(const std::string& name) {
+        for (auto* node : nodes) {
+            if (node->getName() == name) {
+                return node;
+            }
+        }
+        return nullptr;
+    }
+
+
+    void Graph::addNode(GraphNode* node) {
+        if (!node) return;
+        for (auto* n : nodes) if (n == node) return;
+        nodes.push_back(node);
+
+        if (auto* runNode = dynamic_cast<RunNode*>(node)) {
+            eventNodes.push_back(runNode);
+        }
+        if (auto* tickNode = dynamic_cast<TickNode*>(node)) {
+            tickNodes.push_back(tickNode);
+        }
+        if (auto* timerNode = dynamic_cast<TimerNode*>(node)) {
+            timerNodes.push_back(timerNode);
+        }
+    }
+
+    void Graph::removeNode(GraphNode* node) {
+        if (!node) return;
+        for (auto it = links.begin(); it != links.end();) {
+            if ((*it)->getSourceNode() == node || (*it)->getTargetNode() == node) {
+                delete* it;
+                it = links.erase(it);
+            }
+            else {
+                ++it;
+            }
+        }
+        for (auto it = nodes.begin(); it != nodes.end(); ++it) {
+            if (*it == node) {
+                delete* it;
+                nodes.erase(it);
+                break;
+            }
+        }
+    }
+
+    bool Graph::connect(GraphNode* source, const std::string& outputName, GraphNode* target, const std::string& inputName) {
+        if (!source || !target || source == target) {
+            return false;
+        }
+
+        Output* output = source->getOutput(outputName);
+        if (!output) {
+            return false;
+        }
+
+        Input* input = nullptr;
+        if (!inputName.empty()) {
+            input = target->getInput(inputName);
+        }
+        else {
+            for (auto* in : target->getInputs()) {
+                if (in && in->getType() == output->getType()) {
+                    if (output->getType() == IOType::EXECUTION && in->getName() != "Execute") continue;
+                    input = in;
+                    break;
+                }
+            }
+        }
+
+        if (!input || output->getType() != input->getType()) {
+            return false;
+        }
+
+        for (auto* link : links) {
+            if (link->getOutput() == output && link->getTargetInput() == input) {
+                return false;
+            }
+        }
+
+        Link* link = new Link(output, target, input);
+        if (output->getType() != IOType::EXECUTION) {
+            link->transferData();
+        }
+        links.push_back(link);
+        std::cout << "[Graph] Conectado " << source->getName() << ":" << output->getName() << " a " << target->getName() << ":" << input->getName() << "\n";
+        return true;
+    }
+
+    void Graph::executeFrom(GraphNode* startNode) {
+        if (!startNode) {
+            std::cerr << "[Graph] Error: se intentó ejecutar desde un nodo nulo.\n";
+            return;
+        }
+
+        std::queue<GraphNode*> executionQueue;
+        executionQueue.push(startNode);
+
+        while (!executionQueue.empty()) {
+            GraphNode* currentNode = executionQueue.front();
+            executionQueue.pop();
+            if (!currentNode) continue;
+
+            currentNode->execute(executionQueue);
+        }
+    }
+
+    void Graph::update(float dt) {
+        for (auto* node : tickNodes) {
+            if (auto* tickNode = dynamic_cast<TickNode*>(node)) {
+                tickNode->update(dt);
+                if (tickNode->isRunning()) {
+                    // Tick nodes execute every frame they are running.
+                    // This is where their continuous execution logic should be.
+                    this->executeFrom(tickNode);
+                }
+            }
+        }
+
+        // Crucial part for TimerNode
+        for (auto* node : timerNodes) {
+            if (auto* timerNode = dynamic_cast<TimerNode*>(node)) {
+                if (timerNode->isWaiting()) { // Only update if still waiting
+                    timerNode->update(dt);
+                    if (!timerNode->isWaiting()) { // Check if it just finished waiting
+                        // If the timer just completed, then and only then,
+                        // propagate execution to connected nodes.
+                        std::cout << "[Graph] TimerNode '" << timerNode->getName() << "' completed. Propagating execution.\n";
+                        for (auto* outputPin : timerNode->getOutputs()) {
+                            if (outputPin->getType() == IOType::EXECUTION) {
+                                for (auto* link : outputPin->getLinks()) {
+                                    if (auto* nextNode = link->getTargetNode()) {
+                                        this->executeFrom(nextNode); // Trigger the next part of the graph
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    void Graph::clear() {
+
+        while (!links.empty()) {
+            delete links.front();
+            links.pop_front();
+        }
+
+        while (!nodes.empty()) {
+            delete nodes.front();
+            nodes.pop_front();
+        }
+
+        eventNodes.clear();
+        tickNodes.clear();
+        timerNodes.clear();
+    }
+}
+
+
+
+
+//$$FILE$$: "C:\TFG\src\graph\graph.h" 
+#pragma once
+
+#include <list>
+#include <vector>
+#include <string>
+#include "graph_node.h"
+#include "link.h"
+
+namespace GraphSystem {
+
+    class Graph {
+    private:
+        std::list<GraphNode*> nodes;
+        std::list<Link*> links;
+        std::string m_name;
+
+        std::vector<GraphNode*> eventNodes;
+        std::vector<GraphNode*> tickNodes;
+        std::vector<GraphNode*> timerNodes;
+
+
+    public:
+        explicit Graph(const std::string& name);
+        ~Graph();
+
+        const std::string& getName() const { return m_name; }
+        void setName(const std::string& newName) { m_name = newName; }
+
+        void addNode(GraphNode* node);
+        void removeNode(GraphNode* node);
+        bool connect(GraphNode* source,
+            const std::string& outputName,
+            GraphNode* target,
+            const std::string& inputName = "");
+
+
+        void update(float dt);
+        void executeFrom(GraphNode* startNode);
+
+        const std::vector<GraphNode*>& getEventNodes() const { return eventNodes; }
+
+        GraphNode* getNodeByName(const std::string& name);
+        const std::list<GraphNode*>& getNodes() const { return nodes; }
+        const std::list<Link*>& getLinks() const { return links; }
+
+        void clear();
+    };
+}
+
+
+
+
+//$$FILE$$: "C:\TFG\src\graph\entity_node_3d.cpp" 
+#include "entity_node_3d.h"
+#include <sstream>
+#include <fstream>
+#include <spdlog/spdlog.h>
+
+namespace GraphSystem {
+
+    EntityNode3D::EntityNode3D(const std::string& name)
+        : GraphNode(name, NodeCategory::DATA)
+    {
+        outputEntity = addOutput("Mesh", IOType::MESH); 
+        outputEntity->setComputeFunction([this]() -> VariableValue { 
+            return VariableValue(entity); 
+            });
+
+        outputEntity->setData(VariableValue(static_cast<MeshInstance3D*>(nullptr))); 
+    }
+
+    void EntityNode3D::setEntity(MeshInstance3D* e) {
+        entity = e; 
+        if (outputEntity) {
+            outputEntity->setData(VariableValue(entity)); 
+        }
+    }
+
+    MeshInstance3D* EntityNode3D::getEntity() const {
+        return entity; 
+    }
+
+    void EntityNode3D::execute(std::queue<GraphNode*>& executionQueue)
+    {
+    }
+
+    void EntityNode3D::serialize(std::ofstream& file) {
+        GraphNode::serialize(file);
+        std::string linked_entity_name = (entity) ? entity->get_name() : "";
+        uint64_t name_size = linked_entity_name.size();
+        file.write(reinterpret_cast<const char*>(&name_size), sizeof(name_size));
+        file.write(linked_entity_name.c_str(), name_size);
+    }
+
+    void EntityNode3D::parse(std::ifstream& file) {
+        GraphNode::parse(file);
+        uint64_t name_size = 0;
+        file.read(reinterpret_cast<char*>(&name_size), sizeof(name_size));
+        entity_name_on_load.resize(name_size);
+        if (name_size > 0) {
+            file.read(&entity_name_on_load[0], name_size);
+        }
+    }
+
+    void EntityNode3D::rebindPins() {
+        outputEntity = getOutput("Mesh");
+        if (!outputEntity) {
+            spdlog::error("EntityNode3D '{}': Could not rebind 'Mesh' output pin.", getName());
+        }
+    }
+
+}
+
+
+
+
+//$$FILE$$: "C:\TFG\src\graph\entity_node_3d.h" 
+#pragma once
+#include "graph_node.h"
+#include "io.h"
+#include "framework/nodes/mesh_instance_3d.h"
+#include <queue>
+
+namespace GraphSystem {
+
+    class EntityNode3D : public GraphNode {
+        MeshInstance3D* entity = nullptr;
+        Output* outputEntity = nullptr;
+
+        std::string entity_name_on_load;
+        
+    public:
+        explicit EntityNode3D(const std::string& name);
+
+        void setEntity(MeshInstance3D* e);
+        MeshInstance3D* getEntity() const;
+
+        void setEntityNameOnLoad(const std::string& name) { entity_name_on_load = name; }
+        const std::string& getEntityNameOnLoad() const { return entity_name_on_load; } 
+
+        void serialize(std::ofstream& binary_scene_file) override; 
+        void parse(std::ifstream& binary_scene_file) override;
+        void rebindPins() override;
+        void execute(std::queue<GraphNode*>& executionQueue) override;
+
+    };
+
+}
+
+
+
+
+//$$FILE$$: "C:\TFG\src\graph\graph_node.cpp" 
+#include "graph_node.h"
+#include <iostream>
+#include <fstream>
+
+namespace GraphSystem {
+
+    GraphNode::GraphNode(const std::string& name, NodeCategory category)
+        : m_name(name), m_isEntryPoint(false), m_executionPending(false), m_category(category)
+    {
+    }
+
+    GraphNode::~GraphNode() {
+        for (auto input : m_inputs) delete input;
+        for (auto output : m_outputs) delete output;
+
+    }
+
+    Input* GraphNode::addInput(const std::string& name, IOType type) {
+        Input* input = new Input(name, type);
+        m_inputs.push_back(input);
+        return input;
+    }
+
+    Output* GraphNode::addOutput(const std::string& name, IOType type) {
+        std::cout << "[GraphNode] Adding output: " << name << " Type: " << static_cast<int>(type) << "\n";
+        Output* output = new Output(this, name, type);
+        m_outputs.push_back(output);
+        return output;
+    }
+
+    Link* GraphNode::createLink(Output* source, GraphNode* target) {
+        if (!source || !target) return nullptr;
+        Link* link = new Link(source, target);
+        source->addLink(link);
+        return link;
+    }
+
+    void GraphNode::removeLink(Link* link) {
+        if (!link) return;
+        if (Output* output = link->getOutput()) {
+            output->removeLink(link);
+        }
+        delete link;
+    }
+
+    void GraphNode::removeAllLinks() {
+        for (auto output : m_outputs) {
+            output->getLinks().clear();
+        }
+    }
+
+    Input* GraphNode::getInput(const std::string& name) {
+        for (auto input : m_inputs) {
+            if (input && input->getName() == name) {
+                return input;
+            }
+        }
+        return nullptr;
+    }
+
+    const Input* GraphNode::getInput(const std::string& name) const {
+        for (auto input : m_inputs) {
+            if (input && input->getName() == name) {
+                return input;
+            }
+        }
+        return nullptr;
+    }
+
+    Output* GraphNode::getOutput(const std::string& name) {
+        for (auto* output : m_outputs) {
+            if (output && output->getName() == name) {
+                return output;
+            }
+        }
+        return nullptr;
+    }
+
+    void GraphNode::execute(std::queue<GraphNode*>& executionQueue) {
+
+    }
+
+    const Output* GraphNode::getOutput(const std::string& name) const {
+        for (const auto* output : m_outputs) {
+            if (output && output->getName() == name) {
+                return output;
+            }
+        }
+        return nullptr;
+    }
+
+    std::list<Link*> GraphNode::getLinks() const {
+        std::list<Link*> links;
+        for (auto output : m_outputs) {
+            links.insert(links.end(),
+                output->getLinks().begin(),
+                output->getLinks().end());
+        }
+        return links;
+    }
+    void GraphNode::serialize(std::ofstream& file) {
+        sGraphNodeBinaryHeader header = { (uint64_t)m_inputs.size(), (uint64_t)m_outputs.size() };
+        file.write(reinterpret_cast<const char*>(&header), sizeof(header));
+        file.write(reinterpret_cast<const char*>(&m_category), sizeof(m_category));
+
+        uint64_t name_size = m_name.size();
+        file.write(reinterpret_cast<const char*>(&name_size), sizeof(name_size));
+        file.write(m_name.c_str(), name_size);
+
+        for (const auto* pin : m_inputs) {
+            uint64_t pin_name_size = pin->getName().size();
+            file.write(reinterpret_cast<const char*>(&pin_name_size), sizeof(pin_name_size));
+            file.write(pin->getName().c_str(), pin_name_size);
+            IOType pin_type = pin->getType();
+            file.write(reinterpret_cast<const char*>(&pin_type), sizeof(pin_type));
+        }
+        for (const auto* pin : m_outputs) {
+            uint64_t pin_name_size = pin->getName().size();
+            file.write(reinterpret_cast<const char*>(&pin_name_size), sizeof(pin_name_size));
+            file.write(pin->getName().c_str(), pin_name_size);
+            IOType pin_type = pin->getType();
+            file.write(reinterpret_cast<const char*>(&pin_type), sizeof(pin_type));
+        }
+    }
+
+
+    void GraphNode::parse(std::ifstream& file) {
+        sGraphNodeBinaryHeader header;
+        file.read(reinterpret_cast<char*>(&header), sizeof(header));
+        file.read(reinterpret_cast<char*>(&m_category), sizeof(m_category));
+
+        uint64_t name_size = 0;
+        file.read(reinterpret_cast<char*>(&name_size), sizeof(name_size));
+        m_name.resize(name_size);
+        file.read(&m_name[0], name_size);
+
+        for (auto* pin : m_inputs) delete pin;
+        m_inputs.clear();
+        for (auto* pin : m_outputs) delete pin;
+        m_outputs.clear();
+
+        for (uint64_t i = 0; i < header.input_count; ++i) {
+            uint64_t pin_name_size = 0;
+            file.read(reinterpret_cast<char*>(&pin_name_size), sizeof(pin_name_size));
+            std::string pin_name(pin_name_size, '\0');
+            file.read(&pin_name[0], pin_name_size);
+            IOType pin_type;
+            file.read(reinterpret_cast<char*>(&pin_type), sizeof(pin_type));
+            addInput(pin_name, pin_type);
+        }
+        for (uint64_t i = 0; i < header.output_count; ++i) {
+            uint64_t pin_name_size = 0;
+            file.read(reinterpret_cast<char*>(&pin_name_size), sizeof(pin_name_size));
+            std::string pin_name(pin_name_size, '\0');
+            file.read(&pin_name[0], pin_name_size);
+            IOType pin_type;
+            file.read(reinterpret_cast<char*>(&pin_type), sizeof(pin_type));
+            addOutput(pin_name, pin_type);
+        }
+    }
+}
+
+
+
+
+//$$FILE$$: "C:\TFG\src\graph\graph_node.h" 
+#ifndef GRAPH_NODE_H
+#define GRAPH_NODE_H
+
+#include <list>
+#include <string>
+#include "io.h"
+#include "link.h"
+#include <queue>
+
+namespace GraphSystem {
+
+    enum class NodeCategory {
+        DATA,
+        FLOW,
+        TRANSFORM,
+        LOGIC,
+        INTERACTION,
+        OTHER
+    };
+
+    struct sGraphNodeBinaryHeader {
+        uint64_t input_count = 0;
+        uint64_t output_count = 0;
+    };
+
+    class GraphNode {
+    protected:
+        std::string m_name;
+        std::list<Input*> m_inputs;
+        std::list<Output*> m_outputs;
+        bool m_isEntryPoint;
+        bool m_executionPending;
+        NodeCategory m_category = NodeCategory::OTHER;
+
+    public:
+        explicit GraphNode(const std::string& name, NodeCategory category = NodeCategory::OTHER);
+        GraphNode() : GraphNode("UnnamedNode") {}
+
+        virtual ~GraphNode();
+
+        // Node identification
+        const std::string& getName() const { return m_name; }
+        void setName(const std::string& name) { m_name = name; }
+
+        // Input/Output management
+        Input* addInput(const std::string& name, IOType type);
+        Output* addOutput(const std::string& name, IOType type);
+
+        // Link management
+        Link* createLink(Output* source, GraphNode* target);
+        void removeLink(Link* link);
+        void removeAllLinks();
+
+        // Node operations
+        virtual void execute(std::queue<GraphNode*>& executionQueue);
+
+        virtual void update(float) {}
+
+
+        virtual bool isTickNode() const { return false; }
+
+        // Getters
+        Input* getInput(const std::string& name);
+        const Input* getInput(const std::string& name) const;
+
+        Output* getOutput(const std::string& name);
+        const Output* getOutput(const std::string& name) const;
+
+
+        const std::list<Input*>& getInputs() const { return m_inputs; }
+        const std::list<Output*>& getOutputs() const { return m_outputs; }
+        std::list<Link*> getLinks() const;
+
+        bool isEntryPoint() const { return m_isEntryPoint; }
+        void setEntryPoint(bool isEntry) { m_isEntryPoint = isEntry; }
+
+        bool isExecutionPending() const { return m_executionPending; }
+        void setExecutionPending(bool pending) { m_executionPending = pending; }
+
+        NodeCategory getCategory() const { return m_category; }
+        void setCategory(NodeCategory cat) { m_category = cat; }
+
+        virtual void serialize(std::ofstream& binary_scene_file);
+        virtual void parse(std::ifstream& binary_scene_file);
+
+        virtual void rebindPins() {}
+    };
+
+} // namespace GraphSystem
+
+#endif // GRAPH_NODE_H
+
+
+
+
+//$$FILE$$: "C:\TFG\src\graph\graph_editor.cpp" 
+#include "graph_editor.h"
+#include "node_widget_2d.h"
+#include "engine/engine.h"
+#include "engine/scene.h"
+#include "print_node.h"
+//#include "sequence_node.h"
+#include "clamp_node.h"
+#include "compare_node.h"
+#include "get_variable_node.h"
+#include "lerp_node.h"
+#include "loop_node.h"
+#include "mapper_node.h"
+#include "random_node.h"
+#include "timer_node.h"
+#include "toggle_node.h"
+#include "mapper_node_widget_2d.h"
+#include "compare_node_widget_2d.h"
+#include "run_node.h"
+#include "math_node.h"
+#include "branch_node.h"
+#include "variable_node.h"
+#include "tick_node.h"
+#include "tick_node_widget_2d.h"
+#include <iostream>
+#include "link_renderer_2d.h"
+#include "math_node_widget_2d.h"
+#include "entity_node_3d.h"
+#include "entity_node_widget_2d.h"
+#include "trigonometric_node.h"
+#include "trigonometric_node_widget_2d.h"
+//#include "set_variable_node.h"
+#include "keyboard.h"
+#include <fstream>
+#include "spdlog/spdlog.h"
+
+using namespace GraphSystem;
+
+
+
+
+GraphEditor::GraphEditor(Graph* graph, Node2D* panel)
+    : graph(graph), graph_container(panel)
+{
+    visualLink = new LinkRenderer2D(graph, this);
+    if (graph_container) {
+        graph_container->add_child(visualLink);
+    }
+    else if (auto* eng = Engine::get_instance(); eng && eng->get_main_scene()) {
+        eng->get_main_scene()->add_node(visualLink);
+    }
+}
+
+GraphNode* GraphEditor::createNode(const std::string& type,
+    const std::string& name,
+    const glm::vec3& worldPosition)
+{
+    GraphNode* node = nullptr;
+    std::string nodeName = name.empty()
+        ? ("node_" + std::to_string(rand()))
+        : name;
+
+    if (type == "PrintNode")         node = new PrintNode(nodeName);
+    else if (type == "RotateNode")   node = new RotateNode(nodeName);
+   // else if (type == "SequenceNode") node = new SequenceNode(nodeName, 2);
+    else if (type == "RunNode")    node = new RunNode(nodeName);
+    else if (type == "MathNode")    node = new MathNode(nodeName);
+    else if (type == "BranchNode")    node = new BranchNode(nodeName);
+    else if (type == "TickNode")     node = new TickNode(nodeName);
+    else if (type == "ScaleNode")    node = new ScaleNode(nodeName);
+    else if (type == "EntityNode3D") node = new EntityNode3D(nodeName);
+    else if (type == "TrigonometricNode") node = new TrigonometricNode(nodeName);
+    else if (type == "TranslateNode") node = new TranslateNode(nodeName);
+   // else if (type == "SetVariableNode") node = new SetVariableNode(nodeName, "");
+    else if (type == "VariableNode")    node = new VariableNode(nodeName, "");
+    else if (type == "ClampNode")       node = new ClampNode(nodeName);
+    else if (type == "CompareNode")     node = new CompareNode(nodeName);
+    else if (type == "GetVariableNode") node = new GetVariableNode(nodeName, ""); // Assumes default empty var name
+    else if (type == "LerpNode")        node = new LerpNode(nodeName);
+    else if (type == "LoopNode")        node = new LoopNode(nodeName);
+    else if (type == "MapperNode")      node = new MapperNode(nodeName);
+    else if (type == "RandomNode")      node = new RandomNode(nodeName);
+    else if (type == "TimerNode")       node = new TimerNode(nodeName);
+    else if (type == "ToggleNode")      node = new ToggleNode(nodeName);
+
+    //else if (type == "VariableNode") {
+    //    auto* varNode = new VariableNode(nodeName);
+
+    //    ui::Keyboard::get_instance().request(
+    //        [varNode](const std::string& userInput) {
+    //            varNode->setVariableName(userInput);
+    //        },
+    //        "defaultVar",
+    //        32
+    //    );
+
+    //    node = varNode;
+    //}
+
+    graph->addNode(node);
+
+    if (!node) {
+        std::cerr << "[GraphEditor] Unknown node type: " << type << "\n";
+        return nullptr;
+    }
+
+    glm::vec3 localPosition = worldPosition;
+
+    glm::vec2 containerPos = graph_container->get_translation();
+    localPosition.x -= containerPos.x;
+    localPosition.y -= containerPos.y;
+        
+
+
+    // choose the right widget subclass
+    NodeWidget2D* widget = nullptr;
+    if (auto* rn = dynamic_cast<RotateNode*>(node))
+        widget = new RotateNodeWidget2D(type, rn, this, worldPosition);
+    else if (auto tr = dynamic_cast<TranslateNode*>(node)) {
+        widget = new TranslateNodeWidget2D(type, tr, this, worldPosition);
+    }
+    else if (auto sc = dynamic_cast<ScaleNode*>(node)) {
+        widget = new ScaleNodeWidget2D(type, sc, this, worldPosition);
+    }
+    else if (auto sc = dynamic_cast<MathNode*>(node)) {
+        widget = new MathNodeWidget2D(type, sc, this, worldPosition);
+    }
+    else if (auto sc = dynamic_cast<TrigonometricNode*>(node)) {
+        widget = new TrigonometricNodeWidget2D(type, sc, this, worldPosition);
+    }
+    else if (auto* tk = dynamic_cast<TickNode*>(node))
+        widget = new TickNodeWidget2D(type, tk, this, worldPosition);
+
+    else if (auto* cn = dynamic_cast<CompareNode*>(node)) {
+        widget = new CompareNodeWidget2D(type, cn, this, worldPosition);
+    }
+    else if (auto* mn = dynamic_cast<MapperNode*>(node)) {
+        widget = new MapperNodeWidget2D(type, mn, this, worldPosition);
+    }
+
+    else
+        widget = new NodeWidget2D(type, node, this, worldPosition);
+
+
+    if (graph_container) {
+        graph_container->add_child(widget);
+        
+    }
+    else if (auto* eng = Engine::get_instance(); eng && eng->get_main_scene()) {
+        eng->get_main_scene()->add_node(widget);
+    }
+    else {
+        std::cout << "[GraphEditor] graph_container is null!\n";
+    }
+    
+    
+    widgets.push_back(widget);
+    return node;
+}
+
+void GraphEditor::beginConnection(GraphNode* sourceNode,
+    const std::string& outputPort)
+{
+    pendingSource = sourceNode;
+    pendingOutput = outputPort;
+}
+
+void GraphEditor::completeConnection(GraphNode* targetNode,
+    const std::string& inputPort)
+{
+    if (!pendingSource) return;
+
+    if (!graph->connect(pendingSource, pendingOutput, targetNode, inputPort)) {
+        std::cerr << "[GraphEditor] Failed to connect "
+            << pendingSource->getName() << " -> "
+            << targetNode->getName() << "\n";
+    }
+    else {
+        std::cout << "[GraphEditor] Connected "
+            << pendingSource->getName() << " -> "
+            << targetNode->getName() << "\n";
+    }
+
+    resetConnectionState();
+}
+
+void GraphEditor::resetConnectionState()
+{
+    pendingSource = nullptr;
+    pendingOutput.clear();
+}
+
+void GraphEditor::update(float delta_time)
+{
+
+    if (visualLink) visualLink->update(delta_time);
+
+}
+
+void GraphEditor::serialize(const std::string& path) {
+    std::ofstream file(path, std::ios::out | std::ios::binary);
+    if (!file) {
+        spdlog::error("GraphEditor: Could not open file for writing {}", path);
+        return;
+    }
+
+    // 1. Cabecera del grafo
+    sGraphBinaryHeader header = { (uint64_t)getWidgets().size(), (uint64_t)graph->getLinks().size() };
+    file.write(reinterpret_cast<const char*>(&header), sizeof(header));
+
+    uint64_t graph_name_size = graph->getName().size();
+    file.write(reinterpret_cast<const char*>(&graph_name_size), sizeof(uint64_t));
+    file.write(graph->getName().c_str(), graph_name_size);
+
+    // 2. Serializar el almacén de variables
+    const auto& varStore = VariableNode::getStore();
+    uint64_t var_count = varStore.size();
+    file.write(reinterpret_cast<const char*>(&var_count), sizeof(var_count));
+    for (const auto& pair : varStore) {
+        uint64_t name_size = pair.first.size();
+        file.write(reinterpret_cast<const char*>(&name_size), sizeof(name_size));
+        file.write(pair.first.c_str(), name_size);
+        serializeVariableValue(file, pair.second);
+    }
+
+    // 3. Serializar todos los nodos
+    for (auto* node_widget : getWidgets()) {
+        node_widget->serialize(file);
+    }
+
+    // 4. Serializar todos los links
+    for (const auto* link : graph->getLinks()) {
+        GraphNode* source_node = link->getSourceNode();
+        Output* output_pin = link->getOutput();
+        GraphNode* target_node = link->getTargetNode();
+        Input* input_pin = link->getTargetInput();
+        if (!source_node || !output_pin || !target_node || !input_pin) {
+            spdlog::warn("Skipping serialization of an invalid link.");
+            continue;
+        }
+        uint64_t source_name_size = source_node->getName().size();
+        file.write(reinterpret_cast<const char*>(&source_name_size), sizeof(uint64_t));
+        file.write(source_node->getName().c_str(), source_name_size);
+
+        uint64_t output_port_size = output_pin->getName().size();
+        file.write(reinterpret_cast<const char*>(&output_port_size), sizeof(uint64_t));
+        file.write(output_pin->getName().c_str(), output_port_size);
+
+        uint64_t target_name_size = target_node->getName().size();
+        file.write(reinterpret_cast<const char*>(&target_name_size), sizeof(uint64_t));
+        file.write(target_node->getName().c_str(), target_name_size);
+
+        uint64_t input_port_size = input_pin->getName().size();
+        file.write(reinterpret_cast<const char*>(&input_port_size), sizeof(uint64_t));
+        file.write(input_pin->getName().c_str(), input_port_size);
+    }
+    file.close();
+}
+
+void GraphEditor::parse(const std::string& path) {
+    std::ifstream file(path, std::ios::in | std::ios::binary);
+    if (!file) {
+        spdlog::error("GraphEditor: Could not parse file {}", path);
+        return;
+    }
+
+    graph->clear();
+    for (auto* w : widgets) { delete w; }
+    widgets.clear();
+    VariableNode::clearStore();
+
+    sGraphBinaryHeader header;
+    file.read(reinterpret_cast<char*>(&header), sizeof(header));
+
+    uint64_t graph_name_size = 0;
+    file.read(reinterpret_cast<char*>(&graph_name_size), sizeof(uint64_t));
+    std::string graph_name(graph_name_size, '\0');
+    if (graph_name_size > 0) file.read(&graph_name[0], graph_name_size);
+    graph->setName(graph_name);
+
+    // PASO 0: Leer y repoblar el almacén de variables
+    uint64_t var_count = 0;
+    file.read(reinterpret_cast<char*>(&var_count), sizeof(var_count));
+    for (uint64_t i = 0; i < var_count; ++i) {
+        uint64_t name_size = 0;
+        file.read(reinterpret_cast<char*>(&name_size), sizeof(name_size));
+        std::string var_name(name_size, '\0');
+        if (name_size > 0) file.read(&var_name[0], name_size);
+
+        VariableValue var_value = parseVariableValue(file);
+        VariableNode::setStoredValue(var_name, var_value);
+    }
+
+    // PASO 1: Cargar todos los nodos
+    for (uint64_t i = 0; i < header.node_count; ++i) {
+        uint64_t type_size = 0;
+        file.read(reinterpret_cast<char*>(&type_size), sizeof(type_size));
+        std::string node_type(type_size, '\0');
+        if (type_size > 0) file.read(&node_type[0], type_size);
+
+        GraphNode* new_node = createNode(node_type, "TEMP_LOADING");
+        if (!new_node) continue;
+
+        NodeWidget2D* new_widget = widgets.back();
+
+        new_widget->parse(file);
+        new_node->rebindPins();
+        new_widget->updateTitleFromLogicNode();
+        new_widget->rebuildWidgetUI();
+        new_widget->updateInspector();
+    }
+
+    // PASO 2: Reconectar todos los links
+    for (uint64_t i = 0; i < header.link_count; ++i) {
+        uint64_t source_name_size, output_port_size, target_name_size, input_port_size;
+        std::string source_node_name, output_port_name, target_node_name, input_port_name;
+
+        file.read(reinterpret_cast<char*>(&source_name_size), sizeof(uint64_t));
+        source_node_name.resize(source_name_size);
+        file.read(&source_node_name[0], source_name_size);
+
+        file.read(reinterpret_cast<char*>(&output_port_size), sizeof(uint64_t));
+        output_port_name.resize(output_port_size);
+        file.read(&output_port_name[0], output_port_size);
+
+        file.read(reinterpret_cast<char*>(&target_name_size), sizeof(uint64_t));
+        target_node_name.resize(target_name_size);
+        file.read(&target_node_name[0], target_name_size);
+
+        file.read(reinterpret_cast<char*>(&input_port_size), sizeof(uint64_t));
+        input_port_name.resize(input_port_size);
+        file.read(&input_port_name[0], input_port_size);
+
+        GraphNode* source_node = graph->getNodeByName(source_node_name);
+        GraphNode* target_node = graph->getNodeByName(target_node_name);
+
+        if (source_node && target_node) {
+            graph->connect(source_node, output_port_name, target_node, input_port_name);
+        }
+        else {
+            spdlog::error("Link parse error: Node not found. {} -> {}", source_node_name, target_node_name);
+        }
+    }
+
+    // PASO 3: Post-Procesamiento para enlazar entidades de la escena
+    Scene* scene = Engine::get_instance()->get_main_scene();
+    if (scene) {
+        for (auto* widget : widgets) {
+            if (auto* entityNode = dynamic_cast<EntityNode3D*>(widget->getLogicNode())) {
+                const std::string& entity_name_to_find = entityNode->getEntityNameOnLoad();
+                if (!entity_name_to_find.empty()) {
+
+                    // FIX: Iterar sobre la lista de nodos de la escena para encontrar por nombre
+                    Node* found_node = nullptr;
+                    for (Node* scene_node : scene->get_nodes()) {
+                        if (scene_node->get_name() == entity_name_to_find) {
+                            found_node = scene_node;
+                            break;
+                        }
+                    }
+
+                    if (auto* meshInstance = dynamic_cast<MeshInstance3D*>(found_node)) {
+                        entityNode->setEntity(meshInstance);
+                    }
+                    else {
+                        spdlog::warn("Could not find or cast scene entity '{}' for node '{}'", entity_name_to_find, entityNode->getName());
+                    }
+                }
+            }
+        }
+    }
+    file.close();
+}
+
+
+
+
+
+//$$FILE$$: "C:\TFG\src\graph\graph_editor.h" 
+#pragma once
+
+#include "graph.h"
+#include "graph_node.h"
+#include <string>
+#include <vector>
+#include "framework/nodes/panel_2d.h"
+
+namespace GraphSystem { class NodeWidget2D; }
+
+namespace GraphSystem {
+
+    class LinkRenderer2D;
+
+    struct sGraphBinaryHeader {
+        uint64_t node_count = 0;
+        uint64_t link_count = 0;
+    };
+
+    class GraphEditor {
+    public:
+        explicit GraphEditor(Graph* graph, Node2D* panel);
+
+        GraphNode* createNode(const std::string& type,
+            const std::string& name = "",
+            const glm::vec3& worldPosition = glm::vec3(800));
+
+        // Connection workflow
+        void beginConnection(GraphNode* sourceNode, const std::string& outputPort);
+        void completeConnection(GraphNode* targetNode, const std::string& inputPort);
+        void resetConnectionState();
+
+        const std::vector<NodeWidget2D*>& getWidgets() const { return widgets; }
+
+        void update(float delta_time);
+
+        void serialize(const std::string& path);
+        void parse(const std::string& path);
+
+    private:
+        Graph* graph;
+        std::vector<NodeWidget2D*> widgets;
+        GraphNode* pendingSource = nullptr;
+        std::string pendingOutput;
+        Node2D* graph_container = nullptr;
+        LinkRenderer2D* visualLink = nullptr;
+        
+
+    };
+
+}
+
+
+
+
+//$$FILE$$: "C:\TFG\src\graph\io.cpp" 
+#include "io.h"
+#include "link.h"
+#include "graph_node.h" 
+#include <stdexcept>
+#include <iostream>
+#include <sstream>
+#include <fstream>
+
+namespace GraphSystem {
+
+    IO::IO(const std::string& name, IOType type)
+        : name(name), type(type), is_dirty(false), connectedOutput(nullptr) {
+        switch (type) {
+        case IOType::BOOL:   value = false; break;
+        case IOType::INT:    value = 0; break;
+        case IOType::FLOAT:  value = 0.0f; break;
+        case IOType::STRING: value = std::string(); break;
+        case IOType::VEC2:   value = glm::vec2(0.0f); break;
+        case IOType::VEC3:   value = glm::vec3(0.0f); break;
+        case IOType::VEC4:   value = glm::vec4(0.0f); break;
+        case IOType::MAT4:   value = glm::mat4(1.0f); break;
+        case IOType::MESH:   value = static_cast<MeshInstance3D*>(nullptr); break;
+        case IOType::EXECUTION: break;
+        default: throw std::runtime_error("Unknown IOType in IO constructor for " + name);
+        }
+    }
+
+    void IO::setData(const VariableValue& v) {
+        value = v;
+        is_dirty = true;
+    }
+
+    bool IO::getBool() const {
+        if (connectedOutput) { 
+            return connectedOutput->getBool(); 
+        }
+
+
+        if (auto val = std::get_if<bool>(&value)) return *val;
+        throw std::runtime_error("IO::getBool: Type mismatch or no data for bool. Name: " + name);
+    }
+
+    int IO::getInt() const {
+        if (connectedOutput) {
+            return connectedOutput->getInt();
+        }
+        if (auto val = std::get_if<int>(&value)) return *val;
+        throw std::runtime_error("IO::getInt: Type mismatch or no data for int. Name: " + name);
+    }
+
+    float IO::getFloat() const {
+        if (connectedOutput) {
+            return connectedOutput->getFloat();
+        }
+        if (auto val = std::get_if<float>(&value)) return *val;
+        throw std::runtime_error("IO::getFloat: Type mismatch or no data for float. Name: " + name);
+    }
+
+    std::string IO::getString() const {
+        if (connectedOutput) {
+            return connectedOutput->getString();
+        }
+        if (auto val = std::get_if<std::string>(&value)) return *val;
+        throw std::runtime_error("IO::getString: Type mismatch or no data for string. Name: " + name);
+    }
+
+    glm::vec2 IO::getVec2() const {
+        if (connectedOutput) {
+            return connectedOutput->getVec2();
+        }
+        if (auto val = std::get_if<glm::vec2>(&value)) return *val;
+        throw std::runtime_error("IO::getVec2: Type mismatch or no data for vec2. Name: " + name);
+    }
+
+    glm::vec3 IO::getVec3() const {
+        if (connectedOutput) {
+            return connectedOutput->getVec3();
+        }
+        if (auto val = std::get_if<glm::vec3>(&value)) return *val;
+        throw std::runtime_error("IO::getVec3: Type mismatch or no data for vec3. Name: " + name);
+    }
+
+    glm::vec4 IO::getVec4() const {
+        if (connectedOutput) {
+            return connectedOutput->getVec4();
+        }
+        if (auto val = std::get_if<glm::vec4>(&value)) return *val;
+        throw std::runtime_error("IO::getVec4: Type mismatch or no data for vec4. Name: " + name);
+    }
+
+    glm::mat4 IO::getMat4() const {
+        if (connectedOutput) {
+            return connectedOutput->getMat4();
+        }
+        if (auto val = std::get_if<glm::mat4>(&value)) return *val;
+        throw std::runtime_error("IO::getMat4: Type mismatch or no data for mat4. Name: " + name);
+    }
+
+    MeshInstance3D* IO::getMesh() const {
+        if (connectedOutput) {
+            return connectedOutput->getMesh();
+        }
+        if (auto val = std::get_if<MeshInstance3D*>(&value)) return *val;
+
+        return nullptr;
+    }
+
+    bool IO::hasData() const {
+        if (connectedOutput) return connectedOutput->hasData();
+
+        if (std::holds_alternative<MeshInstance3D*>(value)) {
+            return std::get<MeshInstance3D*>(value) != nullptr;
+        }
+        return true; 
+    }
+
+    Input::Input(const std::string& name, IOType type) : IO(name, type) {}
+
+    VariableValue Input::getValue() const {
+        if (connectedOutput) {
+
+            auto compute_func = connectedOutput->getComputeFunction();
+            if (compute_func) {
+                return compute_func();
+            }
+            // Si no, devuelve el valor que ya está almacenado en el pin 
+            else {
+                return connectedOutput->getRawValue();
+            }
+        }
+
+        return value;
+    }
+
+
+    Output::Output(GraphNode* owner, const std::string& name, IOType type)
+        : IO(name, type), ownerNode(owner), computeFunction(nullptr)
+    {
+     
+    }
+
+    Output::~Output() {
+
+        links.clear();
+    }
+
+    void Output::addLink(Link* link) {
+        if (link) links.push_back(link);
+    }
+
+    void Output::removeLink(Link* link) {
+        if (link) links.remove(link);
+    }
+
+    std::list<Link*>& Output::getLinks() { return links; }
+    const std::list<Link*>& Output::getLinks() const { return links; }
+
+    bool Output::getBool() const {
+        if (computeFunction) {
+            GraphSystem::VariableValue cv = computeFunction();
+            if (auto vp = std::get_if<bool>(&cv)) return *vp;
+            throw std::runtime_error("Output::getBool: Type mismatch from computeFunction. Name: " + getName());
+        }
+        if (auto vp = std::get_if<bool>(&value)) return *vp; 
+        throw std::runtime_error("Output::getBool: Type mismatch or no data. Name: " + getName());
+    }
+
+    int Output::getInt() const {
+        if (computeFunction) {
+            GraphSystem::VariableValue cv = computeFunction();
+            if (auto vp = std::get_if<int>(&cv)) return *vp;
+            throw std::runtime_error("Output::getInt: Type mismatch from computeFunction. Name: " + getName());
+        }
+        if (auto vp = std::get_if<int>(&value)) return *vp;
+        throw std::runtime_error("Output::getInt: Type mismatch or no data. Name: " + getName());
+    }
+
+    float Output::getFloat() const {
+        if (computeFunction) {
+            GraphSystem::VariableValue cv = computeFunction();
+            if (auto vp = std::get_if<float>(&cv)) return *vp;
+            throw std::runtime_error("Output::getFloat: Type mismatch from computeFunction. Name: " + getName());
+        }
+        if (auto vp = std::get_if<float>(&value)) return *vp;
+        throw std::runtime_error("Output::getFloat: Type mismatch or no data. Name: " + getName());
+    }
+
+    std::string Output::getString() const {
+        if (computeFunction) {
+            GraphSystem::VariableValue cv = computeFunction();
+            if (auto vp = std::get_if<std::string>(&cv)) return *vp;
+            throw std::runtime_error("Output::getString: Type mismatch from computeFunction. Name: " + getName());
+        }
+        if (auto vp = std::get_if<std::string>(&value)) return *vp;
+        throw std::runtime_error("Output::getString: Type mismatch or no data. Name: " + getName());
+    }
+
+    glm::vec2 Output::getVec2() const {
+        if (computeFunction) {
+            GraphSystem::VariableValue cv = computeFunction();
+            if (auto vp = std::get_if<glm::vec2>(&cv)) return *vp;
+            throw std::runtime_error("Output::getVec2: Type mismatch from computeFunction. Name: " + getName());
+        }
+        if (auto vp = std::get_if<glm::vec2>(&value)) return *vp;
+        throw std::runtime_error("Output::getVec2: Type mismatch or no data. Name: " + getName());
+    }
+
+    glm::vec3 Output::getVec3() const {
+        if (computeFunction) {
+            GraphSystem::VariableValue cv = computeFunction();
+            if (auto vp = std::get_if<glm::vec3>(&cv)) return *vp;
+            throw std::runtime_error("Output::getVec3: Type mismatch from computeFunction. Name: " + getName());
+        }
+        if (auto vp = std::get_if<glm::vec3>(&value)) return *vp;
+        throw std::runtime_error("Output::getVec3: Type mismatch or no data. Name: " + getName());
+    }
+
+    glm::vec4 Output::getVec4() const {
+        if (computeFunction) {
+            GraphSystem::VariableValue cv = computeFunction();
+            if (auto vp = std::get_if<glm::vec4>(&cv)) return *vp;
+            throw std::runtime_error("Output::getVec4: Type mismatch from computeFunction. Name: " + getName());
+        }
+        if (auto vp = std::get_if<glm::vec4>(&value)) return *vp;
+        throw std::runtime_error("Output::getVec4: Type mismatch or no data. Name: " + getName());
+    }
+
+    glm::mat4 Output::getMat4() const {
+        if (computeFunction) {
+            GraphSystem::VariableValue cv = computeFunction();
+            if (auto vp = std::get_if<glm::mat4>(&cv)) return *vp;
+            throw std::runtime_error("Output::getMat4: Type mismatch from computeFunction. Name: " + getName());
+        }
+        if (auto vp = std::get_if<glm::mat4>(&value)) return *vp;
+        throw std::runtime_error("Output::getMat4: Type mismatch or no data. Name: " + getName());
+    }
+
+    MeshInstance3D* Output::getMesh() const {
+        if (computeFunction) {
+            GraphSystem::VariableValue cv = computeFunction();
+            if (auto vp = std::get_if<MeshInstance3D*>(&cv)) return *vp; 
+            
+            return nullptr; 
+        }
+        if (auto vp = std::get_if<MeshInstance3D*>(&value)) return *vp;
+        return nullptr; 
+    }
+
+    void Output::setData(const GraphSystem::VariableValue& v) {
+        
+        IO::setData(v);
+        
+    }
+
+    bool Output::hasData() const {
+        if (computeFunction) return true; 
+        
+        if (std::holds_alternative<MeshInstance3D*>(value)) {
+            return std::get<MeshInstance3D*>(value) != nullptr;
+        }
+        return true;
+    }
+
+    void serializeVariableValue(std::ofstream& file, const VariableValue& val) {
+        uint8_t type_index = static_cast<uint8_t>(val.index());
+        file.write(reinterpret_cast<const char*>(&type_index), sizeof(type_index));
+
+        std::visit([&file](auto&& arg) {
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (std::is_same_v<T, std::string>) {
+                uint64_t size = arg.size();
+                file.write(reinterpret_cast<const char*>(&size), sizeof(size));
+                file.write(arg.c_str(), size);
+            }
+            else if constexpr (std::is_same_v<T, bool> ||
+                std::is_same_v<T, int> ||
+                std::is_same_v<T, float> ||
+                std::is_same_v<T, glm::vec2> ||
+                std::is_same_v<T, glm::vec3> ||
+                std::is_same_v<T, glm::vec4> ||
+                std::is_same_v<T, glm::mat4>) {
+                file.write(reinterpret_cast<const char*>(&arg), sizeof(T));
+            }
+            // No se hace nada para MeshInstance3D*, ya que se maneja por referencia.
+            // No se hace nada para EXECUTION, ya que no tiene valor.
+            }, val);
+    }
+
+    VariableValue parseVariableValue(std::ifstream& file) {
+        uint8_t type_index;
+        file.read(reinterpret_cast<char*>(&type_index), sizeof(type_index));
+        IOType type = static_cast<IOType>(type_index);
+
+        switch (type) {
+        case IOType::BOOL: { bool v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+        case IOType::INT: { int v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+        case IOType::FLOAT: { float v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+        case IOType::STRING: {
+            uint64_t size;
+            file.read(reinterpret_cast<char*>(&size), sizeof(size));
+            std::string v(size, '\0');
+            if (size > 0) file.read(&v[0], size);
+            return v;
+        }
+        case IOType::VEC2: { glm::vec2 v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+        case IOType::VEC3: { glm::vec3 v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+        case IOType::VEC4: { glm::vec4 v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+        case IOType::MAT4: { glm::mat4 v; file.read(reinterpret_cast<char*>(&v), sizeof(v)); return v; }
+        case IOType::MESH:
+        case IOType::EXECUTION:
+        default:
+            return {};
+        }
+    }
+
+}
+
+
+
+
+//$$FILE$$: "C:\TFG\src\graph\io.h" 
+#ifndef IO_H
+#define IO_H
+
+#include <string>
+#include <list>
+#include <variant>
+#include <functional>
+#include <glm/glm.hpp>
+#include "framework/nodes/mesh_instance_3d.h"
+
+namespace GraphSystem {
+
+    class Link;
+    class GraphNode;
+
+
+    enum class IOType {
+        BOOL, INT, FLOAT, STRING,
+        VEC2, VEC3, VEC4, MAT4,
+        MESH, EXECUTION
+    };
+
+    using VariableValue = std::variant<
+        bool, int, float, std::string,
+        glm::vec2, glm::vec3, glm::vec4, glm::mat4,
+        MeshInstance3D*
+    >;
+
+    void serializeVariableValue(std::ofstream& file, const VariableValue& val);
+    VariableValue parseVariableValue(std::ifstream& file);
+
+    class Output; 
+
+    class IO {
+    protected:
+        std::string name;
+        IOType type;
+        bool is_dirty;
+        Output* connectedOutput; 
+        GraphSystem::VariableValue value; 
+
+      
+    public:
+        IO(const std::string& name, IOType type);
+        virtual ~IO() = default;
+
+        IO(const IO&) = delete;
+        IO& operator=(const IO&) = delete;
+
+        void connectTo(Output* output) { connectedOutput = output; }
+        Output* getConnectedOutput() const { return connectedOutput; }
+
+        virtual void setData(const GraphSystem::VariableValue& v);
+
+        const VariableValue& getRawValue() const { return value; }
+
+        virtual bool getBool() const;
+        virtual int getInt() const;
+        virtual float getFloat() const;
+        virtual std::string getString() const;
+        virtual glm::vec2 getVec2() const;
+        virtual glm::vec3 getVec3() const;
+        virtual glm::vec4 getVec4() const;
+        virtual glm::mat4 getMat4() const;
+        virtual MeshInstance3D* getMesh() const;
+
+        IOType getType() const { return type; }
+        const std::string& getName() const { return name; }
+        virtual bool hasData() const; 
+        bool isDirty() const { return is_dirty; }
+        void markClean() { is_dirty = false; }
+
+   
+    };
+
+    class Input : public IO {
+    public:
+        Input(const std::string& name, IOType type);
+
+        VariableValue getValue() const;
+
+    };
+
+    class Output : public IO {
+    private:
+        GraphNode* ownerNode;
+        std::list<Link*> links;
+        std::function<GraphSystem::VariableValue()> computeFunction; 
+
+    public:
+        Output(GraphNode* owner, const std::string& name, IOType type);
+        ~Output() override;
+
+        GraphNode* getOwnerNode() const { return ownerNode; }
+
+        void addLink(Link* link);
+        void removeLink(Link* link);
+        std::list<Link*>& getLinks();
+        const std::list<Link*>& getLinks() const;
+
+        void setComputeFunction(std::function<GraphSystem::VariableValue()> func) { computeFunction = func; }
+        std::function<GraphSystem::VariableValue()> getComputeFunction() const { return computeFunction; }
+
+        bool getBool() const override;
+        int getInt() const override;
+        float getFloat() const override;
+        std::string getString() const override;
+        glm::vec2 getVec2() const override;
+        glm::vec3 getVec3() const override;
+        glm::vec4 getVec4() const override;
+        glm::mat4 getMat4() const override;
+        MeshInstance3D* getMesh() const override;
+
+        void setData(const GraphSystem::VariableValue& v) override;
+        bool hasData() const override;
+
+        Output(const Output&) = delete;
+        Output& operator=(const Output&) = delete;
+    };
+
+} 
+#endif 
+
+
+
+
+//$$FILE$$: "C:\TFG\src\graph\link.cpp" 
+#include "link.h"
+#include "graph_node.h"
+#include <stdexcept>
+#include <iostream>
+
+namespace GraphSystem {
+
+    Link::Link(Output* output, GraphNode* target, Input* input)
+        : outputRef(output), targetNode(target), targetInput(input)
+    {
+        // Validate parameters
+        if (!output || !target) {
+            throw std::invalid_argument("Link cannot be created with null output or target");
+        }
+
+        // Verify type compatibility if input is specified
+        if (input && output->getType() != input->getType()) {
+            throw std::runtime_error("Type mismatch between output and input");
+        }
+
+        // Register this link with the output
+        output->addLink(this);
+    }
+
+    Link::~Link() {
+        if (outputRef) {
+            outputRef->removeLink(this);
+        }
+    }
+
+    GraphNode* Link::getSourceNode() const {
+        if (!outputRef) return nullptr;
+
+        // This requires Output to have getOwnerNode() implemented
+        GraphNode* owner = outputRef->getOwnerNode();
+        if (!owner) {
+            throw std::logic_error("Output has no owner node");
+        }
+        return owner;
+    }
+
+
+    void Link::transferData() {
+        if (!outputRef || !targetNode) {
+            throw std::runtime_error("Cannot transfer data - link is invalid");
+        }
+
+        if (outputRef->getType() == IOType::EXECUTION) {
+            targetNode->setExecutionPending(true);
+
+            return;
+        }
+
+        if (!targetInput) {
+            throw std::runtime_error("Cannot transfer data - no target input specified");
+        }
+
+        targetInput->connectTo(outputRef);
+    }
+
+
+} // namespace GraphSystem
+
+
+
+
+//$$FILE$$: "C:\TFG\src\graph\link.h" 
+#ifndef LINK_H
+#define LINK_H
+
+#include "io.h"
+
+namespace GraphSystem {
+
+    class GraphNode;  // Forward declaration
+
+    class Link {
+    private:
+        Output* outputRef;
+        GraphNode* targetNode;
+        Input* targetInput;  // Added target input
+
+    public:
+        Link(Output* output, GraphNode* target, Input* input = nullptr);
+        ~Link();
+
+        // Getters
+        Output* getOutput() const { return outputRef; }
+        GraphNode* getTargetNode() const { return targetNode; }
+        Input* getTargetInput() const { return targetInput; }
+        GraphNode* getSourceNode() const;  // Added declaration
+
+        void transferData();
+    };
+
+} // namespace GraphSystem
+
+#endif // LINK_H
+
+
+
+
+//$$FILE$$: "C:\TFG\src\graph\node_widget_2d.cpp" 
+#include "node_widget_2d.h"
+#include "port_button_2d.h"
+#include "framework/input.h"
+#include "framework/ui/io.h"
+#include "framework/colors.h"
+#include <GLFW/glfw3.h>
+#include <iomanip>
+#include <sstream>
+#include <fstream>
+#include "graphics/renderer.h"
+
+
+using namespace GraphSystem;
+using namespace ui;
+
+glm::vec4 NodeWidget2D::getColorForCategory(GraphSystem::NodeCategory cat) {
+    switch (cat) {
+    case NodeCategory::DATA:        return colors::CYAN * 0.5f;
+    case NodeCategory::FLOW:        return colors::YELLOW * 0.5f;
+    case NodeCategory::TRANSFORM:   return colors::GREEN * 0.5f;
+    case NodeCategory::LOGIC:       return colors::PURPLE * 0.5f;
+    case NodeCategory::INTERACTION: return colors::RUST * 0.5f;
+    default:                        return colors::GRAY * 0.5f;
+    }
+}
+
+
+inline std::string formatFloat(float value, int precision = 2) {
+    std::stringstream stream;
+    stream << std::fixed << std::setprecision(precision) << value;
+    return stream.str();
+}
+
+
+glm::vec2 NodeWidget2D::computeSize(GraphNode* node) {
+    constexpr float W = 200.0f, ROW = 20.0f, M = 6.0f;
+    size_t n = node->getOutputs().size() + node->getInputs().size();
+    float  h = M + (3 + float(n)) * (ROW + M);
+    return { W, h };
+}
+
+NodeWidget2D::NodeWidget2D(const std::string& nodeType,
+    GraphNode* node,
+    GraphEditor* editor,
+    const glm::vec3& worldPos)
+    : Node2D("Widget2D_" + node->getName(),
+        { worldPos.x, worldPos.y },
+        computeSize(node),
+        ui::CREATE_3D),
+    logic_node(node),
+    graphEditor(editor),
+    graphNodeType(nodeType)
+{
+    background = new XRPanel(
+        "bg_" + node->getName(),
+        { 0, 0 },
+        get_size(),
+        0u,
+        getColorForCategory(node->getCategory())
+    );
+    add_child(background);
+
+    // — root container —
+    rootContainer = new VContainer2D(
+        "NodeRoot_" + node->getName(),
+        { 0, 0 },
+        0u,
+        colors::BLUE
+    );
+
+    rootContainer->padding = { 8, 8 };
+    rootContainer->item_margin = { 4, 4 };
+    rootContainer->set_fixed_size(get_size());
+    background->add_child(rootContainer);
+
+    float titleSize = 20.0f;
+    titleLabel = new Text2D(
+        node->getName(),
+        { 8, 8 },
+        titleSize,
+        SKIP_TEXT_RECT
+    );
+    titleLabel->set_color(colors::WHITE);
+    rootContainer->add_child(titleLabel);
+
+    rebuildWidgetUI();
+}
+
+
+sInputData NodeWidget2D::get_input_data(bool ignore_focus)
+{
+    return background->get_input_data(ignore_focus);
+}
+
+bool NodeWidget2D::on_input(sInputData data) {
+    if (data.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
+        toggleInspector(data);
+        return true; 
+    }
+    return background->on_input(data); 
+}
+
+
+void NodeWidget2D::update(float delta_time)
+{
+
+    auto d = get_input_data(false);
+    if (d.was_pressed) {
+        dragging = true;
+        dragOffset = ::Input::get_mouse_position() - get_translation();
+    }
+    if (dragging && d.is_pressed) {
+        set_position(::Input::get_mouse_position() - dragOffset);
+    }
+    if (d.was_released) {
+        dragging = false;
+    }
+
+    updateInspector();
+
+    background->update(delta_time);
+}
+
+
+void NodeWidget2D::updateTitleFromLogicNode() {
+    if (logic_node && titleLabel) {
+        titleLabel->set_text(logic_node->getName());
+    }
+}
+void NodeWidget2D::rebuildWidgetUI() {
+    if (!rootContainer || !logic_node) return;
+
+    // 1. Crear una lista de hijos a borrar para evitar problemas al modificar la lista mientras se itera.
+    //    No incluimos el titleLabel en esta lista para preservarlo.
+    std::vector<Node*> children_to_delete;
+    for (auto* child : rootContainer->get_children()) {
+        if (child != titleLabel) {
+            children_to_delete.push_back(child);
+        }
+    }
+
+    // 2. Borrar los hijos seleccionados usando el método correcto del padre.
+    for (auto* child_node : children_to_delete) {
+        // FIX: Realizar un dynamic_cast a Node2D* para llamar a la sobrecarga correcta de remove_child,
+        // que es vital para que los contenedores de UI actualicen su layout.
+        if (Node2D* node2d_child = dynamic_cast<Node2D*>(child_node)) {
+            rootContainer->remove_child(node2d_child);
+        }
+        delete child_node; // Liberar la memoria del nodo hijo.
+    }
+
+    // 3. Vuelve a crear la UI para los pines con los punteros ahora válidos.
+    for (auto* outP : logic_node->getOutputs()) {
+        auto* row = new ui::HContainer2D("RowOut_" + logic_node->getName() + "_" + outP->getName(), { 0, 0 });
+        row->padding = { 4, 2 }; row->item_margin = { 8, 0 };
+        rootContainer->add_child(row);
+
+        auto* lbl = new ui::Text2D(outP->getName(), { 0, 0 }, 18.0f, SKIP_TEXT_RECT);
+        lbl->set_color(colors::GREEN);
+        row->add_child(lbl);
+
+        ui::sButtonDescription desc; desc.size = { 16, 16 }; desc.color = colors::GREEN;
+        auto* btn = new PortButton2D("outBtn_" + logic_node->getName() + "_" + outP->getName(), desc, logic_node, graphEditor, outP->getName(), true);
+        row->add_child(btn);
+    }
+
+    for (auto* inP : logic_node->getInputs()) {
+        auto* row = new ui::HContainer2D("RowIn_" + logic_node->getName() + "_" + inP->getName(), { 0, 0 });
+        row->padding = { 4, 2 }; row->item_margin = { 8, 0 };
+        rootContainer->add_child(row);
+
+        ui::sButtonDescription desc; desc.size = { 16, 16 }; desc.color = colors::RED;
+        auto* btn = new PortButton2D("inBtn_" + logic_node->getName() + "_" + inP->getName(), desc, logic_node, graphEditor, inP->getName(), false);
+        row->add_child(btn);
+
+        auto* lbl = new ui::Text2D(inP->getName(), { 0, 0 }, 18.0f, SKIP_TEXT_RECT);
+        lbl->set_color(colors::RED);
+        row->add_child(lbl);
+    }
+}
+
+void NodeWidget2D::serialize(std::ofstream& binary_scene_file)
+{
+    uint64_t node_type_size = graphNodeType.size();
+    binary_scene_file.write(reinterpret_cast<const char*>(&node_type_size), sizeof(uint64_t));
+    binary_scene_file.write(graphNodeType.c_str(), node_type_size);
+    logic_node->serialize(binary_scene_file);
+    glm::vec2 current_pos = get_translation();
+    binary_scene_file.write(reinterpret_cast<const char*>(&current_pos), sizeof(glm::vec2));
+}
+
+void NodeWidget2D::parse(std::ifstream& binary_scene_file)
+{
+    logic_node->parse(binary_scene_file);
+    glm::vec2 current_pos;
+    binary_scene_file.read(reinterpret_cast<char*>(&current_pos), sizeof(glm::vec2));
+    set_position(current_pos);
+}
+
+
+void RotateNodeWidget2D::serialize(std::ofstream& binary_scene_file)
+{
+    NodeWidget2D::serialize(binary_scene_file);
+    auto* rotateNode = static_cast<RotateNode*>(logic_node);
+    float angle = rotateNode->getRotationAngle();
+    const glm::vec3& axis = rotateNode->getRotationAxis();
+    binary_scene_file.write(reinterpret_cast<const char*>(&angle), sizeof(float));
+    binary_scene_file.write(reinterpret_cast<const char*>(&axis), sizeof(glm::vec3));
+}
+
+void RotateNodeWidget2D::parse(std::ifstream& binary_scene_file)
+{
+    NodeWidget2D::parse(binary_scene_file);
+    auto* rotateNode = static_cast<RotateNode*>(logic_node);
+    float angle;
+    glm::vec3 axis;
+    binary_scene_file.read(reinterpret_cast<char*>(&angle), sizeof(float));
+    binary_scene_file.read(reinterpret_cast<char*>(&axis), sizeof(glm::vec3));
+    rotateNode->setRotationAngle(angle);
+    rotateNode->setRotationAxis(axis);
+}
+
+
+RotateNodeWidget2D::RotateNodeWidget2D(const std::string& nodeType,
+    RotateNode* node,
+    GraphEditor* editor,
+    const glm::vec3& worldPos)
+    : NodeWidget2D(nodeType, node, editor, worldPos)
+{
+
+}
+
+
+
+void RotateNodeWidget2D::toggleInspector(sInputData data) {
+    
+    if (data.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
+        if (!inspectPanel) initInspector();
+        inspectorVisible = !inspectorVisible;
+        inspectPanel->set_visibility(inspectorVisible, true);
+    }
+}
+
+void RotateNodeWidget2D::update(float delta_time) {
+    sInputData d = get_input_data(false);
+    if (d.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
+        if (!inspectPanel) initInspector();
+        inspectorVisible = !inspectorVisible;
+        inspectPanel->set_visibility(inspectorVisible, true);
+    }
+
+    NodeWidget2D::update(delta_time);
+
+    
+    if (inspectPanel && inspectorVisible) {
+        inspectPanel->update(delta_time);
+    }
+}
+
+void RotateNodeWidget2D::updateInspector() {
+    if (!inspectPanel || !inspectorVisible) return;
+    
+    inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
+
+    auto* rotateNode = static_cast<RotateNode*>(logic_node);
+
+    float rawAngle = rotateNode->getRotationAngle();
+
+    float displayAngle = std::fmod(rawAngle, 360.0f);
+    if (displayAngle < 0) {
+        displayAngle += 360.0f;
+    }
+
+    angleSlider->set_value(displayAngle);
+    
+    
+    angleValueLabel->set_text(formatFloat(displayAngle, 1));
+}
+
+void RotateNodeWidget2D::initInspector() {
+    glm::vec2 pos = get_translation() + glm::vec2(get_size().x + 10.0f, 0.0f);
+    glm::vec2 sz = { 180.0f, 120.0f };
+
+    inspectPanel = new XRPanel(
+        "RotateInspect_" + logic_node->getName(),
+        pos,
+        sz,
+        0u,
+        colors::GREEN
+    );
+
+    auto* rotateNode = static_cast<RotateNode*>(logic_node);
+
+    // Angle slider label
+    float currentY = 20.0f;
+    auto* label = new Text2D("Angle:", { 8, currentY });
+    inspectPanel->add_child(label);
+    currentY += 20.0f;
+
+    // Angle slider
+    sSliderDescription sd;
+    sd.mode = HORIZONTAL;
+    sd.position = { 8, currentY };
+    sd.size = { 80, 20 };
+    sd.fvalue = rotateNode->getRotationAngle();
+    sd.fvalue_min = 0.0f;
+    sd.fvalue_max = 360.0f; 
+    sd.precision = 1;
+
+    angleSlider = new FloatSlider2D("AngleSlider_" + logic_node->getName(), sd);
+    inspectPanel->add_child(angleSlider);
+
+    // Value label (angle dynamic update)
+    angleValueLabel = new Text2D(formatFloat(rotateNode->getRotationAngle(), 1), { 140, currentY });
+    inspectPanel->add_child(angleValueLabel);
+
+    Node::bind(angleSlider->get_name(), FuncFloat([this, rotateNode](const std::string&, float v) {
+
+        v = fmod(fmod(v, 360.0f) + 360.0f, 360.0f);
+
+        rotateNode->setRotationAngle(v); 
+
+        if (rotateNode->getInput("Angle")) { 
+            rotateNode->getInput("Angle")->setData(VariableValue(v)); 
+        }
+
+
+        if (angleValueLabel) {
+            angleValueLabel->set_text(formatFloat(v, 1)); 
+        }
+        }));
+
+    currentY += 30.0f;
+
+    // Axis buttons
+    auto* axisRow = new HContainer2D("AxisRow", { 8, currentY }, 0u, colors::GRAY);
+    axisRow->item_margin = { 4, 0 };
+    inspectPanel->add_child(axisRow);
+
+    sButtonDescription bdesc;
+    bdesc.size = { 24, 24 };
+    bdesc.color = colors::WHITE;
+
+    axisXBtn = new Button2D("RotateAxisX_" + logic_node->getName(), bdesc);
+    axisXBtn->add_child(new Text2D("X", { 0, 0 }));
+
+    axisYBtn = new Button2D("RotateAxisY_" + logic_node->getName(), bdesc);
+    axisYBtn->add_child(new Text2D("Y", { 0, 0 }));
+
+    axisZBtn = new Button2D("RotateAxisZ_" + logic_node->getName(), bdesc);
+    axisZBtn->add_child(new Text2D("Z", { 0, 0 }));
+
+    axisRow->add_child(axisXBtn);
+    axisRow->add_child(axisYBtn);
+    axisRow->add_child(axisZBtn);
+
+    Node::bind(axisXBtn->get_name(), FuncVoid([this](const std::string&, void*) {
+        static_cast<RotateNode*>(logic_node)->setRotationAxis({ 1, 0, 0 });
+        }));
+
+    Node::bind(axisYBtn->get_name(), FuncVoid([this](const std::string&, void*) {
+        static_cast<RotateNode*>(logic_node)->setRotationAxis({ 0, 1, 0 });
+        }));
+
+    Node::bind(axisZBtn->get_name(), FuncVoid([this](const std::string&, void*) {
+        static_cast<RotateNode*>(logic_node)->setRotationAxis({ 0, 0, 1 });
+        }));
+
+    add_child(inspectPanel);
+    inspectPanel->set_visibility(false, true);
+}
+
+
+
+
+// -------------------------- TranslateNodeWidget2D --------------------------
+
+TranslateNodeWidget2D::TranslateNodeWidget2D(const std::string& nodeType,
+    TranslateNode* node,
+    GraphEditor* editor,
+    const glm::vec3& worldPos)
+    : NodeWidget2D(nodeType, node, editor, worldPos)
+{
+}
+
+void TranslateNodeWidget2D::toggleInspector(sInputData data) {
+    if (data.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
+        if (!inspectPanel) initInspector();
+        inspectorVisible = !inspectorVisible;
+        inspectPanel->set_visibility(inspectorVisible, true);
+    }
+}
+
+void TranslateNodeWidget2D::update(float delta_time) {
+    sInputData d = get_input_data(false);
+    if (d.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
+        if (!inspectPanel) initInspector();
+        inspectorVisible = !inspectorVisible;
+        inspectPanel->set_visibility(inspectorVisible, true);
+    }
+
+    NodeWidget2D::update(delta_time);
+    if (inspectPanel && inspectorVisible) inspectPanel->update(delta_time);
+}
+void TranslateNodeWidget2D::initInspector() {
+    glm::vec2 pos = get_translation() + glm::vec2(get_size().x + 10.0f, 0.0f);
+    glm::vec2 sz = { 180.0f, 250.0f };
+    inspectPanel = new XRPanel("TransInspect_" + logic_node->getName(), pos, sz, 0u, colors::GREEN);
+
+    float currentY = 20.0f;
+    float margin = 10.0f;
+
+    const float minPosition = -1000.0f;
+    const float maxPosition = 1000.0f;
+    const int precision = 2;
+
+    auto createLabelAndSlider = [this, &currentY, margin, minPosition, maxPosition, precision](const std::string& labelText, const std::string& sliderName, float initialValue, Text2D*& valueLabelPtr, std::function<void(float)> callback) {
+        auto* label = new Text2D(labelText, { 8, currentY });
+        inspectPanel->add_child(label);
+        currentY += 20.0f;
+
+        sSliderDescription sd;
+        sd.mode = HORIZONTAL;
+        sd.position = { 8, currentY };
+        sd.size = { 80, 20 };
+        sd.fvalue = initialValue;
+        sd.fvalue_min = minPosition;
+        sd.fvalue_max = maxPosition;
+        sd.precision = precision;
+
+        auto* slider = new FloatSlider2D(sliderName, sd);
+        inspectPanel->add_child(slider);
+
+        valueLabelPtr = new Text2D(formatFloat(initialValue, precision), { 100, currentY });
+        inspectPanel->add_child(valueLabelPtr);
+
+        Node::bind(slider->get_name(), FuncFloat([callback, valueLabelPtr, precision](const std::string&, float v) {
+            valueLabelPtr->set_text(formatFloat(v, precision));
+            callback(v);
+            }));
+
+        currentY += 30.0f + margin;
+
+        return slider;
+        };
+
+    auto offset = static_cast<TranslateNode*>(logic_node)->getOffset();
+
+    xSlider = createLabelAndSlider("X:", "TransX_" + logic_node->getName(), offset.x, xValueLabel, [this](float v_comp) { 
+        auto* node = static_cast<TranslateNode*>(logic_node);
+        glm::vec3 currentFullOffset = node->getOffset(); 
+        currentFullOffset.x = v_comp;
+        node->setOffset(currentFullOffset); 
+        if (node->getInput("Offset")) {
+            node->getInput("Offset")->setData(VariableValue(currentFullOffset)); 
+        }
+        });
+
+    xSlider = createLabelAndSlider("Y:", "TransY_" + logic_node->getName(), offset.y, xValueLabel, [this](float v_comp) { 
+        auto* node = static_cast<TranslateNode*>(logic_node);
+        glm::vec3 currentFullOffset = node->getOffset(); 
+        currentFullOffset.y = v_comp;
+        node->setOffset(currentFullOffset); 
+        if (node->getInput("Offset")) {
+            node->getInput("Offset")->setData(VariableValue(currentFullOffset)); 
+        }
+        });
+
+    xSlider = createLabelAndSlider("Z:", "TransZ_" + logic_node->getName(), offset.z, xValueLabel, [this](float v_comp) { 
+        auto* node = static_cast<TranslateNode*>(logic_node);
+        glm::vec3 currentFullOffset = node->getOffset();
+        currentFullOffset.z = v_comp;
+        node->setOffset(currentFullOffset); 
+        if (node->getInput("Offset")) {
+            node->getInput("Offset")->setData(VariableValue(currentFullOffset)); 
+        }
+        });
+
+    add_child(inspectPanel);
+    inspectPanel->set_visibility(false, true);
+}
+
+void TranslateNodeWidget2D::updateInspector() {
+    if (!inspectPanel || !inspectorVisible) return;
+    inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
+
+    auto* translateNode = static_cast<TranslateNode*>(logic_node);
+    auto* offsetInput = translateNode->getInput("Offset");
+
+    glm::vec3 offset = translateNode->getOffset();
+    if (offsetInput && offsetInput->hasData()) {
+        offset = offsetInput->getVec3();
+    }
+
+    xSlider->set_value(offset.x);
+    xValueLabel->set_text(formatFloat(offset.x, 2));
+
+    ySlider->set_value(offset.y);
+    yValueLabel->set_text(formatFloat(offset.y, 2));
+
+    zSlider->set_value(offset.z);
+    zValueLabel->set_text(formatFloat(offset.z, 2));
+}
+
+
+// -------------------------- ScaleNodeWidget2D --------------------------
+
+ScaleNodeWidget2D::ScaleNodeWidget2D(const std::string& nodeType,
+    ScaleNode* node,
+    GraphEditor* editor,
+    const glm::vec3& worldPos)
+    : NodeWidget2D(nodeType, node, editor, worldPos)
+{
+}
+
+void ScaleNodeWidget2D::toggleInspector(sInputData data) {
+    if (data.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
+        if (!inspectPanel) initInspector();
+        inspectorVisible = !inspectorVisible;
+        inspectPanel->set_visibility(inspectorVisible, true);
+    }
+}
+
+
+void ScaleNodeWidget2D::update(float delta_time) {
+    sInputData d = get_input_data(false);
+    if (d.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
+        if (!inspectPanel) initInspector();
+        inspectorVisible = !inspectorVisible;
+        inspectPanel->set_visibility(inspectorVisible, true);
+    }
+
+    NodeWidget2D::update(delta_time);
+    if (inspectPanel && inspectorVisible) inspectPanel->update(delta_time);
+}
+
+void ScaleNodeWidget2D::initInspector() {
+    glm::vec2 pos = get_translation() + glm::vec2(get_size().x + 10.0f, 0.0f);
+    glm::vec2 sz = { 180.0f, 100.0f };
+    inspectPanel = new XRPanel("ScaleInspect_" + logic_node->getName(), pos, sz, 0u, colors::GREEN);
+
+    auto* scaleNode = static_cast<ScaleNode*>(logic_node);
+
+    float currentY = 20.0f;
+
+    auto* label = new Text2D("Scale:", { 8, currentY });
+    inspectPanel->add_child(label);
+    currentY += 20.0f;
+
+    sSliderDescription sd;
+    sd.mode = HORIZONTAL;
+    sd.position = { 8, currentY };
+    sd.size = { 80, 20 };
+    sd.fvalue = scaleNode->getScaleFactor();
+    sd.fvalue_min = 0.1f;
+    sd.fvalue_max = 10.0f;
+    sd.precision = 2;
+
+    factorSlider = new FloatSlider2D("ScaleFac_" + logic_node->getName(), sd);
+    inspectPanel->add_child(factorSlider);
+
+    scaleValueLabel = new Text2D(formatFloat(scaleNode->getScaleFactor(), 2), { 100, currentY });
+    inspectPanel->add_child(scaleValueLabel);
+
+    Node::bind(factorSlider->get_name(), FuncFloat([this, scaleNode](const std::string&, float v) {
+        scaleNode->setScaleFactor(v); // Actualiza el miembro interno
+
+        // Actualizar el Input "Factor" del nodo
+        if (scaleNode->getInput("Factor")) { 
+            scaleNode->getInput("Factor")->setData(VariableValue(v));
+        }
+
+
+        if (scaleValueLabel) { // Asegurarse que scaleValueLabel no es null
+            scaleValueLabel->set_text(formatFloat(v, 2)); // 
+        }
+        }));
+
+    add_child(inspectPanel);
+    inspectPanel->set_visibility(false, true);
+}
+
+void ScaleNodeWidget2D::updateInspector() {
+    if (!inspectPanel || !inspectorVisible) return;
+    inspectPanel->set_position({ get_size().x + 10.0f, 0.0f });
+
+    auto* scaleNode = static_cast<ScaleNode*>(logic_node);
+    auto* factorInput = scaleNode->getInput("Factor");
+
+    float valueToDisplay = scaleNode->getScaleFactor();
+    if (factorInput && factorInput->hasData()) {
+        valueToDisplay = factorInput->getFloat();
+    }
+
+    factorSlider->set_value(valueToDisplay);
+    scaleValueLabel->set_text(formatFloat(valueToDisplay, 2));
+}
+
+
+
+
+
+
+
+
+//$$FILE$$: "C:\TFG\src\graph\node_widget_2d.h" 
+#pragma once
+
+#include <glm/glm.hpp>
+#include "framework/nodes/node_2d.h"
+#include "framework/nodes/container_2d.h"
+#include "framework/nodes/text.h"
+#include "framework/nodes/button_2d.h"
+#include "framework/nodes/slider_2d.h"
+#include "framework/colors.h"
+
+#include "graph_node.h"
+#include "graph_editor.h"
+#include "port_button_2d.h"
+#include "rotate_node.h"
+#include "scale_node.h"
+#include "translate_node.h"
+
+namespace GraphSystem {
+
+    class NodeWidget2D : public Node2D {
+    protected:
+        GraphNode* logic_node;
+        GraphEditor* graphEditor;
+        ui::XRPanel* background = nullptr;
+        ui::VContainer2D* rootContainer;
+        bool              dragging = false;
+        glm::vec2         dragOffset;
+        std::string       graphNodeType;
+
+        ui::Text2D* titleLabel = nullptr;
+
+
+        static glm::vec2 computeSize(GraphNode* node);
+
+    public:
+        NodeWidget2D(const std::string& nodeType,
+            GraphNode* node,
+            GraphEditor* editor,
+            const glm::vec3& worldPos);
+
+        GraphNode* getLogicNode() const { return logic_node; }
+        const std::string& getGraphNodeType() const { return graphNodeType; }
+
+        static glm::vec4 getColorForCategory(GraphSystem::NodeCategory cat);
+
+        // input / render hooks
+        bool       on_input(sInputData data) override;
+        void       update(float delta_time) override;
+        
+        sInputData get_input_data(bool ignore_focus = false) override;
+
+        // inspector hooks
+        virtual void toggleInspector(sInputData data) {}
+        virtual void updateInspector() {}
+
+        virtual void on_right_click() {}
+
+        void updateTitleFromLogicNode();
+        void rebuildWidgetUI();
+        virtual void serialize(std::ofstream& binary_scene_file);
+        virtual void parse(std::ifstream& binary_scene_file);
+
+
+
+    };
+
+    class RotateNodeWidget2D : public NodeWidget2D {
+    private:
+        ui::XRPanel* inspectPanel = nullptr;
+        ui::FloatSlider2D* angleSlider = nullptr;
+        ui::Text2D* angleValueLabel = nullptr;
+        ui::Button2D* axisXBtn = nullptr;
+        ui::Button2D* axisYBtn = nullptr;
+        ui::Button2D* axisZBtn = nullptr;
+
+        bool  inspectorVisible = false;
+
+        void initInspector();
+
+    public:
+        RotateNodeWidget2D(const std::string& nodeType,
+            RotateNode* node,
+            GraphEditor* editor,
+            const glm::vec3& worldPos);
+
+        void toggleInspector(sInputData data) override;
+        void updateInspector() override;
+        void update(float delta_time) override;
+
+        void serialize(std::ofstream& binary_scene_file) override;
+        void parse(std::ifstream& binary_scene_file) override;
+    };
+
+    
+    class TranslateNodeWidget2D : public NodeWidget2D {
+    private:
+        ui::XRPanel* inspectPanel = nullptr;
+        ui::FloatSlider2D* xSlider = nullptr;
+        ui::FloatSlider2D* ySlider = nullptr;
+        ui::FloatSlider2D* zSlider = nullptr;
+
+        ui::Text2D* xValueLabel = nullptr;
+        ui::Text2D* yValueLabel = nullptr;
+        ui::Text2D* zValueLabel = nullptr;
+
+        bool          inspectorVisible = false;
+
+        void initInspector();
+    public:
+        TranslateNodeWidget2D(const std::string& nodeType,
+            TranslateNode* node,
+            GraphEditor* editor,
+            const glm::vec3& worldPos);
+
+        void toggleInspector(sInputData data) override;
+        void updateInspector() override;
+        void update(float delta_time) override;
+    };
+
+   
+    class ScaleNodeWidget2D : public NodeWidget2D {
+    private:
+        ui::XRPanel* inspectPanel = nullptr;
+        ui::FloatSlider2D* factorSlider = nullptr;
+        ui::Text2D* scaleValueLabel = nullptr;
+        bool             inspectorVisible = false;
+
+        void initInspector();
+    public:
+        ScaleNodeWidget2D(const std::string& nodeType,
+            ScaleNode* node,
+            GraphEditor* editor,
+            const glm::vec3& worldPos);
+
+        void toggleInspector(sInputData data) override;
+        void updateInspector() override;
+        void update(float delta_time) override;
+    };
+
+
+} 
+
+
+
+
+//$$FILE$$: "C:\TFG\src\graph\variable_node.cpp" 
+
+#include "variable_node.h"
+#include <iostream>
+#include <queue>
+#include <optional>
+
+#include <sstream>
+#include <fstream>
+
+namespace GraphSystem {
+
+    std::unordered_map<std::string, VariableValue> VariableNode::variableStore;
+
+    VariableNode::VariableNode(const std::string& name, const std::string& varName, const VariableValue& initialValue)
+        : GraphNode(name, NodeCategory::DATA), variableName(varName), defaultValue(initialValue)
+    {
+        IOType ioType = IOType::FLOAT;
+        if (std::holds_alternative<float>(initialValue)) ioType = IOType::FLOAT;
+        else if (std::holds_alternative<int>(initialValue)) ioType = IOType::INT;
+        else if (std::holds_alternative<bool>(initialValue)) ioType = IOType::BOOL;
+        else if (std::holds_alternative<std::string>(initialValue)) ioType = IOType::STRING;
+        else if (std::holds_alternative<glm::vec2>(initialValue)) ioType = IOType::VEC2;
+        else if (std::holds_alternative<glm::vec3>(initialValue)) ioType = IOType::VEC3;
+        else if (std::holds_alternative<glm::vec4>(initialValue)) ioType = IOType::VEC4;
+        else if (std::holds_alternative<glm::mat4>(initialValue)) ioType = IOType::MAT4;
+        else if (std::holds_alternative<MeshInstance3D*>(initialValue)) ioType = IOType::MESH;
+
+        setupIO(ioType);
+
+        if (variableStore.find(variableName) == variableStore.end() && !variableName.empty()) {
+            variableStore[variableName] = defaultValue;
+        }
+
+
+        outValue->setComputeFunction([varName = this->variableName, defVal = this->defaultValue]() -> VariableValue {
+            return VariableNode::getStoredValue(varName, defVal);
+            });
+    }
+
+    void VariableNode::setupIO(IOType type) {
+        execInput = addInput("Execute", IOType::EXECUTION);
+        valueInput = addInput("Value", type);
+        execOutput = addOutput("Exec", IOType::EXECUTION);
+        outValue = addOutput("Value", type);
+    }
+
+    void VariableNode::setVariableName(const std::string& varName) {
+        variableName = varName;
+        
+        outValue->setComputeFunction([varName = this->variableName, defVal = this->defaultValue]() -> VariableValue {
+            return VariableNode::getStoredValue(varName, defVal);
+            });
+    }
+
+    const std::string& VariableNode::getVariableName() const {
+        return variableName;
+    }
+
+    void VariableNode::execute(std::queue<GraphNode*>& executionQueue) {
+
+        if (valueInput && valueInput->hasData()) {
+            variableStore[variableName] = valueInput->getValue();
+        }
+
+        if (execOutput) {
+            for (auto* link : execOutput->getLinks()) {
+                if (auto* nextNode = link->getTargetNode()) {
+                    executionQueue.push(nextNode);
+                }
+            }
+        }
+    }
+
+    VariableValue VariableNode::getStoredValue(const std::string& varName, const VariableValue& defaultValue) {
+        if (varName.empty()) return defaultValue;
+        auto it = variableStore.find(varName);
+        return (it != variableStore.end()) ? it->second : defaultValue;
+    }
+
+    void VariableNode::setStoredValue(const std::string& varName, const VariableValue& value) {
+        variableStore[varName] = value;
+    }
+
+    void VariableNode::serialize(std::ofstream& file) {
+        GraphNode::serialize(file);
+        uint64_t var_name_size = variableName.size();
+        file.write(reinterpret_cast<const char*>(&var_name_size), sizeof(var_name_size));
+        file.write(variableName.c_str(), var_name_size);
+
+        serializeVariableValue(file, defaultValue);
+
+
+    }
+
+    void VariableNode::parse(std::ifstream& file) {
+        GraphNode::parse(file);
+        uint64_t var_name_size = 0;
+        file.read(reinterpret_cast<char*>(&var_name_size), sizeof(var_name_size));
+        variableName.resize(var_name_size);
+        if (var_name_size > 0) {
+            file.read(&variableName[0], var_name_size);
+        }
+
+        defaultValue = parseVariableValue(file);
+    }
+
+    void VariableNode::rebindPins() {
+
+
+        execInput = getInput("Execute");
+        valueInput = getInput("Value");
+        execOutput = getOutput("Exec");
+        outValue = getOutput("Value");
+
+        if (outValue) {
+            outValue->setComputeFunction([varName = this->variableName, defVal = this->defaultValue]() -> VariableValue {
+                return VariableNode::getStoredValue(varName, defVal);
+                });
+        }
+    }
+}
+
+
+
+
+//$$FILE$$: "C:\TFG\src\graph\variable_node.h" 
+#pragma once
+
+#include "graph_node.h"
+#include "io.h" 
+#include <queue>
+#include <unordered_map>
+
+namespace GraphSystem {
+
+
+    class VariableNode : public GraphNode {
+    public:
+        explicit VariableNode(const std::string& name, const std::string& varName = "", const VariableValue& initialValue = 0.1f);
+
+        void setVariableName(const std::string& varName);
+        const std::string& getVariableName() const;
+
+        void execute(std::queue<GraphNode*>& executionQueue) override;
+
+        static void setStoredValue(const std::string& varName, const VariableValue& value);
+        static VariableValue getStoredValue(const std::string& varName, const VariableValue& defaultValue);
+        static const auto& getStore() { return variableStore; }
+        static void clearStore() { variableStore.clear(); }
+
+        void rebindPins() override;
+        void serialize(std::ofstream& file) override;
+        void parse(std::ifstream& file) override;
+
+
+    private:
+        static std::unordered_map<std::string, VariableValue> variableStore;
+        std::string variableName;
+        VariableValue defaultValue;
+
+        Input* valueInput = nullptr;
+        Input* execInput = nullptr;
+        Output* outValue = nullptr;
+        Output* execOutput = nullptr;
+
+        void setupIO(IOType type);
+    };
+}
+
+
+
+
+//$$FILE$$: "C:\TFG\src\graph\tick_node.cpp" 
+#include "tick_node.h"
+#include <queue>
+
+
+#include <sstream>
+#include <fstream>
+
+namespace GraphSystem {
+
+    TickNode::TickNode(const std::string& name)
+        : GraphNode(name, NodeCategory::FLOW)
+    {
+        startInput = addInput("Start", IOType::EXECUTION);
+        stopInput = addInput("Stop", IOType::EXECUTION);
+        tickOutput = addOutput("Tick", IOType::EXECUTION);
+    }
+
+    void TickNode::execute(std::queue<GraphNode*>& executionQueue) {        
+        if (tickOutput) {
+            for (auto* link : tickOutput->getLinks()) {
+                if (auto* nextNode = link->getTargetNode()) {
+                    executionQueue.push(nextNode);
+                }
+            }
+        }
+    }
+
+    void TickNode::update(float delta_time) {
+    }
+
+    void TickNode::start() {
+        running = true;
+    }
+
+    void TickNode::stop() {
+        running = false;
+    }
+
+    bool TickNode::isRunning() const {
+        return running;
+    }
+
+    void TickNode::rebindPins() {
+        startInput = getInput("Start");
+        stopInput = getInput("Stop");
+        tickOutput = getOutput("Tick");
+    }
+
+    void TickNode::serialize(std::ofstream& file)
+    {
+        GraphNode::serialize(file);
+        file.write(reinterpret_cast<const char*>(&running), sizeof(running));
+
+    }
+    void TickNode::parse(std::ifstream& file)
+    {
+        GraphNode::parse(file);
+        file.read(reinterpret_cast<char*>(&running), sizeof(running));
+    }
+
+}
+
+
+
+
+//$$FILE$$: "C:\TFG\src\graph\tick_node.h" 
+#pragma once
+#include "graph_node.h"
+#include <queue>
+
+namespace GraphSystem {
+
+    class TickNode : public GraphNode {
+    private:
+        Input* startInput = nullptr;
+        Input* stopInput = nullptr;
+        Output* tickOutput = nullptr;
+        bool running = false;
+
+    public:
+        explicit TickNode(const std::string& name);
+
+        void execute(std::queue<GraphNode*>& executionQueue) override;
+        void update(float dt) override;
+
+
+        void start();
+        void stop();
+        bool isRunning() const;
+
+        void rebindPins() override;
+
+        void serialize(std::ofstream& file) override;
+        void parse(std::ifstream& file) override;
+    };
+}
+
+
+
+
+//Repository base directory: "C:\TFG\src\engine" 
+
+//$$FILE$$: "C:\TFG\src\engine\sample_engine.cpp" 
+#include "sample_engine.h"
+
+#include "framework/nodes/environment_3d.h"
+#include "framework/parsers/parse_gltf.h"
+#include "framework/parsers/parse_scene.h"
+#include "framework/input.h"
+#include "framework/math/intersections.h"
+#include "framework/utils/tinyfiledialogs.h"
+#include "framework/ui/io.h"
+
+#include "graphics/sample_renderer.h"
+#include "graphics/renderer_storage.h"
+
+#include "engine/scene.h"
+
+#include "shaders/mesh_forward.wgsl.gen.h"
+#include "shaders/mesh_grid.wgsl.gen.h"
+#include "shaders/ui/ui_ray_pointer.wgsl.gen.h"
+
+#include "spdlog/spdlog.h"
+
+#include "io.h"
+#include "../graph/graph.h"
+#include "../graph/print_node.h"
+#include "../graph/sequence_node.h"
+#include "../graph/start_node.h"
+#include "../graph/run_node.h"
+#include "../graph/graph_button_2d.h"
+#include "graph/node_widget_2d.h"
+#include <graph/rotate_node.h>
+#include "framework/nodes/panel_2d.h"
+#include <backends/imgui_impl_glfw.h>
+#include "framework/utils/ImGuizmo.h"
+#include "graph/graph_node.h"
+#include "graph/entity_node_3d.h"
+
+#include "graph/context_menu.h"
+
+#include "graph/keyboard.h"
+#include <graph/variable_node.h>
+#include <graph/math_node.h>
+#include <graph/tick_node.h>
+#include <graph/set_variable_node.h>
+#include "graph/create_node_button.h"
+#include <iostream>
+
+
+
+
+int SampleEngine::initialize(Renderer* renderer, const sEngineConfiguration& configuration)
+{
+    return Engine::initialize(renderer, configuration);
+}
+
+void SampleEngine::push_context_menu(ui::ContextMenu* cm) {
+    active_context_menu = cm;
+
+    if (graph_container) {
+        graph_container->add_child(cm);  
+    }
+}
+
+void SampleEngine::delete_context_menu(ui::ContextMenu* cm) {
+    if (active_context_menu == cm) {
+        active_context_menu = nullptr;
+    }
+
+    IO::blur();  
+
+    if (graph_container) {
+        graph_container->remove_child(cm);  
+    }
+
+    delete cm;  
+}
+
+
+
+
+
+void SampleEngine::setupGraphUI() {
+
+    run_panel = new ui::Panel2D("RunPanel", glm::vec2(20, 20), glm::vec2(84, 84), ui::CREATE_3D);
+    run_panel->render_background = false; 
+    main_scene->add_node(run_panel);
+
+    GraphSystem::Graph* eventGraph = nullptr;
+    if (graphManager.getGraphs().empty()) {
+        return;
+    }
+    eventGraph = graphManager.getGraphs()[0];
+
+    ui::sButtonDescription buttonDesc;
+    buttonDesc.position = { 10.0f, 10.0f };   
+    buttonDesc.size = { 64.0f, 64.0f };       
+    buttonDesc.label = "";                    
+
+    buttonDesc.path = "data/textures/play_icon.png";
+    auto* executeBtn = new GraphSystem::GraphButton2D("Run", buttonDesc, eventGraph);
+
+    run_panel->add_child(executeBtn);
+}
+
+void buildPipeline(GraphSystem::Graph& graph) {
+    // Create and register nodes
+    auto* eventNode = new GraphSystem::RunNode("Begin Play");
+    graph.addNode(eventNode);
+
+   // auto* sequenceNode = new GraphSystem::SequenceNode("MainSequence", 2);
+    auto* printA = new GraphSystem::PrintNode("DebugPrintA");
+    auto* printB = new GraphSystem::PrintNode("DebugPrintB");
+
+    // Add remaining nodes to graph
+    //graph.addNode(sequenceNode);
+    graph.addNode(printA);
+    graph.addNode(printB);
+
+    // Set messages
+    printA->getInput("Message")->setData(GraphSystem::VariableValue(std::string("Hello from Node A")));
+    printB->getInput("Message")->setData(GraphSystem::VariableValue(std::string("Hello from Node B")));
+
+    // Connect nodes
+    //graph.connect(eventNode, "Execution", sequenceNode, "Execute");
+   //  graph.connect(sequenceNode, "Step1", printA, "Execute");
+   //    graph.connect(sequenceNode, "Step2", printB, "Execute");
+
+    // Mark as entry point
+    eventNode->setEntryPoint(true);
+}
+
+
+void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
+    using namespace ui;
+    using namespace GraphSystem;
+    
+    constexpr float X = 0.0f;
+    constexpr float Y = 84.0f;
+    constexpr float PANEL_W = 260.0f;
+
+    VContainer2D* panel = new VContainer2D(
+        "NodeCreationPanel",
+        { X, Y }, 
+        0u,
+        Color(0.0f, 0.0f, 0.0f, 0.0f)
+    );
+    
+    panel->padding = { 8.0f, 8.0f };
+    panel->item_margin = { 4.0f, 4.0f };
+    panel->set_fixed_size({ PANEL_W, 0.0f });
+    run_panel->add_child(panel);
+
+    auto addCategoryTitle = [&](const std::string& title, NodeCategory category) {
+        auto* title_panel = new XRPanel(
+            "TitlePanel_" + title,
+            { 0, 0 },
+            { PANEL_W, 26.0f },
+            0u,
+            GraphSystem::NodeWidget2D::getColorForCategory(category)
+        );
+
+        auto* title_text = new Text2D(title, { 0, 0 }, 18.0f, TEXT_CENTERED | SKIP_TEXT_RECT);
+        title_text->set_color(colors::WHITE);
+        title_panel->add_child(title_text);
+
+        panel->add_child(title_panel);
+        };
+
+    auto addRow = [&](const std::string& name, const std::string& type) {
+        auto* row = new HContainer2D(
+            "Row_" + name,
+            { 0, 0 },
+            0u,
+            Color(0.2f, 0.2f, 0.2f, 0.5f)
+        );
+        
+        row->padding = { 4.0f, 1.0f };
+        row->item_margin = { 6.0f, 0.0f };
+        panel->add_child(row);
+
+        
+        auto* lbl = new Text2D(name, { 0, 0 }, 16.0f, TEXT_CENTERED);
+        lbl->set_color(colors::BLACK);
+        row->add_child(lbl);
+
+        sButtonDescription desc;
+        desc.label = "";
+       
+        desc.size = { 22.0f, 22.0f };
+        desc.path = "data/textures/submenu_mark.png";
+        auto* btn = new GraphSystem::CreateNodeButton(
+            "Create",
+            desc,
+            editor,
+            type
+        );
+        row->add_child(btn);
+        };
+
+    addCategoryTitle("Flow Control", NodeCategory::FLOW);
+    addRow("RunNode", "RunNode");
+    addRow("BranchNode", "BranchNode");
+    addRow("TickNode", "TickNode");
+    addRow("LoopNode", "LoopNode");
+    addRow("TimerNode", "TimerNode");
+
+    addCategoryTitle("Data", NodeCategory::DATA);
+    addRow("MathNode", "MathNode");
+    addRow("VariableNode", "VariableNode");
+    addRow("TrigonometricNode", "TrigonometricNode");
+    addRow("LerpNode", "LerpNode");
+    addRow("ClampNode", "ClampNode");
+    addRow("GetVariableNode", "GetVariableNode");
+    addRow("RandomNode", "RandomNode");
+
+    addCategoryTitle("Transform", NodeCategory::TRANSFORM);
+    addRow("RotateNode", "RotateNode");
+    addRow("ScaleNode", "ScaleNode");
+    addRow("TranslateNode", "TranslateNode");
+
+    addCategoryTitle("Logic", NodeCategory::LOGIC);
+    addRow("PrintNode", "PrintNode");
+    addRow("CompareNode", "CompareNode");
+    addRow("ToggleNode", "ToggleNode");
+
+    addCategoryTitle("Interaction", NodeCategory::INTERACTION);
+    addRow("MapperNode", "MapperNode");
+
+    panel->use_fixed_size = false;
+    panel->on_children_changed();
+}
+
+
+int SampleEngine::post_initialize()
+{
+    Engine::post_initialize();
+
+    main_scene = new Scene("main_scene");
+
+    graph_container = new Node2D(
+        "GraphContainer",       
+        { 0,0 },
+        { 0,0 },   
+        ui::CREATE_3D          
+    );
+
+    main_scene->add_node(graph_container);
+
+    // skybox
+    {
+        MeshInstance3D* skybox = new Environment3D();
+        main_scene->add_node(skybox);
+    }
+
+    // Load Meta Quest Controllers and Controller pointer
+    if (renderer->get_xr_available())
+    {
+        std::vector<Node*> left, right;
+        GltfParser parser;
+        parser.parse("data/meshes/controllers/left_controller.glb", left);
+        parser.parse("data/meshes/controllers/right_controller.glb", right);
+        controller_mesh_left = static_cast<Node3D*>(left[0]);
+        controller_mesh_right = static_cast<Node3D*>(right[0]);
+
+        // Controller pointer
+        ray_pointer = parse_mesh("data/meshes/raycast.obj");
+
+        Material* pointer_material = new Material();
+        pointer_material->set_transparency_type(ALPHA_BLEND);
+        pointer_material->set_cull_type(CULL_NONE);
+        pointer_material->set_type(MATERIAL_UNLIT);
+        pointer_material->set_shader(RendererStorage::get_shader_from_source(shaders::ui_ray_pointer::source, shaders::ui_ray_pointer::path, shaders::ui_ray_pointer::libraries, pointer_material));
+
+        ray_pointer->set_surface_material_override(ray_pointer->get_surface(0), pointer_material);
+
+        sphere_pointer = parse_mesh("data/meshes/sphere.obj");
+
+        Material* sphere_pointer_material = new Material();
+        sphere_pointer_material->set_depth_read(false);
+        sphere_pointer_material->set_priority(0);
+        sphere_pointer_material->set_transparency_type(ALPHA_BLEND);
+        sphere_pointer_material->set_type(MATERIAL_UNLIT);
+        sphere_pointer_material->set_shader(RendererStorage::get_shader_from_source(shaders::mesh_forward::source, shaders::mesh_forward::path, shaders::mesh_forward::libraries, sphere_pointer_material));
+
+        sphere_pointer->set_surface_material_override(sphere_pointer->get_surface(0), sphere_pointer_material);
+    }
+
+    // grid
+    {
+        MeshInstance3D* grid = new MeshInstance3D();
+        grid->set_name("Grid");
+        grid->add_surface(RendererStorage::get_surface("quad"));
+        grid->set_position({ 0,0,0 });
+        grid->rotate(glm::radians(90.0f), { 1,0,0 });
+        grid->scale({ 10,10,10 });
+        grid->set_frustum_culling_enabled(false);
+
+        Material* mat = new Material();
+        mat->set_transparency_type(ALPHA_BLEND);
+        mat->set_cull_type(CULL_NONE);
+        mat->set_type(MATERIAL_UNLIT);
+        mat->set_shader(RendererStorage::get_shader_from_source(
+            shaders::mesh_grid::source,
+            shaders::mesh_grid::path,
+            shaders::mesh_grid::libraries,
+            mat
+        ));
+        grid->set_surface_material_override(grid->get_surface(0), mat);
+        main_scene->add_node(grid);
+    }
+    
+    /*ui::Keyboard::get_instance().initialize();
+
+    graph_container->add_child(ui::Keyboard::get_instance().get_root());*/
+
+
+    // create graph & editor
+    eventGraph = graphManager.createGraph("MainGraph");
+    editor = new GraphSystem::GraphEditor(eventGraph,graph_container);
+
+    // red test-box in world
+    MeshInstance3D* testBox = new MeshInstance3D();
+    testBox->set_name("TestBox");
+    testBox->set_position({ 0,1, -10 });
+    testBox->scale({ 1,1,1 });
+    testBox->add_surface(RendererStorage::get_surface("box"));
+    testBox->update_aabb();
+
+    {
+        Material* boxMat = new Material();
+        boxMat->set_transparency_type(ALPHA_OPAQUE);
+        boxMat->set_cull_type(CULL_BACK);
+        boxMat->set_type(MATERIAL_PBR);
+        boxMat->set_color({ 1,0,0,1 });
+        boxMat->set_shader(RendererStorage::get_shader_from_source(
+            shaders::mesh_forward::source,
+            shaders::mesh_forward::path,
+            shaders::mesh_forward::libraries,
+            boxMat
+        ));
+        testBox->set_surface_material_override(testBox->get_surface(0), boxMat);
+    }
+    main_scene->add_node(testBox);
+
+    //// instantiate logical nodes
+    //auto* runNode = static_cast<GraphSystem::RunNode*>(
+    //    editor->createNode("RunNode", "Begin Play", { 550.0f, 550, 0.0f })
+    //    );
+    //runNode->setEntryPoint(true);
+
+    //Crear VariableNode para el ángulo
+    //auto* angleNode = static_cast<GraphSystem::VariableNode*>(
+    //    editor->createNode("VariableNode", "AngleVar", { 400.0f, 200.0f, 0.0f })
+    //    );
+    //angleNode->setVariableName("angle");  // nombre fijo
+    //GraphSystem::VariableNode::setStoredValue("angle", 0.0f); // valor inicial 0.0f
+
+    //// Crear VariableNode para el incremento
+    //auto* incrementNode = static_cast<GraphSystem::VariableNode*>(
+    //    editor->createNode("VariableNode", "IncrementVar", { 400.0f, 300.0f, 0.0f })
+    //    );
+    //incrementNode->setVariableName("increment");
+    //GraphSystem::VariableNode::setStoredValue("increment", 10.0f); 
+
+    //
+    //// Crear TickNode
+    //auto* tickNode = static_cast<GraphSystem::TickNode*>(
+    //    editor->createNode("TickNode", "Tick", { 0.0f, -2.0f, 0.0f })
+    //    );
+
+    ////tickNode->start();
+
+    //// Crear RotateNode
+    //auto* rotateNode = static_cast<GraphSystem::RotateNode*>(
+    //    editor->createNode("RotateNode", "Rotator", { 1000.0f, 250.0f, 0.0f })
+    //    );
+
+    //// Crear MathNode para sumar ángulo + incremento
+    //auto* mathNode = static_cast<GraphSystem::MathNode*>(
+    //    editor->createNode("MathNode", "Adder", { 600.0f, 250.0f, 0.0f })
+    //    );
+
+    ////Crear VariableNode para el ángulo
+    //auto* angleNode = static_cast<GraphSystem::VariableNode*>(
+    //    editor->createNode("VariableNode", "AngleVar", { 400.0f, 200.0f, 0.0f })
+    //    );
+    //angleNode->setVariableName("angle");  // nombre fijo
+    //GraphSystem::VariableNode::setStoredValue("angle", 0.0f); // valor inicial 0.0f
+
+    // // Crear VariableNode para el incremento
+    //auto* incrementNode = static_cast<GraphSystem::VariableNode*>(
+    //    editor->createNode("VariableNode", "IncrementVar", { 400.0f, 300.0f, 0.0f })
+    //    );
+    //incrementNode->setVariableName("increment");
+    //GraphSystem::VariableNode::setStoredValue("increment", 1.0f);
+
+
+
+    setupGraphUI();
+    setupNodeCreationUI(editor);
+
+    return 0u;
+}
+
+
+void SampleEngine::on_frame() {
+    Engine::on_frame();
+}
+
+
+void SampleEngine::clean()
+{
+    Engine::clean();
+}
+
+void SampleEngine::update(float delta_time)
+{
+    if (renderer->get_xr_available()) {
+        controller_mesh_right->set_transform(Transform::mat4_to_transform(Input::get_controller_pose(HAND_RIGHT)));
+        controller_mesh_left->set_transform(Transform::mat4_to_transform(Input::get_controller_pose(HAND_LEFT)));
+    }
+
+    Engine::update(delta_time);
+    for (auto* graph : graphManager.getGraphs()) {
+        graph->update(delta_time);
+    }
+    
+    if (renderer->get_xr_available()) {
+        glm::mat4 pose = Input::get_controller_pose(HAND_LEFT, POSE_AIM);
+        pose = glm::translate(pose, glm::vec3(0.0f, 0.05f, -0.04f));
+        pose = glm::rotate(pose, glm::radians(120.f), glm::vec3(1, 0, 0));
+
+        glm::mat4 poseR = Input::get_controller_pose(HAND_RIGHT, POSE_AIM);
+        poseR = glm::translate(poseR, glm::vec3(0.0f, 0.05f, -0.04f));
+        poseR = glm::rotate(poseR, glm::radians(120.f), glm::vec3(1, 0, 0));
+
+
+
+        if (graph_container) {
+            if (!m_is_graph_container_placed) {
+
+                auto* main_camera = get_renderer()->get_camera();
+                glm::vec3 eye = main_camera->get_eye();
+
+                glm::vec3 front = -get_renderer()->get_camera_front();
+
+                float distance = 0.5f;
+
+                glm::vec3 target_pos = eye + front * distance;
+
+                glm::mat4 model_transform = glm::mat4(1.0f);
+                model_transform = glm::translate(model_transform, target_pos);
+                model_transform = model_transform * glm::toMat4(get_rotation_to_face(target_pos, eye, { 0.0f, 1.0f, 0.0f }));
+                model_transform = model_transform * glm::rotate(model_transform, glm::radians(180.f), { 1.0f, 0.0f, 0.0f });
+
+                graph_container->set_xr_transform(Transform::mat4_to_transform(model_transform));
+                m_is_graph_container_placed = true;
+            }
+
+        
+
+            // 2. Grab and Move Logic (using the right controller's grip button)
+            if (Input::is_grab_pressed(HAND_RIGHT)) {
+               
+                    if (!m_is_grabbing_graph_container) {
+                        // Start grabbing
+                        m_is_grabbing_graph_container = true;
+
+                        // Calculate and store the offset between the controller and the container
+                        glm::mat4 controller_transform = Input::get_controller_pose(HAND_RIGHT);
+                        glm::mat4 container_transform;
+
+                        container_transform = graph_container->get_global_viewport_model();
+
+
+                        m_grab_offset_transform = glm::inverse(controller_transform) * container_transform;
+                    }
+
+                // While grabbing, update the container's transform based on the controller's movement
+                glm::mat4 controller_transform = Input::get_controller_pose(HAND_RIGHT);
+                glm::mat4 new_container_transform = controller_transform * m_grab_offset_transform;
+                graph_container->set_xr_transform(Transform::mat4_to_transform(new_container_transform));
+
+            }
+            else {
+                // Stop grabbing when the button is released
+                m_is_grabbing_graph_container = false;
+            }
+
+            graph_container->update(delta_time); 
+        }
+
+        if (run_panel) {
+
+            run_panel->set_xr_transform(Transform::mat4_to_transform(pose));
+            run_panel->update(delta_time);
+        }
+       
+    }
+
+    bool select_pressed = Input::was_trigger_pressed(HAND_RIGHT) || Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_LEFT);
+    if (select_pressed) {
+
+        for(auto node : main_scene->get_nodes())
+        {
+            auto node3d = dynamic_cast<Node3D*>(node);
+            if (!node3d) continue;
+            if (std::find(notAllowedNames.begin(), notAllowedNames.end(), node3d->get_name()) != notAllowedNames.end()) {
+                continue;
+            }
+
+            glm::vec3 ray_origin;
+            glm::vec3 ray_direction;
+            float distance = 1e9f;
+
+            Engine::instance->get_scene_ray(ray_origin, ray_direction);
+
+            if (node3d->test_ray_collision(ray_origin, ray_direction, distance)) {
+
+                // If needed:
+                const glm::vec3& intersection_point = ray_direction + ray_direction * distance;
+
+                glm::vec3 spawn = { intersection_point.x + 300.0f,intersection_point.y + 300.0f, 0.f };
+
+                auto* mesh = dynamic_cast<MeshInstance3D*>(node3d);
+
+            
+                GraphSystem::GraphNode* node = editor->createNode("EntityNode3D", mesh->get_name(), spawn);
+
+                auto* entityNode = dynamic_cast<GraphSystem::EntityNode3D*>(node);
+
+                entityNode->setEntity(mesh);
+
+                notAllowedNames.push_back(mesh->get_name());
+
+            }
+        }
+
+    }
+
+    main_scene->update(delta_time);
+}
+
+void SampleEngine::render()
+{
+    if (show_imgui) {
+        render_gui();
+    }
+
+    main_scene->render();
+
+    if (renderer->get_xr_available()) {
+
+        const glm::mat4x4& raycast_transform = Input::get_controller_pose(HAND_RIGHT, POSE_AIM);
+        ray_pointer->set_transform(Transform::mat4_to_transform(raycast_transform));
+        ray_pointer->scale(glm::vec3(1.0f, 1.0f, 0.5f));
+        ray_pointer->render();
+
+        sphere_pointer->set_transform(Transform::mat4_to_transform(raycast_transform));
+        sphere_pointer->scale(glm::vec3(0.1f));
+        sphere_pointer->render();
+
+        controller_mesh_left->render();
+        controller_mesh_right->render();
+    }
+
+    Engine::render();
+}
+
+void SampleEngine::render_gui()
+{
+    render_default_gui();
+
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("Open graph (.graph)"))
+            {
+                std::vector<const char*> filter_patterns = { "*.graph" };
+                char const* open_file_name = tinyfd_openFileDialog(
+                    "Graph loader",
+                    "",
+                    filter_patterns.size(),
+                    filter_patterns.data(),
+                    "Graph format",
+                    0
+                );
+
+                if (open_file_name) {
+                    editor->parse(open_file_name);
+
+                    notAllowedNames = { "Environment3D", "Grid" };
+
+                    for (auto* widget : editor->getWidgets()) {
+                        if (auto* entityNode = dynamic_cast<GraphSystem::EntityNode3D*>(widget->getLogicNode())) {
+                            if (auto* entity = entityNode->getEntity()) {
+                                notAllowedNames.push_back(entity->get_name());
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (ImGui::MenuItem("Save graph (.graph)"))
+            {
+                std::vector<const char*> filter_patterns = { "*.graph" };
+
+                char const* save_file_name = tinyfd_saveFileDialog(
+                    "Graph loader",
+                    "",
+                    filter_patterns.size(),
+                    filter_patterns.data(),
+                    "Graph format"
+                );
+
+                if (save_file_name) {
+                    editor->serialize(save_file_name);
+                }
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
+    }
+}
+
+void SampleEngine::append_glb(const std::string& filename)
+{
+    std::vector<Node*> entities;
+
+    GltfParser gltf_parser;
+
+    gltf_parser.parse(filename.c_str(), entities, PARSE_NO_FLAGS);
+
+    if (!entities.empty()) {
+        main_scene->add_nodes(entities);
+    }
+}
+
+
+
+
+//$$FILE$$: "C:\TFG\src\engine\sample_engine.h" 
+#pragma once
+
+#include "engine/engine.h"
+#include "graph/graph_manager.h"
+#include "graph/graph_editor.h"
+#include "framework/nodes/panel_2d.h"
+#include "graph/entity_node_3d.h"
+
+namespace ui {
+    class ContextMenu;
+    class Keyboard;
+}
+
+class Node3D;
+class MeshInstance3D;
+
+class SampleEngine : public Engine {
+
+    Node3D* controller_mesh_left = nullptr;
+    Node3D* controller_mesh_right = nullptr;
+    MeshInstance3D* ray_pointer = nullptr;
+    MeshInstance3D* sphere_pointer = nullptr;
+
+private:
+    GraphSystem::Graph* eventGraph = nullptr;
+    GraphSystem::GraphManager graphManager;
+    GraphSystem::GraphEditor* editor = nullptr;
+    std::vector<GraphSystem::NodeWidget2D*> nodeWidgets;
+    ui::Panel2D* run_panel = nullptr;
+    Node2D* graph_container = nullptr;
+    ui::Keyboard* keyboard = nullptr;
+
+    std::vector<ui::ContextMenu*> context_menus;
+
+    ui::ContextMenu* active_context_menu = nullptr;
+
+    std::vector<std::string> notAllowedNames = { "Environment3D", "Grid" };
+
+   
+    Node3D* scene_root = nullptr;
+
+    
+    bool m_is_graph_container_placed = false;
+    bool m_is_grabbing_graph_container = false;
+
+    glm::mat4 m_grab_offset_transform;
+
+
+
+public:
+
+	int initialize(Renderer* renderer, const sEngineConfiguration& configuration = {}) override;
+    int post_initialize() override;
+    void clean() override;
+    void setupGraphUI();
+    void setupNodeCreationUI(GraphSystem::GraphEditor* editor);
+    void registerNodeWidget(GraphSystem::NodeWidget2D* w) { nodeWidgets.push_back(w); }
+
+    static SampleEngine* get_sample_instance() { return static_cast<SampleEngine*>(instance); }
+    Node2D* get_graph_container() const { return graph_container; }
+
+
+    void push_context_menu(ui::ContextMenu* cm);
+    void delete_context_menu(ui::ContextMenu* cm);
+
+
+    void render_gui();
+
+	void update(float delta_time) override;
+	void render() override;
+    void on_frame() override;
+
+    void append_glb(const std::string& filename);
+
+#ifdef __EMSCRIPTEN__
+    void set_wasm_module_initialized(bool value) {
+        wasm_module_initialized = value;
+    }
+#endif
+};
+
+
+
+

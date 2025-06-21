@@ -112,6 +112,10 @@ namespace GraphSystem {
         execOutput = getOutput("Exec");
         outValue = getOutput("Value");
 
+        if (valueInput) {
+            valueInput->setData(defaultValue);
+        }
+
         if (outValue) {
             outValue->setComputeFunction([varName = this->variableName, defVal = this->defaultValue]() -> VariableValue {
                 return VariableNode::getStoredValue(varName, defVal);
