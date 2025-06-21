@@ -508,7 +508,6 @@ void SampleEngine::update(float delta_time)
 
             if (node3d->test_ray_collision(ray_origin, ray_direction, distance)) {
 
-                // If needed:
                 const glm::vec3& intersection_point = ray_direction + ray_direction * distance;
 
                 glm::vec3 spawn = { intersection_point.x + 300.0f,intersection_point.y + 300.0f, 0.f };

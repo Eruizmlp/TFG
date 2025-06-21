@@ -40,7 +40,7 @@ namespace GraphSystem {
 
         GraphNode* getLogicNode() const { return logic_node; }
         const std::string& getGraphNodeType() const { return graphNodeType; }
-
+        static std::string formatFloat(float value, int precision = 2);
         static glm::vec4 getColorForCategory(GraphSystem::NodeCategory cat);
 
         // input / render hooks

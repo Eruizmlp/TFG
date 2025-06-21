@@ -25,7 +25,7 @@ glm::vec4 NodeWidget2D::getColorForCategory(GraphSystem::NodeCategory cat) {
 }
 
 
-inline std::string formatFloat(float value, int precision = 2) {
+std::string NodeWidget2D::formatFloat(float value, int precision) {
     std::stringstream stream;
     stream << std::fixed << std::setprecision(precision) << value;
     return stream.str();
