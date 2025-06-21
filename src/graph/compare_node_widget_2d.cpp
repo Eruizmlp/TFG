@@ -32,7 +32,7 @@ namespace GraphSystem {
     }
 
     void CompareNodeWidget2D::initInspector() {
-        glm::vec2 pos = get_translation() + glm::vec2(get_size().x + 10.0f, 0.0f);
+        glm::vec2 pos = glm::vec2(get_size().x + 10.0f, 0.0f);
         glm::vec2 sz = { 180, 120 };
 
         inspectPanel = new ui::XRPanel("CompareInspect_" + logic_node->getName(), pos, sz, 0u, colors::PURPLE);
@@ -42,7 +42,7 @@ namespace GraphSystem {
         inspectPanel->add_child(container);
 
         ui::sButtonDescription desc;
-        desc.size = { 48, 24 };
+        desc.size = { 24, 24 };
         desc.color = colors::WHITE;
 
         using Op = CompareOp;

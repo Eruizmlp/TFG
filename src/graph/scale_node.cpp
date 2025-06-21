@@ -3,13 +3,12 @@
 #include <glm/common.hpp>
 #include <cmath>
 #include <queue>
+#include <fstream>
 
 namespace GraphSystem {
 
-    // El constructor y los helpers que tenías están perfectos.
     ScaleNode::ScaleNode(const std::string& name, float fact)
-        : GraphNode(name, NodeCategory::TRANSFORM),
-        factor(fact)
+        : GraphNode(name, NodeCategory::TRANSFORM), factor(fact)
     {
         execInput = addInput("Execute", IOType::EXECUTION);
         transformInput = addInput("Transform", IOType::MESH);
@@ -18,51 +17,41 @@ namespace GraphSystem {
         execOutput = addOutput("Exec", IOType::EXECUTION);
         transformOutput = addOutput("Transform", IOType::MESH);
 
-        factorInput->setData(VariableValue(this->factor));
-        transformOutput->setData(VariableValue(static_cast<MeshInstance3D*>(nullptr)));
+        factorInput->setData(this->factor);
+      
+        transformOutput->setData(static_cast<MeshInstance3D*>(nullptr));
     }
 
     void ScaleNode::setScaleFactor(float f) {
         factor = f;
+        if (factorInput) {
+            factorInput->setData(factor);
+        }
     }
 
+  
     float ScaleNode::getScaleFactor() const {
-        if (factorInput && factorInput->hasData()) {
-            VariableValue v = factorInput->getValue();
-            if (const float* pval = std::get_if<float>(&v)) {
-                return *pval;
-            }
+      
+        if (factorInput) {
+            return factorInput->getFloat();
         }
         return factor;
     }
 
-    // --- MÉTODO EXECUTE CORREGIDO ---
+
     void ScaleNode::execute(std::queue<GraphNode*>& executionQueue) {
+        
+        MeshInstance3D* currentMesh = transformInput ? transformInput->getMesh() : nullptr;
 
-        MeshInstance3D* currentMesh = nullptr;
-        if (transformInput && transformInput->hasData()) {
-            VariableValue v = transformInput->getValue();
-            if (auto pval = std::get_if<MeshInstance3D*>(&v)) {
-                currentMesh = *pval;
-            }
-            else {
-                std::cerr << "[ScaleNode] (" << getName() << ") Type mismatch en Transform. Se esperaba MESH.\n";
-            }
-        }
-
-        // 2. Realizar la acción de escalar si es posible.
         if (currentMesh) {
             float currentFactor = getScaleFactor();
-            currentFactor = glm::clamp(std::abs(currentFactor), 0.01f, 100.0f);
 
-            Transform t = currentMesh->get_transform();
-            t.set_scale(glm::vec3(currentFactor));
-            currentMesh->set_transform(t);
-
-            transformOutput->setData(VariableValue(currentMesh));
+            currentMesh->set_scale(glm::vec3(currentFactor));
+            transformOutput->setData(currentMesh);
         }
         else {
-            std::cerr << "[ScaleNode] (" << getName() << ") No hay malla de destino para escalar.\n";
+         
+            transformOutput->setData(static_cast<MeshInstance3D*>(nullptr));
         }
 
         if (execOutput) {
@@ -71,6 +60,31 @@ namespace GraphSystem {
                     executionQueue.push(nextNode);
                 }
             }
+        }
+    }
+
+    void ScaleNode::serialize(std::ofstream& file) {
+        GraphNode::serialize(file);
+  
+        file.write(reinterpret_cast<const char*>(&factor), sizeof(factor));
+    }
+
+    void ScaleNode::parse(std::ifstream& file) {
+        GraphNode::parse(file);
+  
+        file.read(reinterpret_cast<char*>(&factor), sizeof(factor));
+    }
+
+    void ScaleNode::rebindPins() {
+       
+        execInput = getInput("Execute");
+        transformInput = getInput("Transform");
+        factorInput = getInput("Factor");
+        execOutput = getOutput("Exec");
+        transformOutput = getOutput("Transform");
+
+        if (factorInput) {
+            factorInput->setData(this->factor);
         }
     }
 }

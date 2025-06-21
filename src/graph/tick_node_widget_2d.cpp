@@ -95,13 +95,12 @@ void TickNodeWidget2D::serialize(std::ofstream& binary_scene_file) {
     binary_scene_file.write(reinterpret_cast<const char*>(&is_running), sizeof(bool));
 }
 
-// [In tick_node_widget_2d.cpp]
+
 void TickNodeWidget2D::parse(std::ifstream& binary_scene_file)
 {
-    // Call the base class to parse its data (name, position, etc.)
+ 
     NodeWidget2D::parse(binary_scene_file);
 
-    // Now, parse the data unique to this node
     auto* tickNode = static_cast<TickNode*>(logic_node);
     bool is_running;
     binary_scene_file.read(reinterpret_cast<char*>(&is_running), sizeof(bool));

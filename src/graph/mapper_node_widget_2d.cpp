@@ -1,5 +1,6 @@
 #include "mapper_node_widget_2d.h"
 #include "framework/input.h"
+#include "mapper_node.h" 
 
 namespace GraphSystem {
 
@@ -15,7 +16,7 @@ namespace GraphSystem {
         if (data.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
             if (!inspectPanel) initInspector();
             inspectorVisible = !inspectorVisible;
-            inspectPanel->set_visibility(inspectorVisible, true);
+            if (inspectPanel) inspectPanel->set_visibility(inspectorVisible, true);
         }
     }
 
@@ -31,8 +32,9 @@ namespace GraphSystem {
             inspectPanel->update(delta_time);
     }
 
+
     void MapperNodeWidget2D::initInspector() {
-        glm::vec2 pos = get_translation() + glm::vec2(get_size().x + 10.0f, 0.0f);
+        glm::vec2 pos = glm::vec2(get_size().x + 10.0f, 0.0f);
         glm::vec2 sz = { 180, 80 };
 
         inspectPanel = new ui::XRPanel("MapperInspector_" + logic_node->getName(), pos, sz, 0u, colors::RUST);
@@ -45,25 +47,27 @@ namespace GraphSystem {
         desc.size = { 32, 24 };
         desc.color = colors::WHITE;
 
-        std::vector<std::pair<std::string, int>> buttons = {
-            { "A", GLFW_KEY_A },
-            { "B", GLFW_KEY_B },
-            { "X", GLFW_KEY_X },
-            { "Y", GLFW_KEY_Y }
+       
+        std::vector<std::pair<std::string, MappedButton>> buttons = {
+            { "A", MappedButton::A },
+            { "B", MappedButton::B },
+            { "X", MappedButton::X },
+            { "Y", MappedButton::Y }
         };
 
-        for (auto& [label, keyCode] : buttons) {
+        for (const auto& [label, buttonEnum] : buttons) {
             auto* btn = new ui::Button2D("KeyBtn_" + label, desc);
             btn->add_child(new ui::Text2D(label, { 0, 0 }));
             container->add_child(btn);
-
-            Node::bind(btn->get_name(), FuncVoid([this, keyCode](const std::string&, void*) {
-                if (mapperNode) mapperNode->setMappedButton(keyCode);
+ 
+            Node::bind(btn->get_name(), FuncVoid([this, buttonEnum](const std::string&, void*) {
+                if (mapperNode) {
+                    mapperNode->setMappedButton(buttonEnum);
+                }
                 }));
         }
 
         add_child(inspectPanel);
         inspectPanel->set_visibility(false, true);
     }
-
 }

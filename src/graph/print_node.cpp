@@ -1,6 +1,7 @@
 #include "print_node.h"
 #include <iostream>
 #include <glm/glm.hpp>
+#include <fstream>
 
 namespace GraphSystem {
 
@@ -10,13 +11,15 @@ namespace GraphSystem {
 
         messageInput = addInput("Message", IOType::FLOAT);  
         std::cout << "[PrintNode] Created: " << name << "\n";
+
+        messageInput->setData(defaultMessage);
     }
 
     void PrintNode::execute(std::queue<GraphNode*>& executionQueue) {
         
         std::cout << "[PrintNode] TURNO DE EJECUCIÓN PARA: " << getName() << "\n";
 
-        if (messageInput && messageInput->hasData()) {
+        if (messageInput) {
             VariableValue value = messageInput->getValue();
 
             std::visit([this](auto&& val) {
@@ -51,12 +54,43 @@ namespace GraphSystem {
             std::cout << "[PrintNode][" << getName() << "] (No hay datos en la entrada 'Message')\n";
         }
 
-        if (auto* execOutput = getOutput("Exec")) { 
+        if (execOutput) {
             for (auto* link : execOutput->getLinks()) {
                 if (auto* nextNode = link->getTargetNode()) {
                     executionQueue.push(nextNode);
                 }
             }
+        }
+    }
+
+    void PrintNode::serialize(std::ofstream& file) {
+        GraphNode::serialize(file);
+
+        uint64_t size = defaultMessage.size();
+        file.write(reinterpret_cast<const char*>(&size), sizeof(size));
+        file.write(defaultMessage.c_str(), size);
+    }
+
+    void PrintNode::parse(std::ifstream& file) {
+        GraphNode::parse(file);
+    
+        uint64_t size = 0;
+        file.read(reinterpret_cast<char*>(&size), sizeof(size));
+        defaultMessage.resize(size);
+        if (size > 0) {
+            file.read(&defaultMessage[0], size);
+        }
+    }
+
+    void PrintNode::rebindPins() {
+        
+        execInput = getInput("Execute");
+        execOutput = getOutput("Exec");
+        messageInput = getInput("Message");
+
+       
+        if (messageInput) {
+            messageInput->setData(defaultMessage);
         }
     }
 }

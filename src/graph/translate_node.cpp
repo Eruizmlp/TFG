@@ -1,9 +1,11 @@
 #include "translate_node.h"
 #include <iostream>
 #include <queue>
+#include <fstream>
 
 namespace GraphSystem {
 
+  
     TranslateNode::TranslateNode(const std::string& name, const glm::vec3& off)
         : GraphNode(name, NodeCategory::TRANSFORM), offset(off)
     {
@@ -14,48 +16,44 @@ namespace GraphSystem {
         execOutput = addOutput("Exec", IOType::EXECUTION);
         transformOutput = addOutput("Transform", IOType::MESH);
 
-        offsetInput->setData(VariableValue(this->offset));
-        transformOutput->setData(VariableValue(static_cast<MeshInstance3D*>(nullptr)));
+       
+        offsetInput->setData(this->offset);
+        transformOutput->setData(static_cast<MeshInstance3D*>(nullptr));
     }
 
     void TranslateNode::setOffset(const glm::vec3& o) {
         offset = o;
+       
+        if (offsetInput) {
+            offsetInput->setData(offset);
+        }
     }
 
     glm::vec3 TranslateNode::getOffset() const {
-        if (offsetInput && offsetInput->hasData()) {
-            VariableValue v = offsetInput->getValue();
-            if (const glm::vec3* pval = std::get_if<glm::vec3>(&v)) {
-                return *pval;
-            }
+    
+        if (offsetInput) {
+            return offsetInput->getVec3();
         }
         return offset;
     }
 
-    void TranslateNode::execute(std::queue<GraphNode*>& executionQueue) {
 
-        MeshInstance3D* currentMesh = nullptr;
-        if (transformInput && transformInput->hasData()) {
-            VariableValue v = transformInput->getValue();
-            if (auto pval = std::get_if<MeshInstance3D*>(&v)) {
-                currentMesh = *pval;
-            }
-            else {
-                std::cerr << "[TranslateNode] (" << getName() << ") Type mismatch en Transform. Se esperaba MESH.\n";
-            }
-        }
+    void TranslateNode::execute(std::queue<GraphNode*>& executionQueue) {
+     
+        MeshInstance3D* currentMesh = transformInput ? transformInput->getMesh() : nullptr;
 
         if (currentMesh) {
-            glm::vec3 currentOffset = getOffset();
 
+            glm::vec3 currentOffset = getOffset();
             Transform t = currentMesh->get_transform();
             t.set_position(currentOffset);
             currentMesh->set_transform(t);
 
-            transformOutput->setData(VariableValue(currentMesh));
+           
+            transformOutput->setData(currentMesh);
         }
         else {
-            std::cerr << "[TranslateNode] (" << getName() << ") No hay malla de destino para trasladar.\n";
+            transformOutput->setData(static_cast<MeshInstance3D*>(nullptr));
         }
 
         if (execOutput) {
@@ -64,6 +62,33 @@ namespace GraphSystem {
                     executionQueue.push(nextNode);
                 }
             }
+        }
+    }
+
+
+
+    void TranslateNode::serialize(std::ofstream& file) {
+        GraphNode::serialize(file);
+
+        file.write(reinterpret_cast<const char*>(&offset), sizeof(offset));
+    }
+
+    void TranslateNode::parse(std::ifstream& file) {
+        GraphNode::parse(file);
+
+        file.read(reinterpret_cast<char*>(&offset), sizeof(offset));
+    }
+
+    void TranslateNode::rebindPins() {
+
+        execInput = getInput("Execute");
+        transformInput = getInput("Transform");
+        offsetInput = getInput("Offset");
+        execOutput = getOutput("Exec");
+        transformOutput = getOutput("Transform");
+
+        if (offsetInput) {
+            offsetInput->setData(this->offset);
         }
     }
 }

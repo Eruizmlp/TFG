@@ -307,11 +307,7 @@ int SampleEngine::post_initialize()
         grid->set_surface_material_override(grid->get_surface(0), mat);
         main_scene->add_node(grid);
     }
-    
-    /*ui::Keyboard::get_instance().initialize();
-
-    graph_container->add_child(ui::Keyboard::get_instance().get_root());*/
-
+  
 
     // create graph & editor
     eventGraph = graphManager.createGraph("MainGraph");
@@ -458,14 +454,12 @@ void SampleEngine::update(float delta_time)
 
         
 
-            // 2. Grab and Move Logic (using the right controller's grip button)
             if (Input::is_grab_pressed(HAND_RIGHT)) {
                
                     if (!m_is_grabbing_graph_container) {
-                        // Start grabbing
+                        
                         m_is_grabbing_graph_container = true;
 
-                        // Calculate and store the offset between the controller and the container
                         glm::mat4 controller_transform = Input::get_controller_pose(HAND_RIGHT);
                         glm::mat4 container_transform;
 
@@ -475,14 +469,12 @@ void SampleEngine::update(float delta_time)
                         m_grab_offset_transform = glm::inverse(controller_transform) * container_transform;
                     }
 
-                // While grabbing, update the container's transform based on the controller's movement
                 glm::mat4 controller_transform = Input::get_controller_pose(HAND_RIGHT);
                 glm::mat4 new_container_transform = controller_transform * m_grab_offset_transform;
                 graph_container->set_xr_transform(Transform::mat4_to_transform(new_container_transform));
 
             }
             else {
-                // Stop grabbing when the button is released
                 m_is_grabbing_graph_container = false;
             }
 

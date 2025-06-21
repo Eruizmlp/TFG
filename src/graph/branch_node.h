@@ -16,6 +16,10 @@ namespace GraphSystem {
 
         void execute(std::queue<GraphNode*>& executionQueue) override;
 
+        void parse(std::ifstream& file) override;
+
+        void serialize(std::ofstream& file) override;
+
         void rebindPins() override;
     };
 }

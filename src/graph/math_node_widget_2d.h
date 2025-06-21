@@ -1,4 +1,5 @@
 #pragma once
+
 #include "node_widget_2d.h"
 #include "math_node.h"
 
@@ -8,9 +9,9 @@ namespace GraphSystem {
     private:
         ui::XRPanel* inspectPanel = nullptr;
         bool inspectorVisible = false;
-
         GraphSystem::MathNode* mathNode = nullptr;
 
+        
         ui::Button2D* plusBtn = nullptr;
         ui::Button2D* minusBtn = nullptr;
         ui::Button2D* mulBtn = nullptr;
@@ -27,5 +28,4 @@ namespace GraphSystem {
         void toggleInspector(sInputData data) override;
         void initInspector();
     };
-
 }

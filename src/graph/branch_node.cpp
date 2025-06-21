@@ -35,6 +35,15 @@ namespace GraphSystem {
             }
         }
     }
+
+    void BranchNode::parse(std::ifstream& file) {
+        GraphNode::parse(file);
+    }
+
+    void BranchNode::serialize(std::ofstream& file) {
+        GraphNode::serialize(file);
+    }
+
     void BranchNode::rebindPins() {
         conditionInput = getInput("Condition");
         trueOutput = getOutput("True");

@@ -125,27 +125,22 @@ namespace GraphSystem {
             if (auto* tickNode = dynamic_cast<TickNode*>(node)) {
                 tickNode->update(dt);
                 if (tickNode->isRunning()) {
-                    // Tick nodes execute every frame they are running.
-                    // This is where their continuous execution logic should be.
                     this->executeFrom(tickNode);
                 }
             }
         }
 
-        // Crucial part for TimerNode
         for (auto* node : timerNodes) {
             if (auto* timerNode = dynamic_cast<TimerNode*>(node)) {
-                if (timerNode->isWaiting()) { // Only update if still waiting
+                if (timerNode->isWaiting()) { 
                     timerNode->update(dt);
-                    if (!timerNode->isWaiting()) { // Check if it just finished waiting
-                        // If the timer just completed, then and only then,
-                        // propagate execution to connected nodes.
+                    if (!timerNode->isWaiting()) { 
                         std::cout << "[Graph] TimerNode '" << timerNode->getName() << "' completed. Propagating execution.\n";
                         for (auto* outputPin : timerNode->getOutputs()) {
                             if (outputPin->getType() == IOType::EXECUTION) {
                                 for (auto* link : outputPin->getLinks()) {
                                     if (auto* nextNode = link->getTargetNode()) {
-                                        this->executeFrom(nextNode); // Trigger the next part of the graph
+                                        this->executeFrom(nextNode); 
                                     }
                                 }
                             }

@@ -46,7 +46,7 @@ void MathNodeWidget2D::initInspector() {
         pos,
         sz,
         0u,
-        colors::CYAN
+        colors::CYAN * 0.5f
     );
 
     auto* mathNode = static_cast<MathNode*>(logic_node);

@@ -4,20 +4,20 @@
 #include <algorithm>
 #include <iostream>
 #include <queue>
+#include <fstream>
 
 namespace GraphSystem {
 
     namespace {
-        // Esta inicialización de la semilla aleatoria está bien.
+     
         bool seeded = []() {
             std::srand(static_cast<unsigned>(std::time(nullptr)));
             return true;
             }();
     }
 
-    // El constructor no necesita cambios.
     RandomNode::RandomNode(const std::string& name)
-        : GraphNode(name, NodeCategory::FLOW)
+        : GraphNode(name, NodeCategory::FLOW) 
     {
         execInput = addInput("Execute", IOType::EXECUTION);
         minInput = addInput("Min", IOType::FLOAT);
@@ -26,31 +26,26 @@ namespace GraphSystem {
         execOutput = addOutput("Exec", IOType::EXECUTION);
         resultOutput = addOutput("Result", IOType::FLOAT);
 
-        resultOutput->setData(VariableValue(0.0f));
+       
+        minInput->setData(defaultMin);
+        maxInput->setData(defaultMax);
+        
+        resultOutput->setData(0.0f);
     }
+
 
     void RandomNode::execute(std::queue<GraphNode*>& executionQueue) {
 
-        float minVal = defaultMin;
-        float maxVal = defaultMax;
-
-        if (minInput && minInput->hasData()) {
-            VariableValue v = minInput->getValue();
-            if (const float* pval = std::get_if<float>(&v)) minVal = *pval;
-            else std::cerr << "[RandomNode] (" << getName() << ") Type mismatch for Min input.\n";
-        }
-        if (maxInput && maxInput->hasData()) {
-            VariableValue v = maxInput->getValue();
-            if (const float* pval = std::get_if<float>(&v)) maxVal = *pval;
-            else std::cerr << "[RandomNode] (" << getName() << ") Type mismatch for Max input.\n";
-        }
+        float minVal = minInput->getFloat();
+        float maxVal = maxInput->getFloat();
 
         if (minVal > maxVal) std::swap(minVal, maxVal);
 
         float r = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
         float value = minVal + r * (maxVal - minVal);
 
-        resultOutput->setData(VariableValue(value));
+        resultOutput->setData(value);
+
 
         if (execOutput) {
             for (auto* link : execOutput->getLinks()) {
@@ -59,5 +54,33 @@ namespace GraphSystem {
                 }
             }
         }
+    }
+
+
+    void RandomNode::serialize(std::ofstream& file) {
+        GraphNode::serialize(file);
+        
+        file.write(reinterpret_cast<const char*>(&defaultMin), sizeof(defaultMin));
+        file.write(reinterpret_cast<const char*>(&defaultMax), sizeof(defaultMax));
+    }
+
+    void RandomNode::parse(std::ifstream& file) {
+        GraphNode::parse(file);
+        
+        file.read(reinterpret_cast<char*>(&defaultMin), sizeof(defaultMin));
+        file.read(reinterpret_cast<char*>(&defaultMax), sizeof(defaultMax));
+    }
+
+    void RandomNode::rebindPins() {
+       
+        execInput = getInput("Execute");
+        minInput = getInput("Min");
+        maxInput = getInput("Max");
+        execOutput = getOutput("Exec");
+        resultOutput = getOutput("Result");
+
+      
+        if (minInput) minInput->setData(defaultMin);
+        if (maxInput) maxInput->setData(defaultMax);
     }
 }

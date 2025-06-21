@@ -379,6 +379,30 @@ void RotateNodeWidget2D::initInspector() {
 
 // -------------------------- TranslateNodeWidget2D --------------------------
 
+
+
+void TranslateNodeWidget2D::serialize(std::ofstream& binary_scene_file)
+{
+    NodeWidget2D::serialize(binary_scene_file);
+    auto* translateNode = static_cast<TranslateNode*>(logic_node);
+    const glm::vec3& offset = translateNode->getOffset();
+    binary_scene_file.write(reinterpret_cast<const char*>(&offset), sizeof(glm::vec3));
+}
+
+void TranslateNodeWidget2D::parse(std::ifstream& binary_scene_file)
+{
+    NodeWidget2D::parse(binary_scene_file);
+    auto* translateNode = static_cast<TranslateNode*>(logic_node);
+    glm::vec3 offset;
+    binary_scene_file.read(reinterpret_cast<char*>(&offset), sizeof(glm::vec3));
+
+    translateNode->setOffset(offset);
+
+    if (Input* offsetInput = translateNode->getInput("Offset")) {
+        offsetInput->setData(VariableValue(offset));
+    }
+}
+
 TranslateNodeWidget2D::TranslateNodeWidget2D(const std::string& nodeType,
     TranslateNode* node,
     GraphEditor* editor,
@@ -460,7 +484,7 @@ void TranslateNodeWidget2D::initInspector() {
         }
         });
 
-    xSlider = createLabelAndSlider("Y:", "TransY_" + logic_node->getName(), offset.y, xValueLabel, [this](float v_comp) { 
+    ySlider = createLabelAndSlider("Y:", "TransY_" + logic_node->getName(), offset.y, yValueLabel, [this](float v_comp) {
         auto* node = static_cast<TranslateNode*>(logic_node);
         glm::vec3 currentFullOffset = node->getOffset(); 
         currentFullOffset.y = v_comp;
@@ -470,7 +494,7 @@ void TranslateNodeWidget2D::initInspector() {
         }
         });
 
-    xSlider = createLabelAndSlider("Z:", "TransZ_" + logic_node->getName(), offset.z, xValueLabel, [this](float v_comp) { 
+    zSlider = createLabelAndSlider("Z:", "TransZ_" + logic_node->getName(), offset.z, zValueLabel, [this](float v_comp) {
         auto* node = static_cast<TranslateNode*>(logic_node);
         glm::vec3 currentFullOffset = node->getOffset();
         currentFullOffset.z = v_comp;
@@ -567,16 +591,16 @@ void ScaleNodeWidget2D::initInspector() {
     inspectPanel->add_child(scaleValueLabel);
 
     Node::bind(factorSlider->get_name(), FuncFloat([this, scaleNode](const std::string&, float v) {
-        scaleNode->setScaleFactor(v); // Actualiza el miembro interno
+        scaleNode->setScaleFactor(v); 
 
-        // Actualizar el Input "Factor" del nodo
+        
         if (scaleNode->getInput("Factor")) { 
             scaleNode->getInput("Factor")->setData(VariableValue(v));
         }
 
 
-        if (scaleValueLabel) { // Asegurarse que scaleValueLabel no es null
-            scaleValueLabel->set_text(formatFloat(v, 2)); // 
+        if (scaleValueLabel) { 
+            scaleValueLabel->set_text(formatFloat(v, 2)); 
         }
         }));
 
@@ -600,6 +624,26 @@ void ScaleNodeWidget2D::updateInspector() {
     scaleValueLabel->set_text(formatFloat(valueToDisplay, 2));
 }
 
+void ScaleNodeWidget2D::serialize(std::ofstream& binary_scene_file)
+{
+    NodeWidget2D::serialize(binary_scene_file);
+    auto* scaleNode = static_cast<ScaleNode*>(logic_node);
+    float factor = scaleNode->getScaleFactor();
+    binary_scene_file.write(reinterpret_cast<const char*>(&factor), sizeof(float));
+}
 
+void ScaleNodeWidget2D::parse(std::ifstream& binary_scene_file)
+{
+    NodeWidget2D::parse(binary_scene_file);
+    auto* scaleNode = static_cast<ScaleNode*>(logic_node);
+    float factor;
+    binary_scene_file.read(reinterpret_cast<char*>(&factor), sizeof(float));
+
+    scaleNode->setScaleFactor(factor);
+
+    if (Input* factorInput = scaleNode->getInput("Factor")) {
+        factorInput->setData(VariableValue(factor));
+    }
+}
 
 
