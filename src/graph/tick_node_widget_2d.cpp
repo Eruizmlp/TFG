@@ -40,7 +40,7 @@ void TickNodeWidget2D::initInspector() {
     glm::vec2 pos = glm::vec2(get_size().x + 10.0f, 0.0f);
     glm::vec2 sz = { 180.0f, 80.0f };
 
-    inspectPanel = new ui::XRPanel("TickInspect_" + logic_node->getName(), pos, sz, 0u, colors::YELLOW);
+    inspectPanel = new ui::XRPanel("TickInspect_" + logic_node->getName(), pos, sz, 0u, colors::YELLOW * 0.5f);
     auto* tickNode = static_cast<TickNode*>(logic_node);
 
     statusLabel = new ui::Text2D("State: Stopped", { 8, 10 });

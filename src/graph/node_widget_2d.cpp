@@ -8,6 +8,7 @@
 #include <sstream>
 #include <fstream>
 #include "graphics/renderer.h"
+#include "engine/engine.h"
 
 
 using namespace GraphSystem;
@@ -101,24 +102,71 @@ bool NodeWidget2D::on_input(sInputData data) {
 }
 
 
+//else if (grabbing) {
+//
+//    Transform raycast_transform = Transform::mat4_to_transform(Input::get_controller_pose(HAND_RIGHT, POSE_AIM));
+//    const glm::vec3& forward = raycast_transform.get_front();
+//
+//    glm::mat4x4 m(1.0f);
+//    glm::vec3 eye = raycast_transform.get_position();
+//
+//    auto webgpu_context = Renderer::instance->get_webgpu_context();
+//    float width = static_cast<float>(webgpu_context->render_width);
+//    float height = static_cast<float>(webgpu_context->render_height);
+//    glm::vec2 grab_offset = glm::vec2(last_grab_position.x, panel_size.y - last_grab_position.y) / glm::vec2(width, height);
+//    glm::vec3 new_pos = eye + forward * last_grab_distance;
+//
+//    m = glm::translate(m, new_pos);
+//    m = m * glm::toMat4(get_rotation_to_face(new_pos, renderer->get_camera_eye(), { 0.0f, 1.0f, 0.0f }));
+//    m = glm::rotate(m, glm::radians(180.f), { 1.0f, 0.0f, 0.0f });
+//    m = glm::translate(m, -glm::vec3(grab_offset, 0.0f));
+//    set_xr_transform(Transform::mat4_to_transform(m));
+//
+//    root->set_priority(DRAGGABLE);
+//    }
+
 void NodeWidget2D::update(float delta_time)
 {
+    auto* renderer = Engine::get_instance()->get_renderer();
 
-    auto d = get_input_data(false);
-    if (d.was_pressed) {
-        dragging = true;
-        dragOffset = ::Input::get_mouse_position() - get_translation();
+    if (renderer->get_xr_available()) {
+        sInputData data = get_input_data(false);
+
+
+        if (data.is_hovered && ::Input::is_trigger_pressed(HAND_RIGHT)) {
+            if (!m_is_grabbing) {
+
+                m_is_grabbing = true;
+                glm::mat4 controller_transform = ::Input::get_controller_pose(HAND_RIGHT);
+                glm::mat4 widget_transform = get_global_viewport_model();
+
+                m_grab_offset_transform = glm::inverse(controller_transform) * widget_transform;
+            }
+
+            glm::mat4 controller_transform = ::Input::get_controller_pose(HAND_RIGHT);
+            glm::mat4 new_widget_transform = controller_transform * m_grab_offset_transform;
+            set_xr_transform(Transform::mat4_to_transform(new_widget_transform));
+
+        }
     }
-    if (dragging && d.is_pressed) {
-        set_position(::Input::get_mouse_position() - dragOffset);
-    }
-    if (d.was_released) {
-        dragging = false;
+    else {
+        auto d = get_input_data(false);
+        if (d.was_pressed) {
+            dragging = true;
+            dragOffset = ::Input::get_mouse_position() - get_translation();
+        }
+        if (dragging && d.is_pressed) {
+            set_position(::Input::get_mouse_position() - dragOffset);
+        }
+        if (d.was_released) {
+            dragging = false;
+        }
+
+        updateInspector();
+
+        background->update(delta_time);
     }
 
-    updateInspector();
-
-    background->update(delta_time);
 }
 
 
@@ -130,8 +178,7 @@ void NodeWidget2D::updateTitleFromLogicNode() {
 void NodeWidget2D::rebuildWidgetUI() {
     if (!rootContainer || !logic_node) return;
 
-    // 1. Crear una lista de hijos a borrar para evitar problemas al modificar la lista mientras se itera.
-    //    No incluimos el titleLabel en esta lista para preservarlo.
+    
     std::vector<Node*> children_to_delete;
     for (auto* child : rootContainer->get_children()) {
         if (child != titleLabel) {
@@ -139,17 +186,13 @@ void NodeWidget2D::rebuildWidgetUI() {
         }
     }
 
-    // 2. Borrar los hijos seleccionados usando el método correcto del padre.
     for (auto* child_node : children_to_delete) {
-        // FIX: Realizar un dynamic_cast a Node2D* para llamar a la sobrecarga correcta de remove_child,
-        // que es vital para que los contenedores de UI actualicen su layout.
         if (Node2D* node2d_child = dynamic_cast<Node2D*>(child_node)) {
             rootContainer->remove_child(node2d_child);
         }
-        delete child_node; // Liberar la memoria del nodo hijo.
+        delete child_node;
     }
 
-    // 3. Vuelve a crear la UI para los pines con los punteros ahora válidos.
     for (auto* outP : logic_node->getOutputs()) {
         auto* row = new ui::HContainer2D("RowOut_" + logic_node->getName() + "_" + outP->getName(), { 0, 0 });
         row->padding = { 4, 2 }; row->item_margin = { 8, 0 };

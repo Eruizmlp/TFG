@@ -462,7 +462,7 @@ void SampleEngine::update(float delta_time)
 
                 glm::vec3 front = -get_renderer()->get_camera_front();
 
-                float distance = 0.5f;
+                float distance = 1.5f;
 
                 glm::vec3 target_pos = eye + front * distance;
 

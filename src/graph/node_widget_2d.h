@@ -29,6 +29,8 @@ namespace GraphSystem {
 
         ui::Text2D* titleLabel = nullptr;
 
+        bool      m_is_grabbing = false;
+        glm::mat4 m_grab_offset_transform;
 
         static glm::vec2 computeSize(GraphNode* node);
 
