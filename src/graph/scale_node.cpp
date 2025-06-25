@@ -24,9 +24,6 @@ namespace GraphSystem {
 
     void ScaleNode::setScaleFactor(float f) {
         factor = f;
-        if (factorInput) {
-            factorInput->setData(factor);
-        }
     }
 
   

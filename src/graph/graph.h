@@ -17,6 +17,7 @@ namespace GraphSystem {
         std::vector<GraphNode*> eventNodes;
         std::vector<GraphNode*> tickNodes;
         std::vector<GraphNode*> timerNodes;
+        std::vector<GraphNode*> mapperNodes;
 
 
     public:

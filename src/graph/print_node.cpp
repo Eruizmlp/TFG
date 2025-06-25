@@ -45,6 +45,9 @@ namespace GraphSystem {
                 else if constexpr (std::is_same_v<T, std::string>) {
                     std::cout << "\"" << val << "\"\n";
                 }
+                else if constexpr (std::is_same_v<T, bool>) {
+                    std::cout << "\"" << val << "\"\n";
+                }
                 else {
                     std::cout << val << "\n"; 
                 }

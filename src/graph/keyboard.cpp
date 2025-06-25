@@ -6,11 +6,9 @@
 #include "framework/nodes/viewport_3d.h"
 #include "framework/input.h"
 
-#include "graphics/renderer.h"
-#include "engine/sample_engine.h"
-
 #include "framework/math/math_utils.h"
-
+#include "engine/engine.h"
+#include "graphics/renderer.h"
 
 #include "glm/gtx/quaternion.hpp"
 
@@ -65,6 +63,8 @@ namespace ui {
         caps = false;
         symbols = false;
         caps_locked = false;
+
+        callback = nullptr;
     }
 
     void XrKeyboardState::push_char(char c)
@@ -156,7 +156,7 @@ namespace ui {
         return text->text_entity->get_text_width(input.substr(0, p_caret));
     }
 
-    void Keyboard::initialize()
+    void Keyboard::initialize(Node2D* parent)
     {
         std::string name = "xr_keyboard";
 
@@ -210,7 +210,13 @@ namespace ui {
         auto webgpu_context = Renderer::instance->get_webgpu_context();
         glm::vec2 screen_size = glm::vec2(static_cast<float>(webgpu_context->render_width), static_cast<float>(webgpu_context->render_height));
 
-        keyboard_2d->translate({ screen_size.x * 0.5f - keyboard_size.x * 0.5f, 16.0f});
+        keyboard_2d->translate({ screen_size.x * 0.5f - keyboard_size.x * 0.5f, 16.0f });
+
+        keyboard_2d->set_visibility(false, true); 
+
+        if (parent) {
+            parent->add_child(keyboard_2d);
+        }
     }
 
     void Keyboard::render()
@@ -228,12 +234,10 @@ namespace ui {
             return;
         }
 
-        auto* eng = SampleEngine::get_instance();
-
-        auto* renderer = eng->get_renderer();
+        auto renderer = Engine::get_instance()->get_renderer();
 
         // Set layout
-        if(state.layout_dirty) {
+        if (state.layout_dirty) {
             root_lc->set_visibility(!state.symbols && !state.caps);
             root_uc->set_visibility(!state.symbols && state.caps);
             root_sym->set_visibility(state.symbols);
@@ -290,7 +294,7 @@ namespace ui {
                     }
                 }
                 // Handle letters
-                else if(c >= GLFW_KEY_A && c <= GLFW_KEY_Z) {
+                else if (c >= GLFW_KEY_A && c <= GLFW_KEY_Z) {
                     c = shift_pressed ? c : std::tolower(c);
                 }
                 else {
@@ -318,15 +322,18 @@ namespace ui {
     void Keyboard::request(std::function<void(const std::string&)> fn, const std::string& str, uint8_t max_length)
     {
         active = true;
-        placed = false;
+        placed = false; // place again in correct position
+
+        if (keyboard_2d) keyboard_2d->set_visibility(true, true);
 
         state.callback = fn;
         state.max_length = max_length;
 
-        if (str.size() > 0u && state.text) {  
+        if (str.size() > 0u) {
             state.set_input(str);
         }
     }
+
     void Keyboard::create_keys(float start_x, float start_y, float margin)
     {
         // Create common keys panel
@@ -368,22 +375,22 @@ namespace ui {
         {
             Node::bind("Backspace", [&](const std::string& sg, void* data) {
                 state.remove_char();
-            });
+                });
 
             Node::bind("Backspace@long_click", [&](const std::string& sg, void* data) {
                 state.clear_input();
-            });
+                });
         }
 
         // Shift
         {
             Node::bind("Shift", [&](const std::string& sg, void* data) {
                 state.toggle_caps();
-            });
+                });
 
             Node::bind("Shift@dbl_click", [&](const std::string& sg, void* data) {
                 state.toggle_caps_lock();
-            });
+                });
         }
 
         // Enter
@@ -394,24 +401,26 @@ namespace ui {
                 state.reset();
                 close();
             }
-        });
+            });
 
         // Symbols key
         Node::bind("Symbols", [&](const std::string& sg, void* data) {
             state.toggle_symbols();
-        });
+            });
 
         // Space
         Node::bind("Space", [&](const std::string& sg, void* data) {
             state.push_char(' ');
-        });
+            });
 
         // Hide Keyboard key
         Node::bind("HideKeyboard", [&](const std::string& sg, void* data) {
             state.reset();
             close();
-        });
+            });
     }
+
+ 
 
     void Keyboard::create_keyboard_common_layout(std::vector<XrKey>& keys, float start_x, float start_y, float margin)
     {
@@ -427,7 +436,7 @@ namespace ui {
             .position = glm::vec2(start_x + first_row_size * spacing.x, start_y),
             .flags = ui::LONG_CLICK,
             .texture_path = "data/textures/buttons/backspace_key.png"
-        });
+            });
 
         // Shift
         keys.push_back({
@@ -435,14 +444,14 @@ namespace ui {
             .position = glm::vec2(start_x + spacing.x * 0.5f, start_y + spacing.y * 2.0f),
             .flags = ui::ALLOW_TOGGLE | ui::DBL_CLICK,
             .texture_path = "data/textures/buttons/shift_key.png"
-        });
+            });
 
         // Enter
         keys.push_back({
             .label = "Enter",
             .position = glm::vec2(start_x + second_row_size * spacing.x + spacing.x * 0.10f, start_y + spacing.y),
             .size = { button_size.x * 2.0f, button_size.y }
-        });
+            });
 
         start_x += 42.f;
 
@@ -452,7 +461,7 @@ namespace ui {
             .position = glm::vec2(start_x + spacing.x, start_y + spacing.y * 3.0f),
             .flags = ui::ALLOW_TOGGLE,
             .texture_path = "data/textures/buttons/symbols_key.png"
-        });
+            });
 
         float space_key_width = spacing.x * 5.0f;
 
@@ -461,14 +470,14 @@ namespace ui {
             .label = "Space",
             .position = glm::vec2(start_x + spacing.x * 2.0f, start_y + spacing.y * 3.0f),
             .size = { space_key_width, button_size.y }
-        });
+            });
 
         // Hide Keyboard key
         keys.push_back({
             .label = "HideKeyboard",
             .position = glm::vec2(start_x + spacing.x * 2.0f + space_key_width + margin, start_y + spacing.y * 3.0f),
             .texture_path = "data/textures/buttons/hide_keyboard_key.png"
-        });
+            });
     }
 
     void Keyboard::create_keyboard_letters_layout(std::vector<XrKey>& keys, float start_x, float start_y, float margin, bool upper_case)
@@ -478,7 +487,7 @@ namespace ui {
 
         auto fn_char = [&](const std::string& sg, void* data) {
             state.push_char(sg[0]);
-        };
+            };
 
         std::string first_row = upper_case ? "QWERTYUIOP" : "qwertyuiop";
         for (size_t i = 0; i < first_row.size(); ++i) {
@@ -509,7 +518,7 @@ namespace ui {
 
         auto fn_char = [&](const std::string& sg, void* data) {
             state.push_char(sg[0]);
-        };
+            };
 
         std::string first_row = "0123456789";
         for (size_t i = 0; i < first_row.size(); ++i) {
@@ -531,5 +540,10 @@ namespace ui {
             keys.push_back({ label, glm::vec2(start_x + (i + 1) * spacing.x + spacing.x * 0.5f, start_y + spacing.y * 2.0f) });
             Node::bind(label, fn_char);
         }
+    }
+
+    void Keyboard::close() {
+        active = false;
+        if (keyboard_2d) keyboard_2d->set_visibility(false, true);
     }
 }

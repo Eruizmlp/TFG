@@ -4,6 +4,7 @@
 #include "timer_node.h"
 #include <iostream>
 #include <queue>
+#include "mapper_node.h"
 
 namespace GraphSystem {
 
@@ -36,6 +37,9 @@ namespace GraphSystem {
         }
         if (auto* timerNode = dynamic_cast<TimerNode*>(node)) {
             timerNodes.push_back(timerNode);
+        }
+        if (auto* mapperNode = dynamic_cast<MapperNode*>(node)) {
+            mapperNodes.push_back(mapperNode);
         }
     }
 
@@ -121,6 +125,11 @@ namespace GraphSystem {
     }
 
     void Graph::update(float dt) {
+
+        for (auto* node : mapperNodes) {
+            node->update(dt);
+        }
+
         for (auto* node : tickNodes) {
             if (auto* tickNode = dynamic_cast<TickNode*>(node)) {
                 tickNode->update(dt);
@@ -129,7 +138,7 @@ namespace GraphSystem {
                 }
             }
         }
-
+       
         for (auto* node : timerNodes) {
             if (auto* timerNode = dynamic_cast<TimerNode*>(node)) {
                 if (timerNode->isWaiting()) { 

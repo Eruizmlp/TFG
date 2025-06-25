@@ -13,12 +13,11 @@ namespace GraphSystem {
     }
 
     void MapperNodeWidget2D::toggleInspector(sInputData data) {
-        if (data.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
-            if (!inspectPanel) initInspector();
-            inspectorVisible = !inspectorVisible;
-            if (inspectPanel) inspectPanel->set_visibility(inspectorVisible, true);
-        }
+        if (!inspectPanel) initInspector();
+        inspectorVisible = !inspectorVisible;
+        if (inspectPanel) inspectPanel->set_visibility(inspectorVisible, true);
     }
+
 
     void MapperNodeWidget2D::updateInspector() {
         if (!inspectPanel || !inspectorVisible) return;
@@ -26,8 +25,16 @@ namespace GraphSystem {
     }
 
     void MapperNodeWidget2D::update(float delta_time) {
-        NodeWidget2D::update(delta_time);
+        sInputData d = get_input_data(false);
+        if (d.is_hovered && (::Input::was_mouse_pressed(GLFW_MOUSE_BUTTON_RIGHT) || (::Input::was_trigger_pressed(HAND_LEFT)))) {
+        
+            toggleInspector(d);
+        }
+
+        NodeWidget2D::update(delta_time); 
+
         updateInspector();
+
         if (inspectPanel && inspectorVisible)
             inspectPanel->update(delta_time);
     }

@@ -52,14 +52,6 @@ namespace ui {
 
     class Keyboard {
 
-    private:
-        Keyboard() = default;    
-        ~Keyboard() = default;   
-
-
-        Keyboard(const Keyboard&) = delete;
-        Keyboard& operator=(const Keyboard&) = delete;
-
         static glm::vec2 keyboard_size;
         static Node2D* keyboard_2d;
         static ui::Text2D* caret;
@@ -84,22 +76,14 @@ namespace ui {
 
     public:
 
-        
+        Keyboard() {};
 
-        static Keyboard& get_instance() {
-            static Keyboard instance;  
-            return instance;
-        }
-
-        Node2D* get_root() const { return keyboard_2d; }
-
-
-        static void initialize();
+        static void initialize(Node2D* parent);
 
         static void render();
         static void update(float delta_time);
 
         static void request(std::function<void(const std::string&)> fn, const std::string& str = "", uint8_t max_length = 255u);
-        static void close() { active = false; };
+        static void close();
     };
 }

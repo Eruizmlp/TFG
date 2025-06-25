@@ -44,13 +44,20 @@ namespace GraphSystem {
         outValue = addOutput("Value", type);
     }
 
-    void VariableNode::setVariableName(const std::string& varName) {
+   void VariableNode::setVariableName(const std::string& varName) {
         variableName = varName;
         
-        outValue->setComputeFunction([varName = this->variableName, defVal = this->defaultValue]() -> VariableValue {
-            return VariableNode::getStoredValue(varName, defVal);
+        if (!variableName.empty()) {
+            variableStore.try_emplace(variableName, defaultValue);
+        }
+
+        if (outValue) {
+            outValue->setComputeFunction([varName = this->variableName, defVal = this->defaultValue]() -> VariableValue {
+                return VariableNode::getStoredValue(varName, defVal);
             });
+        }
     }
+
 
     const std::string& VariableNode::getVariableName() const {
         return variableName;

@@ -71,7 +71,30 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     else if (type == "TrigonometricNode") node = new TrigonometricNode(nodeName);
     else if (type == "TranslateNode") node = new TranslateNode(nodeName);
    // else if (type == "SetVariableNode") node = new SetVariableNode(nodeName, "");
-    else if (type == "VariableNode")    node = new VariableNode(nodeName, "");
+    else if (type == "VariableNode") {
+        auto* varNode = new VariableNode(nodeName, "");
+        node = varNode; 
+
+        
+        ui::Keyboard::request(
+          
+            [varNode, this](const std::string& userInput) {
+                if (userInput.empty()) return; 
+
+                varNode->setVariableName(userInput);
+                varNode->setName(userInput);
+
+                for (auto* widget : this->getWidgets()) {
+                    if (widget->getLogicNode() == varNode) {
+                        widget->updateTitleFromLogicNode();
+                        break;
+                    }
+                }
+            },
+            "nombre_variable", // Texto por defecto en el teclado
+            32                 // Longitud máxima
+        );
+    }
     else if (type == "ClampNode")       node = new ClampNode(nodeName);
     else if (type == "CompareNode")     node = new CompareNode(nodeName);
     else if (type == "GetVariableNode") node = new GetVariableNode(nodeName, ""); // Assumes default empty var name
@@ -136,6 +159,7 @@ GraphNode* GraphEditor::createNode(const std::string& type,
     else if (auto* mn = dynamic_cast<MapperNode*>(node)) {
         widget = new MapperNodeWidget2D(type, mn, this, worldPosition);
     }
+
 
     else
         widget = new NodeWidget2D(type, node, this, worldPosition);

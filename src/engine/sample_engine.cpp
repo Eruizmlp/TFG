@@ -43,6 +43,8 @@
 #include <graph/set_variable_node.h>
 #include "graph/create_node_button.h"
 #include <iostream>
+#include <graph/mapper_node.h>
+#include <graph/branch_node.h>
 
 
 
@@ -233,6 +235,7 @@ void SampleEngine::setupNodeCreationUI(GraphSystem::GraphEditor* editor) {
 int SampleEngine::post_initialize()
 {
     Engine::post_initialize();
+    
 
     main_scene = new Scene("main_scene");
 
@@ -243,8 +246,11 @@ int SampleEngine::post_initialize()
         ui::CREATE_3D          
     );
 
+    ui::Keyboard::initialize(graph_container);
+
     main_scene->add_node(graph_container);
 
+   
     // skybox
     {
         MeshInstance3D* skybox = new Environment3D();
@@ -391,6 +397,22 @@ int SampleEngine::post_initialize()
 
 
 
+
+
+    //auto* tickNode = static_cast<GraphSystem::TickNode*>(editor->createNode("TickNode", "FrameTick"));
+    //tickNode->start(); // Activamos el pulso de ejecución.
+
+    //// Nodo de entrada: escucha la pulsación del botón 'A' (VR o Teclado).
+    //auto* mapperNode = static_cast<GraphSystem::MapperNode*>(editor->createNode("MapperNode", "Input_A_Button"));
+    //mapperNode->setMappedButton(GraphSystem::MappedButton::A);
+
+    //// Nodo de condición: solo permite el paso si la condición es verdadera.
+    //auto* branchNode = static_cast<GraphSystem::BranchNode*>(editor->createNode("BranchNode", "If_ButtonWasPressed"));
+
+    //// Nodo de rotación: aplicará la transformación.
+    //auto* rotateNode = static_cast<GraphSystem::RotateNode*>(editor->createNode("RotateNode", "Rotate_90_Degrees"));
+
+
     setupGraphUI();
     setupNodeCreationUI(editor);
 
@@ -414,6 +436,7 @@ void SampleEngine::update(float delta_time)
         controller_mesh_right->set_transform(Transform::mat4_to_transform(Input::get_controller_pose(HAND_RIGHT)));
         controller_mesh_left->set_transform(Transform::mat4_to_transform(Input::get_controller_pose(HAND_LEFT)));
     }
+    ui::Keyboard::update(delta_time);
 
     Engine::update(delta_time);
     for (auto* graph : graphManager.getGraphs()) {
