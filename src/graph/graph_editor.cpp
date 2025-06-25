@@ -87,6 +87,7 @@ GraphNode* GraphEditor::createNode(const std::string& type,
                 for (auto* widget : this->getWidgets()) {
                     if (widget->getLogicNode() == varNode) {
                         widget->updateTitleFromLogicNode();
+                        widget->rebuildWidgetUI();
                         break;
                     }
                 }
